@@ -22,5 +22,5 @@ CAPTION "About 7-Zip"
   LTEXT  "", IDT_ABOUT_VERSION, m, 54, xc, 8
   LTEXT  "", IDT_ABOUT_DATE, m, 67, xc, 8
   LTEXT  MY_COPYRIGHT, -1, m, 80, xc, 8
-  LTEXT  "7-Zip is free software", IDT_ABOUT_INFO, m, y, xc, (by - y - 1)
+  LTEXT  "7-Zip is FREE software. However, you can support development of 7-zip by donating. As a donator user, you will be able to get technical support.", IDT_ABOUT_INFO, m, y, xc, (by - y - 1)
 }
