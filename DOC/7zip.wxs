@@ -273,6 +273,7 @@
               <File Id="el.txt" Name="el.txt" />
               <File Id="eo.txt" Name="eo.txt" />
               <File Id="es.txt" Name="es.txt" />
+              <File Id="en-GB.txt" Name="en-GB.txt" />
               <File Id="et.txt" Name="et.txt" />
               <File Id="eu.txt" Name="eu.txt" />
               <File Id="ext.txt" Name="ext.txt" />
