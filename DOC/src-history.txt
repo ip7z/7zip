@@ -707,3 +707,4 @@ HISTORY of the 7-Zip source code
 - SDK/Windows/FileDir.cpp: function CreateComplexDirectory
   was changed.
 
+THE END

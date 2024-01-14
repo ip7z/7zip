@@ -1,6 +1,6 @@
 LZMA compression
 ----------------
-Version: 23.01
+Version: 24.00
 
 This file describes LZMA encoding and decoding functions written in C language.
 
@@ -343,3 +343,5 @@ So you don't need to catch CNewException, if you call COM interfaces of 7-Zip.
 http://www.7-zip.org
 http://www.7-zip.org/sdk.html
 http://www.7-zip.org/support.html
+
+THE END

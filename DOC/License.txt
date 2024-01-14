@@ -3,7 +3,7 @@
   License for use and distribution
   ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-  7-Zip Copyright (C) 1999-2020 Igor Pavlov.
+  7-Zip Copyright (C) 1999-2024 Igor Pavlov.
 
   The licenses for files are:
 
@@ -88,3 +88,5 @@
 
   --
   Igor Pavlov
+
+THE END

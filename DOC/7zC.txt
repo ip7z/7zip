@@ -185,3 +185,5 @@ _SZ_ALLOC_DEBUG   - define it if you want to debug alloc/free operations to stde
 http://www.7-zip.org
 http://www.7-zip.org/sdk.html
 http://www.7-zip.org/support.html
+
+THE END
