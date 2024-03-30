@@ -27,13 +27,22 @@ ifneq ($(CC), xlc)
 CFLAGS_WARN_WALL = -Werror -Wall -Wextra
 endif
 
+ifdef DEBUG_BUILD
+CFLAGS_DEBUG = -g
+else
+CFLAGS_DEBUG = -DNDEBUG
+ifneq ($(CC), $(CROSS_COMPILE)clang)
+LFLAGS_STRIP = -s
+endif
+endif
+
 # for object file
 # -Wa,-aln=test.s
 # -save-temps
 CFLAGS_BASE_LIST = -c
 # CFLAGS_BASE_LIST = -S
 CFLAGS_BASE = -O2 $(CFLAGS_BASE_LIST) $(CFLAGS_WARN_WALL) $(CFLAGS_WARN) \
- -DNDEBUG -D_REENTRANT -D_FILE_OFFSET_BITS=64 -D_LARGEFILE_SOURCE \
+ $(CFLAGS_DEBUG) -D_REENTRANT -D_FILE_OFFSET_BITS=64 -D_LARGEFILE_SOURCE \
  -fPIC
 
 FLAGS_FLTO = -ffunction-sections
@@ -206,10 +215,6 @@ $(O):
 # LDFLAGS3= -flto
 # LDFLAGS3= -Wl,--gc-sections
 # -Wl,--print-gc-sections
-
-ifneq ($(CC), $(CROSS_COMPILE)clang)
-LFLAGS_STRIP = -s
-endif
 
 LFLAGS_ALL = $(LFLAGS_STRIP) $(MY_ARCH_2) $(LDFLAGS) $(FLAGS_FLTO) $(LD_arch) $(OBJS) $(MY_LIBS) $(LIB2)
 
