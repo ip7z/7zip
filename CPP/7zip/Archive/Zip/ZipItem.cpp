@@ -469,7 +469,7 @@ void CItem::GetUnicodeString(UString &res, const AString &s, bool isComment, boo
     "ar_DZ", "CP720", "ar_BH", "CP720", "ar_IQ", "CP720", "ar_JO", "CP720",
     "ar_KW", "CP720", "ar_LY", "CP720", "ar_MA", "CP720", "ar_OM", "CP720",
     "ar_QA", "CP720", "ar_SY", "CP720", "ar_TN", "CP720", "ar_AE", "CP720",
-    "ar_YE", "CP720", "ast_ES", "CP850", "az_AZ", "CP866", "az_AZ", "CP857",
+    "ar_YE", "CP720", "ast_ES", "CP850", "az_AZ@cyrillic", "CP866", "az_AZ", "CP857",
     "be_BY", "CP866", "bg_BG", "CP866", "br_FR", "CP850", "ca_ES", "CP850",
     "zh_CN", "CP936", "zh_TW", "CP950", "kw_GB", "CP850", "cs_CZ", "CP852",
     "cy_GB", "CP850", "da_DK", "CP850", "de_AT", "CP850", "de_LI", "CP850",
@@ -493,10 +493,10 @@ void CItem::GetUnicodeString(UString &res, const AString &s, bool isComment, boo
     "ms_MY", "CP850", "nl_BE", "CP850", "nl_NL", "CP850", "nl_SR", "CP850",
     "nn_NO", "CP850", "nb_NO", "CP850", "pl_PL", "CP852", "pt_BR", "CP850",
     "pt_PT", "CP850", "rm_CH", "CP850", "ro_RO", "CP852", "ru_RU", "CP866",
-    "sk_SK", "CP852", "sl_SI", "CP852", "sq_AL", "CP852", "sr_RS", "CP855",
-    "sr_RS", "CP852", "sv_SE", "CP850", "sv_FI", "CP850", "sw_KE", "CP437",
+    "sk_SK", "CP852", "sl_SI", "CP852", "sq_AL", "CP852", "sr_RS@latin", "CP852",
+    "sr_RS", "CP855", "sv_SE", "CP850", "sv_FI", "CP850", "sw_KE", "CP437",
     "th_TH", "CP874", "tr_TR", "CP857", "tt_RU", "CP866", "uk_UA", "CP866",
-    "ur_PK", "CP720", "uz_UZ", "CP866", "uz_UZ", "CP857", "vi_VN", "CP1258",
+    "ur_PK", "CP720", "uz_UZ@cyrillic", "CP866", "uz_UZ", "CP857", "vi_VN", "CP1258",
     "wa_BE", "CP850", "zh_HK", "CP950", "zh_SG", "CP936"};
 
   const char *lcToAnsiTable[] = {
@@ -504,7 +504,7 @@ void CItem::GetUnicodeString(UString &res, const AString &s, bool isComment, boo
     "ar_DZ", "CP1256", "ar_BH", "CP1256", "ar_IQ", "CP1256", "ar_JO", "CP1256",
     "ar_KW", "CP1256", "ar_LY", "CP1256", "ar_MA", "CP1256", "ar_OM", "CP1256",
     "ar_QA", "CP1256", "ar_SY", "CP1256", "ar_TN", "CP1256", "ar_AE", "CP1256",
-    "ar_YE", "CP1256","ast_ES", "CP1252", "az_AZ", "CP1251", "az_AZ", "CP1254",
+    "ar_YE", "CP1256","ast_ES", "CP1252", "az_AZ@cyrillic", "CP1251", "az_AZ", "CP1254",
     "be_BY", "CP1251", "bg_BG", "CP1251", "br_FR", "CP1252", "ca_ES", "CP1252",
     "zh_CN", "CP936",  "zh_TW", "CP950",  "kw_GB", "CP1252", "cs_CZ", "CP1250",
     "cy_GB", "CP1252", "da_DK", "CP1252", "de_AT", "CP1252", "de_LI", "CP1252",
@@ -528,10 +528,10 @@ void CItem::GetUnicodeString(UString &res, const AString &s, bool isComment, boo
     "ms_MY", "CP1252", "nl_BE", "CP1252", "nl_NL", "CP1252", "nl_SR", "CP1252",
     "nn_NO", "CP1252", "nb_NO", "CP1252", "pl_PL", "CP1250", "pt_BR", "CP1252",
     "pt_PT", "CP1252", "rm_CH", "CP1252", "ro_RO", "CP1250", "ru_RU", "CP1251",
-    "sk_SK", "CP1250", "sl_SI", "CP1250", "sq_AL", "CP1250", "sr_RS", "CP1251",
-    "sr_RS", "CP1250", "sv_SE", "CP1252", "sv_FI", "CP1252", "sw_KE", "CP1252",
+    "sk_SK", "CP1250", "sl_SI", "CP1250", "sq_AL", "CP1250", "sr_RS@latin", "CP1250",
+    "sr_RS", "CP1251", "sv_SE", "CP1252", "sv_FI", "CP1252", "sw_KE", "CP1252",
     "th_TH", "CP874", "tr_TR", "CP1254", "tt_RU", "CP1251", "uk_UA", "CP1251",
-    "ur_PK", "CP1256", "uz_UZ", "CP1251", "uz_UZ", "CP1254", "vi_VN", "CP1258",
+    "ur_PK", "CP1256", "uz_UZ@cyrillic", "CP1251", "uz_UZ", "CP1254", "vi_VN", "CP1258",
     "wa_BE", "CP1252", "zh_HK", "CP950", "zh_SG", "CP936"};
 
   bool isOem = false;
