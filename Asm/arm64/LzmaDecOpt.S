@@ -10,6 +10,38 @@
 ; LzmaDec_DecodeReal_*() must be equal in both versions (C / ASM).
 */
 
+/*
+ ; AAarch64 PAC and BTI Support.
+ ;
+ ; Assembly:
+ ;  Since this code base has no indirect calls or jumps to any assembly,
+ ;  there is no need to modify the source code with bti or pac instructions.
+ ;
+ ; GNU Notes:
+ ;   BTI requires the GNU Elf notes section in order to be enabled. This is
+ ;   because linkers/loaders look at this section to determine page protections,
+ ;   specifically PROT_BTI when mapping in the instructions. PAC is a nice to
+ ;   have for auditing purposes. Note that unconditionally adding PAC and BTI here
+ ;   is OK since the linker will just discard the note for the produced linked
+ ;   object file.
+ */
+#if defined(__ELF__)
+  /* Define the property values for GNU notes section in ELF */
+  #define GNU_PROPERTY_AARCH64_BTI 0x1
+  #define GNU_PROPERTY_AARCH64_POINTER_AUTH 0x2
+
+  .pushsection .note.gnu.property, "a";
+  .balign 8;
+  .long 4;
+  .long 0x10;
+  .long 0x5;
+  .asciz "GNU";
+  .long 0xc0000000; /* GNU_PROPERTY_AARCH64_FEATURE_1_AND */
+  .long 4;
+  .long(GNU_PROPERTY_AARCH64_POINTER_AUTH | GNU_PROPERTY_AARCH64_BTI);
+  .long 0;
+  .popsection;
+#endif
 
 #include "7zAsm.S"
 
