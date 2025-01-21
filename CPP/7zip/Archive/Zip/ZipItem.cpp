@@ -558,6 +558,9 @@ void CItem::GetUnicodeString(UString &res, const AString &s, bool isComment, boo
 
     // Detect required code page name from current locale 
     char *lc = setlocale(LC_CTYPE, "");
+    if (!lc || !lc[0]) {
+      lc = getenv("LC_CTYPE");
+    }
 
     if (lc && lc[0]) {
       // Compare up to the dot, if it exists, e.g. en_US.UTF-8
