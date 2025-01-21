@@ -80,7 +80,7 @@ HRESULT CThreadFolderOperations::DoOperation(CPanel &panel, const UString &progr
 
   UpdateCallbackSpec->Init();
 
-  if (panel._parentFolders.Size() > 0)
+  if (!panel._parentFolders.IsEmpty())
   {
     const CFolderLink &fl = panel._parentFolders.Back();
     UpdateCallbackSpec->PasswordIsDefined = fl.UsePassword;
@@ -244,7 +244,8 @@ Z7_DIAGNOSTIC_IGNORE_CAST_FUNCTION
     messageID = IDS_WANT_TO_DELETE_ITEMS;
     messageParam = NumberToString(indices.Size());
   }
-  if (::MessageBoxW(GetParent(), MyFormatNew(messageID, messageParam), LangString(titleID), MB_OKCANCEL | MB_ICONQUESTION) != IDOK)
+  if (::MessageBoxW(GetParent(), MyFormatNew(messageID, messageParam), LangString(titleID),
+      MB_YESNOCANCEL | MB_ICONQUESTION) != IDYES)
     return;
 
   CDisableNotify disableNotify(*this);
