@@ -1,44 +1,44 @@
-# 7-Zip on GitHub
+# 7-Zip 
 
-Welcome to the **7-Zip** repository on GitHub! 7-Zip is a popular open-source file archiver with a high compression ratio. It supports a wide range of file formats and is available for Windows and command-line interfaces.
+Welcome to the **7-Zip** repository! 7-Zip is a widely used open-source file archiver known for its high compression efficiency. It supports various file formats and is available for Windows and command-line usage.
 
-[![License: LGPL](https://img.shields.io/badge/License-LGPL-blue.svg)](https://www.gnu.org/licenses/lgpl-3.0)
-[![GitHub Release](https://img.shields.io/github/release/mcmilk/7-Zip.svg)](https://github.com/mcmilk/7-Zip/releases)
-[![Downloads](https://img.shields.io/sourceforge/dm/sevenzip.svg)](https://sourceforge.net/projects/sevenzip/)
+[![License: LGPL](https://img.shields.io/badge/License-LGPL-blue.svg)](https://www.gnu.org/licenses/lgpl-3.0)  
+[![GitHub Release](https://img.shields.io/github/release/mcmilk/7-Zip.svg)](https://github.com/mcmilk/7-Zip/releases)  
+[![Downloads](https://img.shields.io/sourceforge/dm/sevenzip.svg)](https://sourceforge.net/projects/sevenzip/)  
 
 ---
 
 ## About 7-Zip
 
-7-Zip is a powerful tool for compressing and decompressing files. It is known for its high compression ratio, especially when using the 7z format with LZMA and LZMA2 compression. The software is free to use and is released under the GNU Lesser General Public License (LGPL).
+7-Zip is a powerful tool for compressing and extracting files, offering a high compression ratio, especially with the **7z** format using LZMA and LZMA2 algorithms. It is completely free to use and is released under the **GNU Lesser General Public License (LGPL).**
 
-### Key Features:
-- High compression ratio in 7z format with LZMA and LZMA2 compression.
-- Supports multiple formats, including:
-  - Packing/unpacking: 7z, XZ, BZIP2, GZIP, TAR, ZIP, WIM.
-  - Unpacking only: ARJ, CAB, CHM, CPIO, CramFS, DMG, EXT, FAT, GPT, HFS, IHEX, ISO, LZH, LZMA, MBR, MSI, NSIS, NTFS, QCOW2, RAR, RPM, SquashFS, UDF, UEFI, VDI, VHD, VMDK, WIM, XAR, Z.
-- Integration with Windows Shell (drag-and-drop, context menu).
-- Powerful command-line version.
-- Localizations for 87+ languages.
+### Key Features
+- High compression ratio using 7z format with **LZMA/LZMA2** compression.
+- Supports a wide range of formats:
+  - **Packing & Unpacking:** 7z, XZ, BZIP2, GZIP, TAR, ZIP, WIM.
+  - **Unpacking Only:** ARJ, CAB, CHM, CPIO, CramFS, DMG, EXT, FAT, GPT, HFS, IHEX, ISO, LZH, LZMA, MBR, MSI, NSIS, NTFS, QCOW2, RAR, RPM, SquashFS, UDF, UEFI, VDI, VHD, VMDK, WIM, XAR, Z.
+- Integration with **Windows Shell** (drag-and-drop, context menu support).
+- **Command-line version** for advanced users.
+- Available in **87+ languages** for global accessibility.
 
 ---
 
 ## Installation
 
-To install 7-Zip, visit the official website: [7-zip.org](https://7-zip.org). Download the appropriate version for your operating system and follow the installation instructions.
+To install 7-Zip, head over to the official website: **[7-zip.org](https://7-zip.org)**. Download the version suitable for your operating system and follow the installation guide.
 
 ---
 
-## Usage
+## How to Use 7-Zip
 
 ### Graphical User Interface (GUI)
-1. Launch 7-Zip from the Start menu or desktop shortcut.
-2. Use the interface to navigate, compress, and extract files.
+1. Open 7-Zip from the Start menu or desktop shortcut.
+2. Use the interface to browse, compress, or extract files with ease.
 
 ### Command-Line Interface (CLI)
-7-Zip provides a command-line tool (`7z.exe`) for advanced users. Here are some basic commands:
+For power users, 7-Zip provides a command-line tool (`7z.exe`). Here are a few basic commands:
 
-- **Compress a file or folder:**
+- **Compress a file/folder:**
   ```bash
   7z a archive_name.7z folder_or_file
   ```
@@ -53,46 +53,51 @@ To install 7-Zip, visit the official website: [7-zip.org](https://7-zip.org). Do
   7z l archive_name.7z
   ```
 
-For more commands and options, refer to the [7-Zip documentation](https://7-zip.org/docs.html).
+For more commands, check out the **[7-Zip documentation](https://7-zip.org/docs.html)**.
 
 ---
 
 ## Contributing
 
-Contributions to 7-Zip are welcome! If you'd like to contribute, please follow these steps:
-1. Fork the repository.
-2. Create a new branch for your changes.
-3. Make your changes and test them thoroughly.
-4. Submit a pull request with a detailed description of your changes.
+Want to contribute to 7-Zip? Follow these steps:
+1. **Fork** this repository.
+2. **Create a new branch** for your updates.
+3. **Make your changes** and test them.
+4. **Submit a pull request** with a clear description of your modifications.
+
+Your contributions help improve 7-Zip for everyone!
 
 ---
 
 ## License
 
-7-Zip is licensed under the **GNU Lesser General Public License (LGPL)**. For more details, see the [LICENSE](LICENSE) file in the repository.
+7-Zip is licensed under the **GNU Lesser General Public License (LGPL)**. For details, see the [LICENSE](LICENSE) file in the repository.
 
 ---
 
-## Support
+## Support & Community
 
-For support, bug reports, or feature requests, please visit the [7-Zip forum](https://sourceforge.net/p/sevenzip/discussion/) or open an issue on GitHub.
-
----
-
-## Links
-
-- Official Website: [7-zip.org](https://7-zip.org)
-- Documentation: [7-Zip Documentation](https://7-zip.org/docs.html)
-- SourceForge Project: [7-Zip on SourceForge](https://sourceforge.net/projects/sevenzip/)
+Need help or want to report a bug? You can:
+- Visit the **[7-Zip forum](https://sourceforge.net/p/sevenzip/discussion/)**.
+- Open an **issue on GitHub**.
 
 ---
 
-## Copyright
+## Useful Links
 
-© 1999-2023 Igor Pavlov. All rights reserved.
-
-7-Zip is developed and maintained by Igor Pavlov. The software is distributed under the terms of the GNU Lesser General Public License (LGPL). For more information, visit the [official website](https://7-zip.org).
+- **Official Website:** [7-zip.org](https://7-zip.org)  
+- **Documentation:** [7-Zip Docs](https://7-zip.org/docs.html)  
+- **SourceForge Project:** [7-Zip on SourceForge](https://sourceforge.net/projects/sevenzip/)  
 
 ---
 
-Thank you for using 7-Zip! We hope it meets your compression and archiving needs.
+## Copyright & Credits
+
+© 1999-2023 **Igor Pavlov**. All rights reserved.
+
+7-Zip is developed and maintained by **Igor Pavlov** and distributed under the **LGPL** license. For more details, visit the [official website](https://7-zip.org).
+
+---
+
+Thank you for choosing **7-Zip**! We hope it makes file compression easier and more efficient for you.
+
