@@ -1,6 +1,6 @@
-# 7-Zip 
+# 7Zip
 
-Welcome to the **7-Zip** repository! 7-Zip is a widely used open-source file archiver known for its high compression efficiency. It supports various file formats and is available for Windows and command-line usage.
+Welcome to the **7-Zip** repository! 7Zipis a widely used open-source file archiver known for its high compression efficiency. It supports various file formats and is available for Windows and command-line usage.
 
 [![License: LGPL](https://img.shields.io/badge/License-LGPL-blue.svg)](https://www.gnu.org/licenses/lgpl-3.0)  [![GitHub Release](https://img.shields.io/github/release/ip7z/7Zip.svg)](https://github.com/ip7z/7Zip/releases)  [![Downloads](https://img.shields.io/sourceforge/dm/sevenzip.svg)](https://sourceforge.net/projects/sevenzip/)  
 
@@ -8,7 +8,7 @@ Welcome to the **7-Zip** repository! 7-Zip is a widely used open-source file arc
 
 ## About 7-Zip
 
-7-Zip is a powerful tool for compressing and extracting files, offering a high compression ratio, especially with the **7z** format using LZMA and LZMA2 algorithms. It is completely free to use and is released under the **GNU Lesser General Public License (LGPL).**
+7Zipis a powerful tool for compressing and extracting files, offering a high compression ratio, especially with the **7z** format using LZMA and LZMA2 algorithms. It is completely free to use and is released under the **GNU Lesser General Public License (LGPL).**
 
 ### Key Features
 - High compression ratio using 7z format with **LZMA/LZMA2** compression.
@@ -30,11 +30,11 @@ To install 7-Zip, head over to the official website: **[7-zip.org](https://7-zip
 ## How to Use 7-Zip
 
 ### Graphical User Interface (GUI)
-1. Open 7-Zip from the Start menu or desktop shortcut.
+1. Open 7Zipfrom the Start menu or desktop shortcut.
 2. Use the interface to browse, compress, or extract files with ease.
 
 ### Command-Line Interface (CLI)
-For power users, 7-Zip provides a command-line tool (`7z.exe`). Here are a few basic commands:
+For power users, 7Zipprovides a command-line tool (`7z.exe`). Here are a few basic commands:
 
 - **Compress a file/folder:**
   ```bash
@@ -51,7 +51,7 @@ For power users, 7-Zip provides a command-line tool (`7z.exe`). Here are a few b
   7z l archive_name.7z
   ```
 
-For more commands, check out the **[7-Zip documentation](https://7-zip.org/docs.html)**.
+For more commands, check out the **[7Zipdocumentation](https://7-zip.org/docs.html)**.
 
 ---
 
@@ -63,20 +63,20 @@ Want to contribute to 7-Zip? Follow these steps:
 3. **Make your changes** and test them.
 4. **Submit a pull request** with a clear description of your modifications.
 
-Your contributions help improve 7-Zip for everyone!
+Your contributions help improve 7Zipfor everyone!
 
 ---
 
 ## License
 
-7-Zip is licensed under the **GNU Lesser General Public License (LGPL)**. For details, see the [LICENSE](LICENSE) file in the repository.
+7Zipis licensed under the **GNU Lesser General Public License (LGPL)**. For details, see the [LICENSE](LICENSE) file in the repository.
 
 ---
 
 ## Support & Community
 
 Need help or want to report a bug? You can:
-- Visit the **[7-Zip forum](https://sourceforge.net/p/sevenzip/discussion/)**.
+- Visit the **[7Zipforum](https://sourceforge.net/p/sevenzip/discussion/)**.
 - Open an **issue on GitHub**.
 
 ---
@@ -84,8 +84,8 @@ Need help or want to report a bug? You can:
 ## Useful Links
 
 - **Official Website:** [7-zip.org](https://7-zip.org)  
-- **Documentation:** [7-Zip Docs](https://7-zip.org/docs.html)  
-- **SourceForge Project:** [7-Zip on SourceForge](https://sourceforge.net/projects/sevenzip/)  
+- **Documentation:** [7ZipDocs](https://7-zip.org/docs.html)  
+- **SourceForge Project:** [7Zipon SourceForge](https://sourceforge.net/projects/sevenzip/)  
 
 ---
 
@@ -93,7 +93,7 @@ Need help or want to report a bug? You can:
 
 © 1999-2023 **Igor Pavlov**. All rights reserved.
 
-7-Zip is developed and maintained by **Igor Pavlov** and distributed under the **LGPL** license. For more details, visit the [official website](https://7-zip.org).
+7Zipis developed and maintained by **Igor Pavlov** and distributed under the **LGPL** license. For more details, visit the [official website](https://7-zip.org).
 
 ---
 
