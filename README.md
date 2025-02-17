@@ -2,7 +2,7 @@
 
 Welcome to the **7-Zip** repository! 7-Zip is a widely used open-source file archiver known for its high compression efficiency. It supports various file formats and is available for Windows and command-line usage.
 
-[![License: LGPL](https://img.shields.io/badge/License-LGPL-blue.svg)](https://www.gnu.org/licenses/lgpl-3.0)  [![GitHub Release](https://img.shields.io/github/release/mcmilk/7-Zip.svg)](https://github.com/mcmilk/7-Zip/releases)  [![Downloads](https://img.shields.io/sourceforge/dm/sevenzip.svg)](https://sourceforge.net/projects/sevenzip/)  
+[![License: LGPL](https://img.shields.io/badge/License-LGPL-blue.svg)](https://www.gnu.org/licenses/lgpl-3.0)  [![GitHub Release](https://img.shields.io/github/release/mcmilk/7-Zip.svg)](https://github.com/ip7z/7-Zip/releases)  [![Downloads](https://img.shields.io/sourceforge/dm/sevenzip.svg)](https://sourceforge.net/projects/sevenzip/)  
 
 ---
 
