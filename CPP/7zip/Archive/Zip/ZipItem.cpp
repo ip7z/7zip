@@ -4,6 +4,7 @@
 #include <iconv.h>
 #include <locale.h>
 #include <cstdio>
+#include <cstdlib>
 #endif
 
 #include "StdAfx.h"
