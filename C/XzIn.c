@@ -117,20 +117,38 @@ static SRes Xz_ReadIndex2(CXzStream *p, const Byte *buf, size_t size, ISzAllocPt
     p->numBlocks = numBlocks;
     p->blocks = (CXzBlockSizes *)ISzAlloc_Alloc(alloc, sizeof(CXzBlockSizes) * numBlocks);
     if (!p->blocks)
+    {
+      Xz_Free(p, alloc);
       return SZ_ERROR_MEM;
+    }
     for (i = 0; i < numBlocks; i++)
     {
       CXzBlockSizes *block = &p->blocks[i];
       READ_VARINT_AND_CHECK(buf, pos, size, &block->totalSize)
       READ_VARINT_AND_CHECK(buf, pos, size, &block->unpackSize)
       if (block->totalSize == 0)
+      {
+        Xz_Free(p, alloc);
         return SZ_ERROR_ARCHIVE;
+      }
     }
   }
   while ((pos & 3) != 0)
+  {
     if (buf[pos++] != 0)
+    {
+      Xz_Free(p, alloc);
       return SZ_ERROR_ARCHIVE;
-  return (pos == size) ? SZ_OK : SZ_ERROR_ARCHIVE;
+    }
+  }
+
+  if (pos != size)
+  {
+    Xz_Free(p, alloc);
+    return SZ_ERROR_ARCHIVE;
+  }
+  
+  return SZ_OK;
 }
 
 static SRes Xz_ReadIndex(CXzStream *p, ILookInStreamPtr stream, UInt64 indexSize, ISzAllocPtr alloc)
