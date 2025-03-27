@@ -117,10 +117,8 @@ static SRes Xz_ReadIndex2(CXzStream *p, const Byte *buf, size_t size, ISzAllocPt
     p->numBlocks = numBlocks;
     p->blocks = (CXzBlockSizes *)ISzAlloc_Alloc(alloc, sizeof(CXzBlockSizes) * numBlocks);
     if (!p->blocks)
-    {
-      Xz_Free(p, alloc);
       return SZ_ERROR_MEM;
-    }
+
     for (i = 0; i < numBlocks; i++)
     {
       CXzBlockSizes *block = &p->blocks[i];
@@ -147,7 +145,7 @@ static SRes Xz_ReadIndex2(CXzStream *p, const Byte *buf, size_t size, ISzAllocPt
     Xz_Free(p, alloc);
     return SZ_ERROR_ARCHIVE;
   }
-  
+
   return SZ_OK;
 }
 
