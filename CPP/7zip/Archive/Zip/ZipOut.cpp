@@ -302,7 +302,7 @@ void COutArchive::WriteCentralHeader(const CItemOut &item)
 
   Write16((UInt16)item.Name.Len());
   
-  const UInt16 zip64ExtraSize = (UInt16)((isUnPack64 ? 8: 0) + (isPack64 ? 8: 0) + (isPosition64 ? 8: 0));
+  const UInt16 zip64ExtraSize = (UInt16)((isUnPack64 || isPack64 || isPosition64 ? 16: 0) + (isPosition64 ? 8: 0));
   const bool writeNtfs = item.Write_NtfsTime;
   const size_t centralExtraSize =
       (isZip64 ? 4 + zip64ExtraSize : 0)
@@ -330,10 +330,8 @@ void COutArchive::WriteCentralHeader(const CItemOut &item)
   {
     Write16(NFileHeader::NExtraID::kZip64);
     Write16(zip64ExtraSize);
-    if (isUnPack64)
-      Write64(item.Size);
-    if (isPack64)
-      Write64(item.PackSize);
+    Write64(item.Size);
+    Write64(item.PackSize);
     if (isPosition64)
       Write64(item.LocalHeaderPos);
   }
