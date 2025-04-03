@@ -1114,37 +1114,49 @@ bool CInArchive::ReadExtra(const CLocalItem &item, unsigned extraSize, CExtraBlo
       }
       else
       {
-        if (ZIP64_IS_32_MAX(unpackSize))
-          { if (size < 8) isOK = false; else { size -= 8; unpackSize = ReadUInt64(); }}
-      
-        if (isOK && ZIP64_IS_32_MAX(packSize))
-          { if (size < 8) isOK = false; else { size -= 8; packSize = ReadUInt64(); }}
-      
-        if (cdItem)
+        size_t expectedExtraRecordSize = 16 + (cdItem && (ZIP64_IS_32_MAX(cdItem->LocalHeaderPos) || ZIP64_IS_16_MAX(cdItem->Disk)) ? 8 : 0) + (cdItem && ZIP64_IS_16_MAX(cdItem->Disk) ? 4 : 0);
+        size_t nonStandardExtraRecordSize = (ZIP64_IS_32_MAX(unpackSize) ? 8 : 0) + (ZIP64_IS_32_MAX(packSize) ? 8 : 0) + (cdItem && ZIP64_IS_32_MAX(cdItem->LocalHeaderPos) ? 8 : 0) + (cdItem && ZIP64_IS_16_MAX(cdItem->Disk) ? 4 : 0);
+        if (expectedExtraRecordSize == size)
         {
-          if (isOK)
+          // Record seems standards compliant. Read it as per the standard.
+          size -= 8; unpackSize = ReadUInt64();
+          size -= 8; packSize = ReadUInt64();
+          if (cdItem && (ZIP64_IS_32_MAX(cdItem->LocalHeaderPos) || ZIP64_IS_16_MAX(cdItem->Disk)))
           {
-            if (ZIP64_IS_32_MAX(cdItem->LocalHeaderPos))
-              { if (size < 8) isOK = false; else { size -= 8; cdItem->LocalHeaderPos = ReadUInt64(); }}
-            /*
-            else if (size == 8)
-            {
-              size -= 8;
-              const UInt64 v = ReadUInt64();
-              // soong_zip, an AOSP tool (written in the Go) writes incorrect value.
-              // we can ignore that minor error here
-              if (v != cdItem->LocalHeaderPos)
-                isOK = false; // ignore error
-              // isOK = false; // force error
-            }
-            */
+            size -= 8; cdItem->LocalHeaderPos = ReadUInt64();
           }
-         
-          if (isOK && ZIP64_IS_16_MAX(cdItem->Disk))
-            { if (size < 4) isOK = false; else { size -= 4; cdItem->Disk = ReadUInt32(); }}
+          if (cdItem && ZIP64_IS_16_MAX(cdItem->Disk))
+          {
+            size -= 4; cdItem->Disk = ReadUInt32();
+          }
+        }
+        else if (nonStandardExtraRecordSize == size)
+        {
+          // Record is not standards compliant, but appears to match previous 7zip behaviour.
+          if (ZIP64_IS_32_MAX(unpackSize))
+          {
+            size -= 8; unpackSize = ReadUInt64();
+          }
+          if (ZIP64_IS_32_MAX(packSize))
+          {
+            size -= 8; packSize = ReadUInt64();
+          }
+          if (cdItem && ZIP64_IS_32_MAX(cdItem->LocalHeaderPos))
+          {
+            size -= 8; cdItem->LocalHeaderPos = ReadUInt64();
+          }
+          if (cdItem && ZIP64_IS_16_MAX(cdItem->Disk))
+          {
+            size -= 4; cdItem->Disk = ReadUInt32();
+          }
+        }
+        else
+        {
+          // Record doesn't match any known encoding. We can't safely interpret anything in it.
+          isOK = false;
         }
       }
-    
+
       // we can ignore errors, when some zip archiver still write all fields to zip64 extra in local header
       // if (&& (cdItem || !isOK || origSize != 8 * 3 + 4 || size != 8 * 1 + 4))
       if (!isOK || size != 0)
