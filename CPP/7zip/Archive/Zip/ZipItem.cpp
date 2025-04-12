@@ -557,10 +557,13 @@ void CItem::GetUnicodeString(UString &res, const AString &s, bool isComment, boo
     int tableLen = sizeof(lcToOemTable) / sizeof(lcToOemTable[0]);
     int lcLen = 0, i;
 
-    // Detect required code page name from current locale 
-    char *lc = setlocale(LC_CTYPE, "");
+    // Detect required code page name from current locale
+    char *lc = getenv("LC_ALL");
     if (!lc || !lc[0]) {
       lc = getenv("LC_CTYPE");
+    }
+    if (!lc || !lc[0]) {
+      lc = getenv("LANG");
     }
 
     if (lc && lc[0]) {
