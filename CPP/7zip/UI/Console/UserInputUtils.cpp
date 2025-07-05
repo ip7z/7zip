@@ -7,6 +7,14 @@
 
 #include "UserInputUtils.h"
 
+#include <iostream>
+#ifdef _WIN32
+#include <windows.h>
+#elif defined(__linux__)
+#include <termios.h>
+#include <unistd.h>
+#endif
+
 static const char kYes = 'y';
 static const char kNo = 'n';
 static const char kYesAll = 'a';
@@ -64,42 +72,47 @@ static bool GetPassword(CStdOutStream *outStream, UString &psw)
 {
   if (outStream)
   {
-    *outStream << "\nEnter password"
-      #ifdef MY_DISABLE_ECHO
-      " (will not be echoed)"
-      #endif
-      ":";
+    *outStream << "\nEnter password (will not be echoed):";
     outStream->Flush();
   }
 
-  #ifdef MY_DISABLE_ECHO
-  
+#ifdef _WIN32
+  // Windows: disable echo
   const HANDLE console = GetStdHandle(STD_INPUT_HANDLE);
-
-  /*
-  GetStdHandle() returns
-    INVALID_HANDLE_VALUE: If the function fails.
-    NULL : If an application does not have associated standard handles,
-           such as a service running on an interactive desktop,
-           and has not redirected them. */
-  bool wasChanged = false;
   DWORD mode = 0;
+  bool wasChanged = false;
   if (console != INVALID_HANDLE_VALUE && console != NULL)
     if (GetConsoleMode(console, &mode))
       wasChanged = (SetConsoleMode(console, mode & ~(DWORD)ENABLE_ECHO_INPUT) != 0);
+
   const bool res = g_StdIn.ScanUStringUntilNewLine(psw);
+
   if (wasChanged)
     SetConsoleMode(console, mode);
-  
-  #else
-  
+
+#elif defined(__linux__)
+  // Linux: disable echo using termios
+  termios oldt;
+  if (tcgetattr(STDIN_FILENO, &oldt) != 0)
+    return false;
+
+  termios newt = oldt;
+  newt.c_lflag &= ~ECHO;
+  if (tcsetattr(STDIN_FILENO, TCSANOW, &newt) != 0)
+    return false;
+
   const bool res = g_StdIn.ScanUStringUntilNewLine(psw);
-  
-  #endif
+
+  tcsetattr(STDIN_FILENO, TCSANOW, &oldt);
+
+#else
+  // Fallback: no echo masking
+  const bool res = g_StdIn.ScanUStringUntilNewLine(psw);
+#endif
 
   if (outStream)
   {
-    *outStream << endl;
+    *outStream << '\n';
     outStream->Flush();
   }
 
