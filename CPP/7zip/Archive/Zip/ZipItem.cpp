@@ -1,5 +1,12 @@
 // Archive/ZipItem.cpp
 
+#ifndef _WIN32
+#include <iconv.h>
+#include <locale.h>
+#include <cstdio>
+#include <cstdlib>
+#endif
+
 #include "StdAfx.h"
 
 #include "../../../../C/CpuArch.h"
@@ -451,6 +458,184 @@ void CItem::GetUnicodeString(UString &res, const AString &s, bool isComment, boo
     #endif
   }
   
+  #ifndef _WIN32
+
+  // Convert OEM char set to UTF-8 if needed
+  // Use system locale to select code page
+
+  // locale -> code page translation tables generated from Wine source code
+
+  const char *lcToOemTable[] = {
+    "af_ZA", "CP850", "ar_SA", "CP720", "ar_LB", "CP720", "ar_EG", "CP720",
+    "ar_DZ", "CP720", "ar_BH", "CP720", "ar_IQ", "CP720", "ar_JO", "CP720",
+    "ar_KW", "CP720", "ar_LY", "CP720", "ar_MA", "CP720", "ar_OM", "CP720",
+    "ar_QA", "CP720", "ar_SY", "CP720", "ar_TN", "CP720", "ar_AE", "CP720",
+    "ar_YE", "CP720", "ast_ES", "CP850", "az_AZ@cyrillic", "CP866", "az_AZ", "CP857",
+    "be_BY", "CP866", "bg_BG", "CP866", "br_FR", "CP850", "ca_ES", "CP850",
+    "zh_CN", "CP936", "zh_TW", "CP950", "kw_GB", "CP850", "cs_CZ", "CP852",
+    "cy_GB", "CP850", "da_DK", "CP850", "de_AT", "CP850", "de_LI", "CP850",
+    "de_LU", "CP850", "de_CH", "CP850", "de_DE", "CP850", "el_GR", "CP737",
+    "en_AU", "CP850", "en_CA", "CP850", "en_GB", "CP850", "en_IE", "CP850",
+    "en_JM", "CP850", "en_BZ", "CP850", "en_PH", "CP437", "en_ZA", "CP437",
+    "en_TT", "CP850", "en_US", "CP437", "en_ZW", "CP437", "en_NZ", "CP850",
+    "es_PA", "CP850", "es_BO", "CP850", "es_CR", "CP850", "es_DO", "CP850",
+    "es_SV", "CP850", "es_EC", "CP850", "es_GT", "CP850", "es_HN", "CP850",
+    "es_NI", "CP850", "es_CL", "CP850", "es_MX", "CP850", "es_ES", "CP850",
+    "es_CO", "CP850", "es_ES", "CP850", "es_PE", "CP850", "es_AR", "CP850",
+    "es_PR", "CP850", "es_VE", "CP850", "es_UY", "CP850", "es_PY", "CP850",
+    "et_EE", "CP775", "eu_ES", "CP850", "fa_IR", "CP720", "fi_FI", "CP850",
+    "fo_FO", "CP850", "fr_FR", "CP850", "fr_BE", "CP850", "fr_CA", "CP850",
+    "fr_LU", "CP850", "fr_MC", "CP850", "fr_CH", "CP850", "ga_IE", "CP437",
+    "gd_GB", "CP850", "gv_IM", "CP850", "gl_ES", "CP850", "he_IL", "CP862",
+    "hr_HR", "CP852", "hu_HU", "CP852", "id_ID", "CP850", "is_IS", "CP850",
+    "it_IT", "CP850", "it_CH", "CP850", "iv_IV", "CP437", "ja_JP", "CP932",
+    "kk_KZ", "CP866", "ko_KR", "CP949", "ky_KG", "CP866", "lt_LT", "CP775",
+    "lv_LV", "CP775", "mk_MK", "CP866", "mn_MN", "CP866", "ms_BN", "CP850",
+    "ms_MY", "CP850", "nl_BE", "CP850", "nl_NL", "CP850", "nl_SR", "CP850",
+    "nn_NO", "CP850", "nb_NO", "CP850", "pl_PL", "CP852", "pt_BR", "CP850",
+    "pt_PT", "CP850", "rm_CH", "CP850", "ro_RO", "CP852", "ru_RU", "CP866",
+    "sk_SK", "CP852", "sl_SI", "CP852", "sq_AL", "CP852", "sr_RS@latin", "CP852",
+    "sr_RS", "CP855", "sv_SE", "CP850", "sv_FI", "CP850", "sw_KE", "CP437",
+    "th_TH", "CP874", "tr_TR", "CP857", "tt_RU", "CP866", "uk_UA", "CP866",
+    "ur_PK", "CP720", "uz_UZ@cyrillic", "CP866", "uz_UZ", "CP857", "vi_VN", "CP1258",
+    "wa_BE", "CP850", "zh_HK", "CP950", "zh_SG", "CP936"};
+
+  const char *lcToAnsiTable[] = {
+    "af_ZA", "CP1252", "ar_SA", "CP1256", "ar_LB", "CP1256", "ar_EG", "CP1256",
+    "ar_DZ", "CP1256", "ar_BH", "CP1256", "ar_IQ", "CP1256", "ar_JO", "CP1256",
+    "ar_KW", "CP1256", "ar_LY", "CP1256", "ar_MA", "CP1256", "ar_OM", "CP1256",
+    "ar_QA", "CP1256", "ar_SY", "CP1256", "ar_TN", "CP1256", "ar_AE", "CP1256",
+    "ar_YE", "CP1256","ast_ES", "CP1252", "az_AZ@cyrillic", "CP1251", "az_AZ", "CP1254",
+    "be_BY", "CP1251", "bg_BG", "CP1251", "br_FR", "CP1252", "ca_ES", "CP1252",
+    "zh_CN", "CP936",  "zh_TW", "CP950",  "kw_GB", "CP1252", "cs_CZ", "CP1250",
+    "cy_GB", "CP1252", "da_DK", "CP1252", "de_AT", "CP1252", "de_LI", "CP1252",
+    "de_LU", "CP1252", "de_CH", "CP1252", "de_DE", "CP1252", "el_GR", "CP1253",
+    "en_AU", "CP1252", "en_CA", "CP1252", "en_GB", "CP1252", "en_IE", "CP1252",
+    "en_JM", "CP1252", "en_BZ", "CP1252", "en_PH", "CP1252", "en_ZA", "CP1252",
+    "en_TT", "CP1252", "en_US", "CP1252", "en_ZW", "CP1252", "en_NZ", "CP1252",
+    "es_PA", "CP1252", "es_BO", "CP1252", "es_CR", "CP1252", "es_DO", "CP1252",
+    "es_SV", "CP1252", "es_EC", "CP1252", "es_GT", "CP1252", "es_HN", "CP1252",
+    "es_NI", "CP1252", "es_CL", "CP1252", "es_MX", "CP1252", "es_ES", "CP1252",
+    "es_CO", "CP1252", "es_ES", "CP1252", "es_PE", "CP1252", "es_AR", "CP1252",
+    "es_PR", "CP1252", "es_VE", "CP1252", "es_UY", "CP1252", "es_PY", "CP1252",
+    "et_EE", "CP1257", "eu_ES", "CP1252", "fa_IR", "CP1256", "fi_FI", "CP1252",
+    "fo_FO", "CP1252", "fr_FR", "CP1252", "fr_BE", "CP1252", "fr_CA", "CP1252",
+    "fr_LU", "CP1252", "fr_MC", "CP1252", "fr_CH", "CP1252", "ga_IE", "CP1252",
+    "gd_GB", "CP1252", "gv_IM", "CP1252", "gl_ES", "CP1252", "he_IL", "CP1255",
+    "hr_HR", "CP1250", "hu_HU", "CP1250", "id_ID", "CP1252", "is_IS", "CP1252",
+    "it_IT", "CP1252", "it_CH", "CP1252", "iv_IV", "CP1252", "ja_JP", "CP932",
+    "kk_KZ", "CP1251", "ko_KR", "CP949", "ky_KG", "CP1251", "lt_LT", "CP1257",
+    "lv_LV", "CP1257", "mk_MK", "CP1251", "mn_MN", "CP1251", "ms_BN", "CP1252",
+    "ms_MY", "CP1252", "nl_BE", "CP1252", "nl_NL", "CP1252", "nl_SR", "CP1252",
+    "nn_NO", "CP1252", "nb_NO", "CP1252", "pl_PL", "CP1250", "pt_BR", "CP1252",
+    "pt_PT", "CP1252", "rm_CH", "CP1252", "ro_RO", "CP1250", "ru_RU", "CP1251",
+    "sk_SK", "CP1250", "sl_SI", "CP1250", "sq_AL", "CP1250", "sr_RS@latin", "CP1250",
+    "sr_RS", "CP1251", "sv_SE", "CP1252", "sv_FI", "CP1252", "sw_KE", "CP1252",
+    "th_TH", "CP874", "tr_TR", "CP1254", "tt_RU", "CP1251", "uk_UA", "CP1251",
+    "ur_PK", "CP1256", "uz_UZ@cyrillic", "CP1251", "uz_UZ", "CP1254", "vi_VN", "CP1258",
+    "wa_BE", "CP1252", "zh_HK", "CP950", "zh_SG", "CP936"};
+
+  bool isOem = false;
+  bool isAnsi = false;
+
+  if (!isUtf8 &&
+      MadeByVersion.HostOS == NFileHeader::NHostOS::kNTFS &&
+      MadeByVersion.Version >= 20) {
+    isAnsi = true;
+  } else 
+  if (!isUtf8 &&
+      (MadeByVersion.HostOS == NFileHeader::NHostOS::kNTFS ||
+      MadeByVersion.HostOS == NFileHeader::NHostOS::kFAT)) {
+    isOem = true;
+  }
+
+  const char *legacyCp = nullptr;
+  const char *legacyCpAnsi = nullptr;
+
+  if (isOem || isAnsi || (useSpecifiedCodePage && (codePage != 65001))) {
+
+    int tableLen = sizeof(lcToOemTable) / sizeof(lcToOemTable[0]);
+    int lcLen = 0, i;
+
+    // Detect required code page name from current locale
+    char *lc = getenv("LC_ALL");
+    if (!lc || !lc[0]) {
+      lc = getenv("LC_CTYPE");
+    }
+    if (!lc || !lc[0]) {
+      lc = getenv("LANG");
+    }
+
+    if (lc && lc[0]) {
+      // Compare up to the dot, if it exists, e.g. en_US.UTF-8
+      for (lcLen = 0; lc[lcLen] != '.' && lc[lcLen] != ':' && lc[lcLen] != '\0'; ++lcLen);
+
+      for (i = 0; i < tableLen; i += 2)
+        if (strncmp(lc, (lcToOemTable[i]), lcLen) == 0) {
+          legacyCp = lcToOemTable[i + 1];
+          legacyCpAnsi = lcToAnsiTable[i + 1];
+          break; // Stop searching once a match is found
+        }
+
+      if (!legacyCp) {
+        legacyCp = "CP437";
+        legacyCpAnsi = "CP1252";
+      }
+
+      char specCP[20];
+      if (useSpecifiedCodePage) {
+        if (codePage == 0) {
+          strncpy(specCP, legacyCpAnsi, sizeof(legacyCpAnsi) - 1);
+          specCP[sizeof(legacyCpAnsi) - 1] = '\0';
+        }
+        else if (codePage == 1) {
+          strncpy(specCP, legacyCp, sizeof(legacyCp) - 1);
+          specCP[sizeof(legacyCp) - 1] = '\0'; }
+        else {
+          snprintf(specCP, sizeof(specCP), "CP%d", codePage);
+        }
+      }
+      
+      iconv_t cd;
+      if ((cd = iconv_open("UTF-8", useSpecifiedCodePage ? specCP : (isOem ? legacyCp : legacyCpAnsi))) != (iconv_t)-1) {
+
+        AString sUtf8;
+
+        unsigned slen = s.Len();
+        char* src = s.Ptr_non_const();
+
+        unsigned dlen = slen * 4 + 1; // (source length * 4) + null termination
+        char* dst = sUtf8.GetBuf_SetEnd(dlen);
+        const char* dstStart = dst;
+
+        memset(dst, 0, dlen);
+
+        size_t slen_size_t = static_cast<size_t>(slen);
+        size_t dlen_size_t = static_cast<size_t>(dlen);
+        size_t done = iconv(cd, &src, &slen_size_t, &dst, &dlen_size_t);
+
+        if (done == (size_t)-1) {
+          iconv_close(cd);
+
+          // iconv failed. Falling back to default behavior
+          MultiByteToUnicodeString2(res, s, useSpecifiedCodePage ? codePage : GetCodePage());
+          return;
+        }
+
+        // Null-terminate the result
+        *dst = '\0';
+
+        iconv_close(cd);
+
+        size_t dstCorrectLength = dst - dstStart;
+        sUtf8.ReleaseBuf_SetEnd(static_cast<unsigned>(dstCorrectLength));
+
+        if (ConvertUTF8ToUnicode(sUtf8, res) /*|| ignore_Utf8_Errors*/)
+          return;
+      }
+    }
+  }
+  #endif
   
   if (isUtf8)
   {
