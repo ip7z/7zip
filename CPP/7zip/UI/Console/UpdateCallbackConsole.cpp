@@ -830,7 +830,7 @@ HRESULT CUpdateCallbackConsole::CryptoGetTextPassword2(Int32 *passwordIsDefined,
   {
     if (AskPassword)
     {
-      RINOK(GetPassword_HRESULT(_so, Password))
+      RINOK(GetPasswordConfirm_HRESULT(_so, Password))
       PasswordIsDefined = true;
     }
   }
@@ -857,7 +857,7 @@ HRESULT CUpdateCallbackConsole::CryptoGetTextPassword(BSTR *password)
   if (!PasswordIsDefined)
   {
     {
-      RINOK(GetPassword_HRESULT(_so, Password))
+      RINOK(GetPasswordConfirm_HRESULT(_so, Password))
       PasswordIsDefined = true;
     }
   }
