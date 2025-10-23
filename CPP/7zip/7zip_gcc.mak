@@ -142,8 +142,8 @@ MY_MKDIR=mkdir
 DEL_OBJ_EXE = -$(RM) $(O)\*.o $(O)\$(PROG).exe $(O)\$(PROG).dll
 endif
 
-LIB2_GUI = -lOle32 -lGdi32 -lComctl32 -lComdlg32 -lShell32 $(LIB_HTMLHELP)
-LIB2 = -loleaut32 -luuid -ladvapi32 -lUser32 $(LIB2_GUI)
+LIB2_GUI = -lole32 -lgdi32 -lcomctl32 -lcomdlg32 -lshell32 $(LIB_HTMLHELP)
+LIB2 = -loleaut32 -luuid -ladvapi32 -luser32 $(LIB2_GUI)
 
 # v24.00: -DUNICODE and -D_UNICODE are defined in precompilation header files
 # CXXFLAGS_EXTRA = -DUNICODE -D_UNICODE

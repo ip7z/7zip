@@ -19,7 +19,7 @@
 
 #ifdef USE_STATIC_RtlGenRandom
 
-// #include <NTSecAPI.h>
+// #include <ntsecapi.h>
 
 EXTERN_C_BEGIN
 #ifndef RtlGenRandom
