@@ -259,7 +259,13 @@ bool GetSecondsSince1601(unsigned year, unsigned month, unsigned day,
       Minix 3.1.8, AIX 7.1, HP-UX 11.31, IRIX 6.5, Solaris 11.3,
       Cygwin 2.9, mingw, MSVC 14, Android 9.0.
 */
-#if defined(TIME_UTC) && !defined(__ANDROID__)
+#if defined(__ANDROID__)
+#include <android/api-level.h>
+#if __ANDROID_API__ >= 29
+#define ZIP7_USE_timespec_get
+// #pragma message("ZIP7_USE_timespec_get")
+#endif
+#elif defined(TIME_UTC)
 #define ZIP7_USE_timespec_get
 // #pragma message("ZIP7_USE_timespec_get")
 #elif defined(CLOCK_REALTIME)
