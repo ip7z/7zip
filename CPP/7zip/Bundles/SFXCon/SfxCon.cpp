@@ -153,7 +153,7 @@ namespace NCommandType
   };
 }
 
-static const char *g_Commands = "txl";
+static const char * const g_Commands = "txl";
 
 struct CArchiveCommand
 {

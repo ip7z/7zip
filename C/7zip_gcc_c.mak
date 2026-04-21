@@ -106,7 +106,7 @@ DEL_OBJ_EXE = -$(RM) $(O)\*.o $(O)\$(PROG).exe $(O)\$(PROG).dll
 endif
 
 
-LIB2 = -lOle32 -loleaut32 -luuid -ladvapi32 -lUser32 -lShell32
+LIB2 = -lole32 -loleaut32 -luuid -ladvapi32 -luser32 -lshell32
 
 CFLAGS_EXTRA = -DUNICODE -D_UNICODE
 # -Wno-delete-non-virtual-dtor

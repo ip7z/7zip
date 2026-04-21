@@ -488,7 +488,9 @@ struct CFolderPidls
 };
 
 
-static HRESULT ShellFolder_ParseDisplayName(IShellFolder *shellFolder,
+HRESULT ShellFolder_ParseDisplayName(IShellFolder *shellFolder,
+    HWND hwnd, const UString &path, LPITEMIDLIST *ppidl);
+HRESULT ShellFolder_ParseDisplayName(IShellFolder *shellFolder,
     HWND hwnd, const UString &path, LPITEMIDLIST *ppidl)
 {
   ULONG eaten = 0;

@@ -825,7 +825,10 @@ void CPanel::EditItem(unsigned index, bool useEditor)
     return;
   }
   CProcess process;
-  StartEditApplication(GetItemFullPath(index), useEditor, (HWND)*this, process);
+  StartEditApplication(GetItemFullPath(index), useEditor,
+      // (HWND)*this,
+      GetParent(),
+      process);
 }
 
 
@@ -854,7 +857,10 @@ void CPanel::OpenFolderExternal(unsigned index)
     path.Add_PathSepar();
   }
 
-  StartApplicationDontWait(prefix, path, (HWND)*this);
+  StartApplicationDontWait(prefix, path,
+      // (HWND)*this
+      GetParent()
+      );
 }
 
 
@@ -981,7 +987,10 @@ void CPanel::OpenItem(unsigned index, bool tryInternal, bool tryExternal, const 
   {
     // SetCurrentDirectory opens HANDLE to folder!!!
     // NDirectory::MySetCurrentDirectory(prefix);
-    StartApplicationDontWait(prefix, fullPath, (HWND)*this);
+    StartApplicationDontWait(prefix, fullPath,
+        // (HWND)*this
+        GetParent()
+        );
   }
 }
 
@@ -1732,9 +1741,15 @@ void CPanel::OpenItemInArchive(unsigned index, bool tryInternal, bool tryExterna
   CProcess process;
   HRESULT res;
   if (editMode)
-    res = StartEditApplication(fs2us(tempFilePath), useEditor, (HWND)*this, process);
+    res = StartEditApplication(fs2us(tempFilePath), useEditor,
+      // (HWND)*this,
+      GetParent(),
+      process);
   else
-    res = StartApplication(fs2us(tempDirNorm), fs2us(tempFilePath), (HWND)*this, process);
+    res = StartApplication(fs2us(tempDirNorm), fs2us(tempFilePath),
+      // (HWND)*this,
+      GetParent(),
+      process);
 
   if ((HANDLE)process == NULL)
   {

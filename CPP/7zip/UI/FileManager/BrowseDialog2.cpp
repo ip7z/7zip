@@ -9,6 +9,7 @@
 #include <windowsx.h>
 
 #include "../../../Common/IntToString.h"
+#include "../../../Common/MyCom.h"
 #include "../../../Common/StringConvert.h"
 #include "../../../Common/Wildcard.h"
 
@@ -19,6 +20,7 @@
 #include "../../../Windows/Menu.h"
 #include "../../../Windows/ProcessUtils.h"
 #include "../../../Windows/PropVariantConv.h"
+#include "../../../Windows/Shell.h"
 #include "../../../Windows/Control/ComboBox.h"
 #include "../../../Windows/Control/Dialog.h"
 #include "../../../Windows/Control/Edit.h"
@@ -57,7 +59,7 @@ static const int kParentIndex = -1;
 // static const UINT k_Message_RefreshPathEdit = WM_APP + 1;
 
 
-static const wchar_t *k_Message_Link_operation_was_Blocked =
+static const wchar_t * const k_Message_Link_operation_was_Blocked =
     L"link openning was blocked by 7-Zip";
 
 extern UString HResultToMessage(HRESULT errorCode);
@@ -978,35 +980,61 @@ void CBrowseDialog2::OnHelp()
 #endif
 
 
+HRESULT ShellFolder_ParseDisplayName(IShellFolder *shellFolder,
+    HWND hwnd, const UString &path, LPITEMIDLIST *ppidl);
+
 HRESULT StartApplication(const UString &dir, const UString &path, HWND window, CProcess &process);
 HRESULT StartApplication(const UString &dir, const UString &path, HWND window, CProcess &process)
 {
   UString path2 = path;
-
-  #ifdef _WIN32
+  UINT32 result;
+  {
+#ifdef _WIN32
+  NShell::CItemIDList pidl;
+  // SHELLEXECUTEINFO::pidl is more accurate way than SHELLEXECUTEINFO::lpFile
+  {
+    CMyComPtr<IShellFolder> desktop;
+    if (SHGetDesktopFolder(&desktop) == S_OK && desktop)
+      if (ShellFolder_ParseDisplayName(desktop,
+          NULL, // HWND : do we need (window) or NULL here?
+          path,
+          &pidl) != S_OK)
+        pidl.Detach();
+  }
   {
     const int dot = path2.ReverseFind_Dot();
     const int separ = path2.ReverseFind_PathSepar();
-    if (dot < 0 || dot < separ)
-      path2.Add_Dot();
+    if (separ != (int)path2.Len() - 1)
+      if (dot < 0 || dot < separ)
+        path2.Add_Dot();
   }
-  #endif
+#endif // _WIN32
 
-  UINT32 result;
-  
 #ifndef _UNICODE
   if (g_IsNT)
   {
     SHELLEXECUTEINFOW execInfo;
+    memset(&execInfo, 0, sizeof(execInfo));
+    // execInfo.hwnd = NULL;
+    // execInfo.lpVerb = NULL;
+    // execInfo.lpFile = NULL;
+    // execInfo.lpDirectory = NULL;
+    // execInfo.lpParameters = NULL;
+    // execInfo.hProcess = NULL;
     execInfo.cbSize = sizeof(execInfo);
     execInfo.fMask = SEE_MASK_NOCLOSEPROCESS | SEE_MASK_FLAG_DDEWAIT;
-    execInfo.hwnd = NULL;
-    execInfo.lpVerb = NULL;
-    execInfo.lpFile = path2;
-    execInfo.lpParameters = NULL;
-    execInfo.lpDirectory = dir.IsEmpty() ? NULL : (LPCWSTR)dir;
+    if (!dir.IsEmpty())
+      execInfo.lpDirectory = dir;
     execInfo.nShow = SW_SHOWNORMAL;
-    execInfo.hProcess = NULL;
+
+    if ((LPCITEMIDLIST)pidl)
+    {
+      execInfo.lpIDList = pidl;
+      execInfo.fMask |= SEE_MASK_IDLIST;
+    }
+    else
+      execInfo.lpFile = path2;
+
 typedef BOOL (WINAPI * Func_ShellExecuteExW)(LPSHELLEXECUTEINFOW lpExecInfo);
 Z7_DIAGNOSTIC_IGNORE_CAST_FUNCTION
     const
@@ -1024,34 +1052,40 @@ Z7_DIAGNOSTIC_IGNORE_CAST_FUNCTION
 #endif
   {
     SHELLEXECUTEINFO execInfo;
+    memset(&execInfo, 0, sizeof(execInfo));
+    // execInfo.hwnd = NULL;
+    // execInfo.lpVerb = NULL;
+    // execInfo.lpFile = NULL;
+    // execInfo.lpDirectory = NULL;
+    // execInfo.lpParameters = NULL;
+    // execInfo.hProcess = NULL;
     execInfo.cbSize = sizeof(execInfo);
     execInfo.fMask = SEE_MASK_NOCLOSEPROCESS
       #ifndef UNDER_CE
       | SEE_MASK_FLAG_DDEWAIT
       #endif
       ;
-    execInfo.hwnd = NULL;
-    execInfo.lpVerb = NULL;
+    execInfo.nShow = SW_SHOWNORMAL;
     const CSysString sysPath (GetSystemString(path2));
     const CSysString sysDir (GetSystemString(dir));
-    execInfo.lpFile = sysPath;
-    execInfo.lpParameters = NULL;
-    execInfo.lpDirectory =
-      #ifdef UNDER_CE
-        NULL
-      #else
-        sysDir.IsEmpty() ? NULL : (LPCTSTR)sysDir
-      #endif
-      ;
-    execInfo.nShow = SW_SHOWNORMAL;
-    execInfo.hProcess = NULL;
+    #ifndef UNDER_CE
+    if (!sysDir.IsEmpty())
+      execInfo.lpDirectory = sysDir;
+    #endif
+
+    if ((LPCITEMIDLIST)pidl)
+    {
+      execInfo.lpIDList = pidl;
+      execInfo.fMask |= SEE_MASK_IDLIST;
+    }
+    else
+      execInfo.lpFile = sysPath;
     ::ShellExecuteEx(&execInfo);
     result = (UINT32)(UINT_PTR)execInfo.hInstApp;
     process.Attach(execInfo.hProcess);
   }
-  
   // DEBUG_PRINT_NUM("-- ShellExecuteEx -- execInfo.hInstApp = ", result)
-
+  }
   if (result <= 32)
   {
     switch (result)
@@ -1063,10 +1097,8 @@ Z7_DIAGNOSTIC_IGNORE_CAST_FUNCTION
           // L"There is no application associated with the given file name extension",
           );
     }
-    
     return E_FAIL; // fixed in 15.13. Can we use it for any Windows version?
   }
-  
   return S_OK;
 }
 

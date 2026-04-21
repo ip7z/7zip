@@ -1,6 +1,6 @@
 /* Xxh64.c -- XXH64 hash calculation
 original code: Copyright (c) Yann Collet.
-2023-08-18 : modified by Igor Pavlov.
+modified by Igor Pavlov.
 This source code is licensed under BSD 2-Clause License.
 */
 
@@ -27,6 +27,14 @@ void Xxh64State_Init(CXxh64State *p)
 
 #if !defined(MY_CPU_64BIT) && defined(MY_CPU_X86) && defined(_MSC_VER)
   #define Z7_XXH64_USE_ASM
+#elif !defined(MY_CPU_LE_UNALIGN_64) // && defined (MY_CPU_LE)
+  #define Z7_XXH64_USE_ALIGNED
+#endif
+
+#ifdef Z7_XXH64_USE_ALIGNED
+  #define Xxh64State_UpdateBlocks_Unaligned_Select  Xxh64State_UpdateBlocks_Unaligned
+#else
+  #define Xxh64State_UpdateBlocks_Unaligned_Select  Xxh64State_UpdateBlocks
 #endif
 
 #if !defined(MY_CPU_64BIT) && defined(MY_CPU_X86) \
@@ -188,32 +196,76 @@ Xxh64State_UpdateBlocks(CXxh64State *p, const void *data, const void *end)
 
 #else
 
+#ifdef Z7_XXH64_USE_ALIGNED
+static
+#endif
 void
 Z7_NO_INLINE
 Z7_FASTCALL
-Xxh64State_UpdateBlocks(CXxh64State *p, const void *_data, const void *end)
+Xxh64State_UpdateBlocks_Unaligned_Select(CXxh64State *p, const void *_data, const void *end)
 {
   const Byte *data = (const Byte *)_data;
-  UInt64 v[4];
-  v[0] = p->v[0];
-  v[1] = p->v[1];
-  v[2] = p->v[2];
-  v[3] = p->v[3];
+  UInt64 v0, v1, v2, v3;
+  v0 = p->v[0];
+  v1 = p->v[1];
+  v2 = p->v[2];
+  v3 = p->v[3];
   do
   {
-    v[0] = Xxh64_Round(v[0], GetUi64(data));  data += 8;
-    v[1] = Xxh64_Round(v[1], GetUi64(data));  data += 8;
-    v[2] = Xxh64_Round(v[2], GetUi64(data));  data += 8;
-    v[3] = Xxh64_Round(v[3], GetUi64(data));  data += 8;
+    v0 = Xxh64_Round(v0, GetUi64(data));  data += 8;
+    v1 = Xxh64_Round(v1, GetUi64(data));  data += 8;
+    v2 = Xxh64_Round(v2, GetUi64(data));  data += 8;
+    v3 = Xxh64_Round(v3, GetUi64(data));  data += 8;
   }
   while (data != end);
-  p->v[0] = v[0];
-  p->v[1] = v[1];
-  p->v[2] = v[2];
-  p->v[3] = v[3];
+  p->v[0] = v0;
+  p->v[1] = v1;
+  p->v[2] = v2;
+  p->v[3] = v3;
 }
 
-#endif
+
+#ifdef Z7_XXH64_USE_ALIGNED
+
+static
+void
+Z7_NO_INLINE
+Z7_FASTCALL
+Xxh64State_UpdateBlocks_Aligned(CXxh64State *p, const void *_data, const void *end)
+{
+  const Byte *data = (const Byte *)_data;
+  UInt64 v0, v1, v2, v3;
+  v0 = p->v[0];
+  v1 = p->v[1];
+  v2 = p->v[2];
+  v3 = p->v[3];
+  do
+  {
+    v0 = Xxh64_Round(v0, GetUi64a(data));  data += 8;
+    v1 = Xxh64_Round(v1, GetUi64a(data));  data += 8;
+    v2 = Xxh64_Round(v2, GetUi64a(data));  data += 8;
+    v3 = Xxh64_Round(v3, GetUi64a(data));  data += 8;
+  }
+  while (data != end);
+  p->v[0] = v0;
+  p->v[1] = v1;
+  p->v[2] = v2;
+  p->v[3] = v3;
+}
+
+void
+Z7_NO_INLINE
+Z7_FASTCALL
+Xxh64State_UpdateBlocks(CXxh64State *p, const void *data, const void *end)
+{
+  if (((unsigned)(ptrdiff_t)data & 7) == 0)
+    Xxh64State_UpdateBlocks_Aligned(p, data, end);
+  else
+    Xxh64State_UpdateBlocks_Unaligned(p, data, end);
+}
+
+#endif // Z7_XXH64_USE_ALIGNED
+#endif // Z7_XXH64_USE_ASM
 
 UInt64 Xxh64State_Digest(const CXxh64State *p, const void *_data, UInt64 count)
 {
@@ -306,12 +358,22 @@ void Xxh64_Update(CXxh64 *p, const void *_data, size_t size)
     while (--rem);
     if (cnt != 32)
       return;
-    Xxh64State_UpdateBlocks(&p->state, p->buf64, &p->buf64[4]);
+#ifdef Z7_XXH64_USE_ALIGNED
+    Xxh64State_UpdateBlocks_Aligned
+#else
+    Xxh64State_UpdateBlocks_Unaligned_Select
+#endif
+      (&p->state, p->buf64, &p->buf64[4]);
   }
 
   if (size &= ~(size_t)31)
   {
-    Xxh64State_UpdateBlocks(&p->state, data, data + size);
+#ifdef Z7_XXH64_USE_ALIGNED
+    if (((unsigned)(ptrdiff_t)data & 7) == 0)
+      Xxh64State_UpdateBlocks_Aligned(&p->state, data, data + size);
+    else
+#endif
+      Xxh64State_UpdateBlocks_Unaligned_Select(&p->state, data, data + size);
     data += size;
   }
   

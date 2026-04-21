@@ -748,8 +748,8 @@ Z7_COM7F_IMF2(Int32, CFSFolder::CompareItems(UInt32 index1, UInt32 index2, PROPI
     case kpidMTime: return CompareFileTime(&fi1.MTime, &fi2.MTime);
     case kpidIsDir:
     {
-      bool isDir1 = /* ss1 ? false : */ fi1.IsDir();
-      bool isDir2 = /* ss2 ? false : */ fi2.IsDir();
+      const bool isDir1 = /* ss1 ? false : */ fi1.IsDir();
+      const bool isDir2 = /* ss2 ? false : */ fi2.IsDir();
       if (isDir1 == isDir2)
         return 0;
       return isDir1 ? -1 : 1;
@@ -798,7 +798,9 @@ Z7_COM7F_IMF2(Int32, CFSFolder::CompareItems(UInt32 index1, UInt32 index2, PROPI
       return MyStringCompareNoCase(comment1, comment2);
     }
     case kpidPrefix:
-      if (fi1.Parent < 0) return (fi2.Parent < 0) ? 0 : -1;
+      if (fi1.Parent == fi2.Parent)
+        return 0;
+      if (fi1.Parent < 0) return -1;
       if (fi2.Parent < 0) return 1;
       return CompareFileNames_ForFolderList(
           Folders[fi1.Parent],

@@ -222,8 +222,7 @@ bool CMenuPage::OnInit()
         s.Add_UInt32(val);
       if (i == 0)
         s.Insert(0, L"* ");
-      const int index = (int)_zoneCombo.AddString(s);
-      _zoneCombo.SetItemData(index, (LPARAM)val);
+      const int index = (int)_zoneCombo.AddString_SetItemData(s, (LPARAM)val);
       if (val == wz)
         _zoneCombo.SetCurSel(index);
     }

@@ -253,8 +253,7 @@ bool CLangPage::OnInit()
       temp += "  ";
       temp += rec.Mark;
     }
-    const int index = (int)_langCombo.AddString(temp);
-    _langCombo.SetItemData(index, (LPARAM)rec.LangInfoIndex);
+    const int index = (int)_langCombo.AddString_SetItemData(temp, (LPARAM)rec.LangInfoIndex);
     if (rec.IsSelected)
       _langCombo.SetCurSel(index);
   }
