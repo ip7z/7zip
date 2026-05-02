@@ -79,7 +79,7 @@ static Byte InvS[256];
   #endif
 
 #elif defined(MY_CPU_ARM_OR_ARM64) && defined(MY_CPU_LE)
-  
+
   #if   defined(__ARM_FEATURE_AES) \
      || defined(__ARM_FEATURE_CRYPTO)
     #define USE_HW_AES
@@ -101,6 +101,14 @@ static Byte InvS[256];
     #endif
     #endif
     #endif
+  #endif
+
+#elif defined(MY_CPU_PPC_OR_PPC64)
+
+  #if defined(__POWER8_VECTOR__) || defined(__CRYPTO__) \
+   || (defined(__GNUC__)  && (__GNUC__ >= 8)) \
+   || (defined(__clang__) && (__clang_major__ >= 7))
+    #define USE_HW_AES
   #endif
 #endif
 
@@ -157,7 +165,11 @@ void AesGenTables(void)
   #endif
   
   #ifdef USE_HW_AES
+  #if defined(MY_CPU_PPC_OR_PPC64)
+  if (CPU_IsSupported_VEC_CRYPTO())
+  #else
   if (CPU_IsSupported_AES())
+  #endif
   {
     // #pragma message ("AES HW")
     PRF(printf("\n===AES HW\n"));
@@ -270,6 +282,10 @@ void Z7_FASTCALL Aes_SetKey_Dec(UInt32 *w, const Byte *key, unsigned keySize)
 {
   unsigned i, num;
   Aes_SetKey_Enc(w, key, keySize);
+#if defined(MY_CPU_PPC_OR_PPC64) && defined(USE_HW_AES)
+  if (CPU_IsSupported_VEC_CRYPTO())
+    return;
+#endif
   num = keySize + 20;
   w += 8;
   for (i = 0; i < num; i++)
