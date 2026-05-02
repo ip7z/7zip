@@ -692,6 +692,13 @@ BoolInt CPU_IsSupported_AES(void);
 #endif
 BoolInt CPU_IsSupported_SHA512(void);
 
+#elif defined(MY_CPU_PPC_OR_PPC64)
+
+BoolInt CPU_IsSupported_VSX(void);
+BoolInt CPU_IsSupported_VEC_CRYPTO(void);
+BoolInt CPU_IsSupported_ARCH_3_00(void);
+BoolInt CPU_IsSupported_ARCH_3_1(void);
+
 #endif
 
 #if defined(__APPLE__)
