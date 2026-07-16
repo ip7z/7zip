@@ -159,9 +159,32 @@ static bool FindExt2(const char *p, const UString &name)
 
 static const char * const k_ZoneId_StreamName_With_Colon_Prefix = ":Zone.Identifier";
 
+// matches NTFS's own canonicalization, so a ":$DATA" suffix or extra leading ':'
+// can't be used to slip a stream name past the checks below.
+static void Normalize_AltStreamName_For_Ntfs(UString &s)
+{
+  const unsigned kPostfixSize = 6; // ":$DATA"
+  if (s.Len() >= kPostfixSize
+      && StringsAreEqualNoCase_Ascii(s.RightPtr(kPostfixSize), ":$DATA"))
+    s.DeleteFrom(s.Len() - kPostfixSize);
+  while (!s.IsEmpty() && s[0] == ':')
+    s.DeleteFrontal(1);
+}
+
 bool Is_ZoneId_StreamName(const wchar_t *s)
 {
-  return StringsAreEqualNoCase_Ascii(s, k_ZoneId_StreamName_With_Colon_Prefix + 1);
+  UString name = s;
+  Normalize_AltStreamName_For_Ntfs(name);
+  return StringsAreEqualNoCase_Ascii(name, k_ZoneId_StreamName_With_Colon_Prefix + 1);
+}
+
+// an alt-stream name that normalizes to empty refers to the file's unnamed
+// data stream (e.g. "::$DATA"), which would overwrite the main file content.
+static bool Is_DefaultDataStream_Name(const wchar_t *s)
+{
+  UString name = s;
+  Normalize_AltStreamName_For_Ntfs(name);
+  return name.IsEmpty();
 }
 
 void ReadZoneFile_Of_BaseFile(CFSTR fileName, CByteBuffer &buf)
@@ -1686,13 +1709,17 @@ Z7_COM7F_IMF(CArchiveExtractCallback::GetStream(UInt32 index, ISequentialOutStre
 #if defined(_WIN32) && !defined(UNDER_CE) && !defined(Z7_SFX)
   if (askExtractMode == NArchive::NExtract::NAskMode::kExtract
       && !_testMode
-      && _item.IsAltStream
-      && ZoneBuf.Size() != 0
-      && Is_ZoneId_StreamName(_item.AltStreamName))
-    if (ZoneMode != NExtract::NZoneIdMode::kOffice
-        || _item.PathParts.IsEmpty()
-        || FindExt2(kOfficeExtensions, _item.PathParts.Back()))
+      && _item.IsAltStream)
+  {
+    if (Is_DefaultDataStream_Name(_item.AltStreamName))
       return S_OK;
+    if (ZoneBuf.Size() != 0
+        && Is_ZoneId_StreamName(_item.AltStreamName))
+      if (ZoneMode != NExtract::NZoneIdMode::kOffice
+          || _item.PathParts.IsEmpty()
+          || FindExt2(kOfficeExtensions, _item.PathParts.Back()))
+        return S_OK;
+  }
 #endif
 
 
