@@ -117,7 +117,7 @@ Z7_COM7F_IMF(CDecoder::Code(ISequentialInStream *inStream, ISequentialOutStream 
         return S_FALSE; // adler error
     }
     else if (!IsAdlerOptional)
-      return S_FALSE; // unexpeced end of stream (can't read adler)
+      return S_FALSE; // unexpected end of stream (can't read adler)
     else
     {
       // IsAdlerOptional == true

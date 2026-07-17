@@ -606,7 +606,7 @@ returns:
     ArcInfo.MarkerPos   : Pos of first signature
     ArcInfo.MarkerPos2  : Pos of main signature (local item signature in most cases)
     _streamPos          : stream pos
-    _cnt                : The number of virtal Bytes after start of search to offset after signature
+    _cnt                : The number of virtual Bytes after start of search to offset after signature
     _signature          : main signature
  
   S_FALSE: can't find marker, or there is some non-zip data after marker
@@ -1451,7 +1451,7 @@ out:
       if ( item.DescriptorWasRead) : if descriptor was found
       if (!item.DescriptorWasRead) : if descriptor was not found : unexpected end of stream(s)
 
-  S_FALSE: if no items or there is just one item with strange properies that doesn't look like real archive.
+  S_FALSE: if no items or there is just one item with strange properties that doesn't look like real archive.
 
   another error code: Callback error.
 
@@ -1476,8 +1476,8 @@ HRESULT CInArchive::FindDescriptor(CItemEx &item, unsigned numFiles)
        But some old third-party xps archives used 64-bit descriptor without zip64 extra. */
     // unsigned descriptorSize = kDataDescriptorSize64 + kNextSignatureSize;
     
-    // const unsigned kNextSignatureSize = 0;  // we can disable check for next signatuire
-    const unsigned kNextSignatureSize = 4;  // we check also for signature for next File headear
+    // const unsigned kNextSignatureSize = 0;  // we can disable check for next signature
+    const unsigned kNextSignatureSize = 4;  // we check also for signature for next File header
 
     const unsigned descriptorSize4 = item.GetDescriptorSize() + kNextSignatureSize;
 
@@ -1521,7 +1521,7 @@ HRESULT CInArchive::FindDescriptor(CItemEx &item, unsigned numFiles)
       if (Get32(p) != NSignature::kDataDescriptor)
         continue;
 
-      // we check next signatuire after descriptor
+      // we check next signature after descriptor
       // maybe we need check only 2 bytes "PK" instead of 4 bytes, if some another type of header is possible after descriptor
       const UInt32 sig = Get32(p + descriptorSize4 - kNextSignatureSize);
       if (   sig != NSignature::kLocalFileHeader
@@ -2056,7 +2056,7 @@ out:
     (_signature != NSignature::kLocalFileHeade)
     _streamPos : after _signature
 
-  S_FALSE: if no items or there is just one item with strange properies that doesn't look like real archive.
+  S_FALSE: if no items or there is just one item with strange properties that doesn't look like real archive.
 
   another error code: stream reading error or Callback error.
 
@@ -2182,7 +2182,7 @@ HRESULT CVols::ParseArcName(IArchiveOpenVolumeCallback *volCallback)
       BaseName = name;
       StartVolIndex = 0;
       /* sfx-zip can use both arc.exe and arc.zip
-         We can open arc.zip, if it was requesed to open arc.exe.
+         We can open arc.zip, if it was requested to open arc.exe.
          But it's possible that arc.exe and arc.zip are not parts of same archive.
          So we can disable such operation */
 
@@ -3216,7 +3216,7 @@ else
 
   // DisableBufMode();
   // Buffer.Free();
-  /* we can't clear buf varibles. we need them to calculate PhySize of archive */
+  /* we can't clear buf variables. we need them to calculate PhySize of archive */
 
   if ((UInt16)cdInfo.NumEntries != (UInt16)numCdItems
       || (UInt32)cdInfo.Size != (UInt32)cdSize

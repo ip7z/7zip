@@ -622,7 +622,7 @@ static HRESULT EnumerateForItem(
   #endif // _WIN32
   #endif // !defined(UNDER_CE)
 
-  // check the path in inlcude rules
+  // check the path in include rules
   if (curNode.CheckPathToRoot(true, newParts, !fi.IsDir()))
   {
     #if !defined(UNDER_CE)
@@ -1214,7 +1214,7 @@ HRESULT CDirItems::FillFixedReparse()
       if (!item.Has_Attrib_ReparsePoint())
         continue;
       /*
-      We want to get properties of target file instead of properies of symbolic link.
+      We want to get properties of target file instead of properties of symbolic link.
       Probably this code is unused, because
       CFileInfo::Find(with followLink = true) called Fill_From_ByHandleFileInfo() already.
       */

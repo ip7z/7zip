@@ -340,7 +340,7 @@ void CCompressHeader::MethodToProp(NWindows::NCOM::CPropVariant &prop) const
     s = p;
   else
     s.Add_UInt32(method);
-  // if (!IsSupported) s += "-unsuported";
+  // if (!IsSupported) s += "-unsupported";
   prop = s;
 }
 
@@ -1478,7 +1478,7 @@ HRESULT CDatabase::Open2(IInStream *inStream, IArchiveOpenCallback *progress)
   }
 #if 1
   // HFS Plus DOCs: The first 1024 bytes are reserved for use as boot blocks
-  // v24.09: we don't check starting 1 KiB before old (HFS MDB) block ("BD" signture) .
+  // v24.09: we don't check starting 1 KiB before old (HFS MDB) block ("BD" signature) .
   //     but we still check starting 1 KiB before HFS+ / HFSX volume header.
   // are there HFS+ / HFSX images with non-zero data in this reserved area?
   {

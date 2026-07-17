@@ -320,7 +320,7 @@ HRESULT CInArchive::GetNextItem()
   UInt32 namePos;
 
   /* we try to reduce probability of false detection,
-     so we check some fields for unuxpected values */
+     so we check some fields for unexpected values */
 
   if (p[0] != '0')
   {
@@ -719,7 +719,7 @@ Z7_COM7F_IMF(CHandler::Open(IInStream *stream, const UInt64 *, IArchiveOpenCallb
     {
       // Read tailing zeros.
       // Most of cpio files use 512-bytes aligned zeros
-      // rare case: 4K/8K aligment is possible also
+      // rare case: 4K/8K alignment is possible also
       const unsigned kTailSize_MAX = 1 << 9;
       Byte buf[kTailSize_MAX];
       

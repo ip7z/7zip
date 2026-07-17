@@ -269,7 +269,7 @@ bool CListViewDialog::OnNotify(UINT /* controlID */, LPNMHDR header)
       }
       break;
     case NM_DBLCLK:
-    case NM_RETURN: // probabably it's unused
+    case NM_RETURN: // probably it's unused
       if (!g_LVN_ITEMACTIVATE_Support)
       {
         OnEnter();

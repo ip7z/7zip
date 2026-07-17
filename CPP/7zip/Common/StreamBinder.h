@@ -59,7 +59,7 @@ public:
     */
 
     /*
-    We must relase Semaphore only once !!!
+    We must release Semaphore only once !!!
     we must release at least 2 items of Semaphore:
       one item to unlock partial Write(), if Read() have read some items
       then additional item to stop writing (_bufSize will be 0)

@@ -448,7 +448,7 @@ struct OpenPluginInfo
   int StartSortOrder;
   const struct KeyBarTitles *KeyBar;
   const char *ShortcutData;
-  // long Reserverd;
+  // long Reserved;
 };
 
 enum {

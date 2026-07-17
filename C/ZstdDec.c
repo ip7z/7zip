@@ -1341,7 +1341,7 @@ typedef struct
     else {
       if ( isCyclicMode) : cycSize = cyclic_buffer_size = (winSize + extra_space)
       if (!isCyclicMode) : cycSize = ContentSize,
-      (isCyclicMode == true) if (ContetSize >= winSize) or ContetSize is unknown
+      (isCyclicMode == true) if (ContentSize >= winSize) or ContentSize is unknown
     }
   */
   SizeT winPos;
@@ -2574,7 +2574,7 @@ SRes ZstdDec1_DecodeBlock(CZstdDec1 *p,
         else
         #ifdef MY_CPU_64BIT
         {
-          // alignemt (UInt64 _pad_Alignment) in fse.ml is required for that code
+          // alignment (UInt64 _pad_Alignment) in fse.ml is required for that code
           UInt64 *table = (UInt64 *)(void *)p->fse.ml;
           const UInt64 *end = (const UInt64 *)(const void *)
             ((const Byte *)(const void *)table + ((size_t)sizeof(CFseRecord) << accuracy));
@@ -2873,7 +2873,7 @@ static SRes ZstdDec_AllocateMisc(CZstdDec *p)
   }
   if (!p->inTemp)
   {
-    // we need k_Lit_AfterAvail here for owerread from raw literals stream
+    // we need k_Lit_AfterAvail here for overread from raw literals stream
     p->inTemp = (Byte *)ISzAlloc_Alloc(p->alloc_Small,
         kBlockSizeMax + kTempBuffer_PreSize + k_Lit_AfterAvail);
     if (!p->inTemp)
@@ -3512,7 +3512,7 @@ static SRes ZstdDec_DecodeBlock(CZstdDec * const p, CZstdDecState * const ds,
       }
       else
       {
-        /* ZSTD2_STATE_FINISHED proccesing doesn't depend from input buffer */
+        /* ZSTD2_STATE_FINISHED processing doesn't depend from input buffer */
         p->frameState = ZSTD2_STATE_FINISHED;
       }
       /*
@@ -3899,9 +3899,9 @@ SRes ZstdDec_Decode(CZstdDecHandle dec, CZstdDecState *p)
 
         if (useCyclic)
         {
-          /* cyclyc buffer size must be at least (COPY_CHUNK_SIZE - 1) bytes
+          /* cyclic buffer size must be at least (COPY_CHUNK_SIZE - 1) bytes
              larger than window size, because CopyMatch() can write additional
-             (COPY_CHUNK_SIZE - 1) bytes and overwrite oldests data in cyclyc buffer.
+             (COPY_CHUNK_SIZE - 1) bytes and overwrite oldest data in cyclic buffer.
              But for performance reasons we align (cycSize) for (kBlockSizeMax).
              also we must provide (cycSize >= max_decoded_data_after_cycSize),
              because after data move wrapping over zero we must provide (winPos < cycSize).
@@ -3984,7 +3984,7 @@ SRes ZstdDec_Decode(CZstdDecHandle dec, CZstdDecState *p)
         /*
         else
         {
-          // for non-cyclycMode we want flush data, and set winPos = 0
+          // for non-cyclicMode we want flush data, and set winPos = 0
           if (needWrite)
           {
             if (!useCyclic || dec->decoder.winPos >= cycSize)

@@ -546,7 +546,7 @@ static const int kNumSwitches = 1;
 namespace NKey {
 enum Enum
 {
-  kOpenArachive = 0
+  kOpenArchive = 0
 };
 
 }
@@ -711,7 +711,7 @@ static int WINAPI WinMain2(int nCmdShow)
     if (nonSwitchStrings.Size() > 1)
     {
       g_MainPath = nonSwitchStrings[1];
-      // g_OpenArchive = parser[NKey::kOpenArachive].ThereIs;
+      // g_OpenArchive = parser[NKey::kOpenArchive].ThereIs;
       CFileInfoW fileInfo;
       if (FindFile(g_MainPath, fileInfo))
       {

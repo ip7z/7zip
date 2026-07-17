@@ -401,7 +401,7 @@ Z7_COM7F_IMF(CArchiveUpdateCallback::GetProperty(UInt32 index, PROPID propID, PR
                    IS_PATH_SEPAR(path[0]) :
                    NName::IsAbsolutePath(path)))
               {
-                // (path) is abolute path or relative to root: "\path"
+                // (path) is absolute path or relative to root: "\path"
                 // we try to convert (path) to relative path for writing to archive.
                 const FString phyPath = DirItems->GetPhyPath((unsigned)up.DirIndex);
                 FString fullPath;
@@ -1062,7 +1062,7 @@ void CArchiveUpdateCallback::InFileStream_On_Destroy(CInFileStream *stream, UINT
   }
   /* 21.02 : this function can be called in destructor.
      And destructor can be called after some exception.
-     If we don't want to throw exception in desctructors or after another exceptions,
+     If we don't want to throw exception in destructors or after another exceptions,
      we must disable the code below that raises new exception.
   */
   // throw 20141125;

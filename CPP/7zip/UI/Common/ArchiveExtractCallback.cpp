@@ -1445,7 +1445,7 @@ HRESULT CArchiveExtractCallback::GetExtractStream(CMyComPtr<ISequentialOutStream
           // _needSetAttrib = true; // do we need to set attribute ?
           SetAttrib();
           /* if we set (needExit = false) here, _hashStreamSpec will be used,
-             and hash will be calulated for all hard links files (it's slower).
+             and hash will be calculated for all hard links files (it's slower).
              But "Test" operation also calculates hashes.
           */
           needExit = false;
@@ -2037,7 +2037,7 @@ static bool CheckLinkPath_in_FS(
   {
     const UString &s = postLink.item_PathParts[0];
     if (!s.IsEmpty() && !NName::IsAbsolutePath(s))
-      path = pathPrefix_in_FS; // item_PathParts is relative. So we use absolutre prefix
+      path = pathPrefix_in_FS; // item_PathParts is relative. So we use absolute prefix
   }
   if (!CheckLinkPath_in_FS_for_pathParts(path, postLink.item_PathParts))
     return false;
@@ -2096,7 +2096,7 @@ HRESULT CArchiveExtractCallback::SetLink(
     return SendMessageError("Cannot create temporary link file", fullProcessedPath_from);
 #if 0 // 1 for debug
   // here we can write link path to temporary link file placeholder,
-  // but empty placeholder is better, because we don't want to get any non-eampty data instead of link file.
+  // but empty placeholder is better, because we don't want to get any non-empty data instead of link file.
   AString s;
   ConvertUnicodeToUTF8(link.LinkPath, s);
   outFile.WriteFull(s, s.Len());
@@ -2911,7 +2911,7 @@ Z7_COM7F_IMF(CArchiveExtractCallback::RequestMemoryUse(
   }
   else
   {
-    // we clear *answerFlags, because we want to disable dafault "Allow", if it's set.
+    // we clear *answerFlags, because we want to disable default "Allow", if it's set.
     // *answerFlags = 0;
   /*
       NRequestMemoryAnswerFlags::k_SkipArc |

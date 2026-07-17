@@ -14,7 +14,7 @@ int FindSepar(const wchar_t *s) throw();
 int FindSepar(const FChar *s) throw();
 #endif
 
-void NormalizeDirPathPrefix(FString &dirPath); // ensures that it ended with '\\', if dirPath is not epmty
+void NormalizeDirPathPrefix(FString &dirPath); // ensures that it ended with '\\', if dirPath is not empty
 void NormalizeDirPathPrefix(UString &dirPath);
 
 #ifdef _WIN32
@@ -132,7 +132,7 @@ bool GetSuperPaths(CFSTR s1, CFSTR s2, UString &d1, UString &d2, bool onlyIfNew)
   }
   Current_Dir path can be used in 2 cases:
     1) if (path) is relative && dirPrefix == NULL
-    2) for _WIN32: if (path) is absolute starting wuth "\"
+    2) for _WIN32: if (path) is absolute starting with "\"
 */
 bool GetFullPath(CFSTR dirPrefix, CFSTR path, FString &fullPath);
 bool GetFullPath(CFSTR path, FString &fullPath);

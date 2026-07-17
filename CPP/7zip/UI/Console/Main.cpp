@@ -1516,7 +1516,7 @@ int Main2(
       UInt64 numErrors = 0;
       UInt64 numWarnings = 0;
       
-      // options.ExtractNtOptions.StoreAltStreams = true, if -sns[-] is not definmed
+      // options.ExtractNtOptions.StoreAltStreams = true, if -sns[-] is not defined
 
       CListOptions lo;
       lo.ExcludeDirItems = options.Censor.ExcludeDirItems;

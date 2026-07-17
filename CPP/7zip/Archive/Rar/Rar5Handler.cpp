@@ -1990,7 +1990,7 @@ Z7_COM7F_IMF(CHandler::GetProperty(UInt32 index, PROPID propID, PROPVARIANT *val
     {
       const CItem *item2 = (lastItem.IsSplitAfter() ? &item : &lastItem);
       // we don't want to show crc for encrypted file here,
-      // because crc is also encrrypted.
+      // because crc is also encrypted.
       if (item2->Has_CRC() && !item2->IsEncrypted())
         prop = item2->CRC;
       break;
@@ -3120,7 +3120,7 @@ Z7_COM7F_IMF(CHandler::Extract(const UInt32 *indices, UInt32 numItems,
 /*
     // link files are complicated cases. (ref->Link >= 0)
     // link file can refer to non-solid file that can have big dictionary
-    // link file can refer to solid files that requres buffer
+    // link file can refer to solid files that requires buffer
     if (!item->IsDir() && requestMem && ref->Link < 0)
     {
       bool needSkip = false;

@@ -101,7 +101,7 @@ Z7_COM7F_IMF(CFilterCoder::Code(ISequentialInStream *inStream, ISequentialOutStr
      For all cases, even for cases with partial filtering (BCJ/ARMT),
      we try to keep real/virtual alignment for all operations
        (memmove, Read(), Filter(), Write()).
-     We use (kAlignSize=64) alignmnent that is larger than (16-bytes)
+     We use (kAlignSize=64) alignment that is larger than (16-bytes)
      required for AES filter alignment.
 
      AES-CBC uses 16-bytes blocks, that is simple case for processing here,
@@ -164,9 +164,9 @@ Z7_COM7F_IMF(CFilterCoder::Code(ISequentialInStream *inStream, ISequentialOutStr
          We have aligned (readPos) for any filter, if (!inputFinished).
          We also meet the requirements for (data) pointer in Filter() call:
          {
-           (virtual_stream_offset % aligment_size) == (data_ptr % aligment_size)
-           (aligment_size == 2^N)
-           (aligment_size  >= 16)
+           (virtual_stream_offset % alignment_size) == (data_ptr % alignment_size)
+           (alignment_size == 2^N)
+           (alignment_size  >= 16)
          }
       */
       const UInt32 cur = Filter->Filter(_buf + filterPos, readPos - filterPos);

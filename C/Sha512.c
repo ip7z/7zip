@@ -620,7 +620,7 @@ Are there any ways to fix the problems with arm64-wine and x64-SDE cases?
         isSupported = True;
       }
 #else // Z7_COMPILER_SHA512_SUPPORTED
-      // for debug : we generate bad instrction or raise exception.
+      // for debug : we generate bad instruction or raise exception.
       // __except() doesn't catch raise() calls.
 #ifdef Z7_SHA512_USE_LONGJMP
       PRF(printf("====== raise(SIGILL)\n");)

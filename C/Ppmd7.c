@@ -443,7 +443,7 @@ void Ppmd7_Init(CPpmd7 *p, unsigned maxOrder)
   that is the link to position in Raw text.
   So we create Context records and write the links to
   FoundState->Successor and to identical RAW-Successors in suffix
-  contexts of MinContex.
+  contexts of MinContext.
   
   The function returns:
   if (OrderFall == 0) then MinContext is already at MAX order,
@@ -519,7 +519,7 @@ static PPMD7_CTX_PTR Ppmd7_CreateSuccessors(CPpmd7 *p)
     s0 = (UInt32)c->Union2.SummFreq - c->NumStats - cf;
     /*
       cf - is frequency of symbol that will be Successor in new context records.
-      s0 - is commulative frequency sum of another symbols from parent context.
+      s0 - is cumulative frequency sum of another symbols from parent context.
       max(newFreq)= (s->Freq + 1), when (s0 == 1)
       we have requirement (Ppmd7Context_OneState()->Freq <= 128) in BinSumm[]
       so (s->Freq < 128) - is requirement for multi-symbol contexts
@@ -668,11 +668,11 @@ void Ppmd7_UpdateModel(CPpmd7 *p)
     if (--p->OrderFall == 0)
     {
       /*
-      if we move to MaxOrder context, then minSuccessor will be common Succesor for both:
+      if we move to MaxOrder context, then minSuccessor will be common Successor for both:
         MinContext that is (MaxOrder - 1)
         MaxContext that is (MaxOrder)
       so we don't need new RAW-Successor, and we can use real minSuccessor
-      as succssors for both MinContext and MaxContext.
+      as successors for both MinContext and MaxContext.
       */
       maxSuccessor = minSuccessor;
       
@@ -680,7 +680,7 @@ void Ppmd7_UpdateModel(CPpmd7 *p)
       if (MaxContext != MinContext)
       {
         there was order fall from MaxOrder and we don't need current symbol
-        to transfer some RAW-Succesors to real contexts.
+        to transfer some RAW-Successors to real contexts.
         So we roll back pointer in raw data for one position.
       }
       */
@@ -1041,7 +1041,7 @@ PPMd Memory Map:
 }
 
 These addresses don't cross at any time.
-And the following condtions is true for addresses:
+And the following conditions is true for addresses:
   (0  <= Text < UnitsStart <= LoUnit <= HiUnit <= Size)
 
 Raw text is BYTE--aligned.
@@ -1052,7 +1052,7 @@ The code can free UNITs memory blocks that were allocated to store CPpmd_State v
 The code doesn't free UNITs allocated for CPpmd7_Context records.
 
 The code calls Ppmd7_RestartModel(), when there is no free memory for allocation.
-And Ppmd7_RestartModel() changes the state to orignal start state, with full free block.
+And Ppmd7_RestartModel() changes the state to original start state, with full free block.
 
 
 The code allocates UNITs with the following order:
@@ -1088,7 +1088,7 @@ There are 3 types of Successor:
   3) RECORD-Successor - the link to CPpmd7_Context record of (Order+1),
                         that record is being created when we go via RAW-Successor again.
 
-For any successors at any time: the following condtions are true for Successor links:
+For any successors at any time: the following conditions are true for Successor links:
 (NULL-Successor < RAW-Successor < UnitsStart <= RECORD-Successor)
 
 

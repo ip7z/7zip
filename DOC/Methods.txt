@@ -137,7 +137,7 @@ List of defined IDs
          05 - LZ5
          06 - LIZARD
 
-      12 xx - reserverd (Denis Anisimov)
+      12 xx - reserved (Denis Anisimov)
         
          01 - WavPack2
          FE - eSplitter 

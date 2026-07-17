@@ -61,7 +61,7 @@ void Huffman_Generate(const UInt32 *freqs, UInt32 *p, Byte *lens, unsigned numSy
     {
       const UInt32 *fp = freqs + numSymbols;
 #define NUM_UNROLLS 1
-#if NUM_UNROLLS > 1 // use 1 if odd (numSymbols) is possisble
+#if NUM_UNROLLS > 1 // use 1 if odd (numSymbols) is possible
       if (numSymbols & 1)
       {
         UInt32 f;
@@ -282,7 +282,7 @@ void Huffman_Generate(const UInt32 *freqs, UInt32 *p, Byte *lens, unsigned numSy
     
     if (b != p)
     {
-      // we detect level of each node (realtive to root),
+      // we detect level of each node (relative to root),
       // and update lenCounters[].
       // We process only intermediate nodes and we don't process leaves.
       do

@@ -112,7 +112,7 @@ we can place 128 ESCAPE chars to
       from same BMP-Escapes-16 stored in 7z.
       And if we want to restore any 8-bit from 7z archive,
       we still must use Z7_UTF_FLAG_FROM_UTF8_BMP_ESCAPE_CONVERT for (utf-8 -> utf-16)
-      Also we need additional Conversions to tranform from utf-16 to utf-16-With-Escapes-21
+      Also we need additional Conversions to transform from utf-16 to utf-16-With-Escapes-21
     }
     else (UTF_ESCAPE_PLANE == 0)
     {
@@ -320,7 +320,7 @@ bool CheckUTF8(const char *src, bool allowReduced) throw()
 
 // we store UTF-16 in wchar_t strings. So we use surrogates for big unicode points:
 
-// for debug puposes only we can store UTF-32 in wchar_t:
+// for debug purposes only we can store UTF-32 in wchar_t:
 // #define START_POINT_FOR_SURROGATE ((UInt32)0 - 1)
 
 
@@ -402,7 +402,7 @@ static bool Utf8_To_Utf16(wchar_t *dest, size_t *destLen, const char *src, const
       if ((flags & Z7_UTF_FLAG_FROM_UTF8_USE_ESCAPE) == 0)
       {
         // the following code to emit the 0xfffd chars as win32 Utf8 function.
-        // disable the folling line, if you need 0xfffd for each incorrect byte as in Escape mode
+        // disable the following line, if you need 0xfffd for each incorrect byte as in Escape mode
         src += pos;
       }
       UTF_ERROR_UTF8

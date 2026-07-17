@@ -353,7 +353,7 @@ void CInFile::CalcDeviceSize(CFSTR s)
     WinXP 64-bit:
 
     HDD \\.\PhysicalDrive0 (MBR):
-      GetPartitionInfo == GeometryEx :  corrrect size? (includes tail)
+      GetPartitionInfo == GeometryEx :  correct size? (includes tail)
       Geometry   :  smaller than GeometryEx (no tail, maybe correct too?)
       MyGetDiskFreeSpace : FAIL
       Size correction is slow and block size (kClusterSize) must be small?
@@ -365,8 +365,8 @@ void CInFile::CalcDeviceSize(CFSTR s)
 
     CD-ROM drive (ISO):
       MyGetDiskFreeSpace   :  correct size. Same size can be calculated after correction
-      Geometry == CdRomGeometry  :  smaller than corrrect size
-      GetPartitionInfo == GeometryEx :  larger than corrrect size
+      Geometry == CdRomGeometry  :  smaller than correct size
+      GetPartitionInfo == GeometryEx :  larger than correct size
 
     Floppy \\.\a: (FAT):
       Geometry :  correct size.

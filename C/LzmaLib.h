@@ -33,7 +33,7 @@ outPropsSize -
      In:  the pointer to the size of outProps buffer; *outPropsSize = LZMA_PROPS_SIZE = 5.
      Out: the pointer to the size of written properties in outProps buffer; *outPropsSize = LZMA_PROPS_SIZE = 5.
 
-  LZMA Encoder will use defult values for any parameter, if it is
+  LZMA Encoder will use default values for any parameter, if it is
   -1  for any from: level, loc, lp, pb, fb, numThreads
    0  for dictSize
   
@@ -125,7 +125,7 @@ Out:
 Returns:
   SZ_OK                - OK
   SZ_ERROR_DATA        - Data error
-  SZ_ERROR_MEM         - Memory allocation arror
+  SZ_ERROR_MEM         - Memory allocation error
   SZ_ERROR_UNSUPPORTED - Unsupported properties
   SZ_ERROR_INPUT_EOF   - it needs more bytes in input buffer (src)
 */

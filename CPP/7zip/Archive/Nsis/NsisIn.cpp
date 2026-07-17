@@ -148,7 +148,7 @@ enum
   EW_FGETWS,            // FileReadUTF16LE, FileReadWord
 
   /*
-  // since v3.06 the fllowing IDs codes was moved here:
+  // since v3.06 the following IDs codes was moved here:
   // Opcodes listed here are not actually used in exehead. No exehead opcodes should be present after these!
   EW_GETLABELADDR,      // --> EW_ASSIGNVAR
   EW_GETFUNCTIONADDR,   // --> EW_ASSIGNVAR
@@ -1914,7 +1914,7 @@ static const char * const kExecFlags_VarsNames[] =
   , "Abort" // abort;
   , "RebootFlag" // exec_reboot; // NSIS_SUPPORT_REBOOT
   , "reboot_called" // reboot_called; // NSIS_SUPPORT_REBOOT
-  , "cur_insttype" // XXX_cur_insttype; // depreacted
+  , "cur_insttype" // XXX_cur_insttype; // deprecated
   , "plugin_api_version" // plugin_api_version; // see NSISPIAPIVER_CURR
                           // used to be XXX_insttype_changed
   , "Silent" // silent; // NSIS_CONFIG_SILENT_SUPPORT

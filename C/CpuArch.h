@@ -455,13 +455,13 @@ problem-3 : compiler for 32-bit arm:
   32-bit access must be aligned for 32-bit, if we want to
   avoid "Alignment fault" exception (handled or unhandled).
 
-problem-4 : performace:
+problem-4 : performance:
   Even if unaligned access is handled by kernel, it will be slow.
   So if we allow unaligned access, we can get fast unaligned
   single-access, and slow unaligned paired-access.
 
   We don't allow unaligned access on 32-bit arm, because compiler
-  genarates paired-access instructions that require 32-bit alignment,
+  generates paired-access instructions that require 32-bit alignment,
   and some arm64 kernels have no handler for these instructions.
   Also unaligned paired-access instructions will be slow, if kernel handles them.
 */

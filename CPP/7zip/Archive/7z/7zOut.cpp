@@ -601,7 +601,7 @@ void COutArchive::WriteHeader(
 
   /*
   {
-    // It's example for per archive properies writing
+    // It's example for per archive properties writing
   
     WriteByte(NID::kArchiveProperties);
 

@@ -104,7 +104,7 @@ struct CMetaItem
   UString ShortName;
 
   UInt32 Attrib;
-  int SecurityId;       // -1: means no secutity ID
+  int SecurityId;       // -1: means no security ID
   bool IsDir;
   bool Skip;
   unsigned NumSkipAltStreams;
