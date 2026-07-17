@@ -378,7 +378,7 @@ HRESULT CProxyArc::Load(const CArc &arc, IProgress *progress)
     }
 
     /*
-    that code must be implemeted to hide alt streams in list.
+    that code must be implemented to hide alt streams in list.
     if (arc.Ask_AltStreams)
     {
       bool isAltStream;

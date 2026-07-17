@@ -25,8 +25,8 @@ using namespace NFar;
 static const DWORD kShowProgressTime_ms = 100;
 
 static const char * const kCommandPrefix = "7-zip";
-static const char * const kRegisrtryMainKeyName = NULL; // ""
-static LPCTSTR const kRegisrtryValueNameEnabled = TEXT("UsedByDefault3");
+static const char * const kRegistryMainKeyName = NULL; // ""
+static LPCTSTR const kRegistryValueNameEnabled = TEXT("UsedByDefault3");
 static const char * const kHelpTopicConfig =  "Config";
 static bool kPluginEnabledDefault = true;
 
@@ -98,8 +98,8 @@ EXTERN_C void WINAPI SetStartupInfo(const PluginStartupInfo *info)
   MY_TRY_BEGIN
   g_StartupInfo.Init(*info, kPliginNameForRegistry);
   g_Options.Enabled = g_StartupInfo.QueryRegKeyValue(
-      HKEY_CURRENT_USER, kRegisrtryMainKeyName,
-      kRegisrtryValueNameEnabled, kPluginEnabledDefault);
+      HKEY_CURRENT_USER, kRegistryMainKeyName,
+      kRegistryValueNameEnabled, kPluginEnabledDefault);
 
   // OutputDebugStringA("SetStartupInfo");
   // LoadGlobalCodecs();
@@ -276,7 +276,7 @@ static HANDLE MyOpenFilePluginW(const wchar_t *name, bool isAbortCodeSupported)
   COpenArchiveCallback *openArchiveCallbackSpec = new COpenArchiveCallback;
   CMyComPtr<IArchiveOpenCallback> uiCallback = openArchiveCallbackSpec;
 
-  /* COpenCallbackImp object will exist after Open stage for multivolume archioves */
+  /* COpenCallbackImp object will exist after Open stage for multivolume archives */
   COpenCallbackImp *impSpec = new COpenCallbackImp;
   CMyComPtr<IArchiveOpenCallback> impCallback = impSpec;
   impSpec->ReOpenCallback = openArchiveCallbackSpec; // we set pointer without reference counter
@@ -527,8 +527,8 @@ EXTERN_C int WINAPI Configure(int /* itemNumber */)
 
   g_Options.Enabled = BOOLToBool(dialogItems[kEnabledCheckBoxIndex].Selected);
 
-  g_StartupInfo.SetRegKeyValue(HKEY_CURRENT_USER, kRegisrtryMainKeyName,
-      kRegisrtryValueNameEnabled, g_Options.Enabled);
+  g_StartupInfo.SetRegKeyValue(HKEY_CURRENT_USER, kRegistryMainKeyName,
+      kRegistryValueNameEnabled, g_Options.Enabled);
   return(TRUE);
   MY_TRY_END2("Configure", FALSE)
 }

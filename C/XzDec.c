@@ -2583,7 +2583,7 @@ static void XzStatInfo_SetStat(const CXzUnpacker *dec,
     {
       // if (extraSize != 0 || readProcessed != inProcessed)
       {
-        // he we suppose that all xz streams were finsihed OK, and we have
+        // he we suppose that all xz streams were finished OK, and we have
         // some extra data after all streams
         stat->DataAfterEnd = True;
         res = SZ_OK;

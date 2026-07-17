@@ -324,7 +324,7 @@ public:
     /* CCodecsReleaser object releases CCodecs links.
          1) CCodecs is COM object that is deleted when all links to that object will be released/
          2) CCodecs::Libs[i] can hold (ICompressCodecsInfo *) link to CCodecs object itself.
-       To break that reference loop, we must close all CCodecs::Libs in CCodecsReleaser desttructor. */
+       To break that reference loop, we must close all CCodecs::Libs in CCodecsReleaser destructor. */
 
     CCodecs *_codecs;
       

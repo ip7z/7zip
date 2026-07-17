@@ -163,7 +163,7 @@ enum E_Program_ISA
 
 static const UInt32 k_SourceFlags_DoNotProcessInTarget = 1 << 1;
 /* Do not process in Target. Source will process operation instead of Target.
-   By default Target processes Drop opearation. */
+   By default Target processes Drop operation. */
 // static const UInt32 k_SourceFlags_ProcessInTarget      = 1 << 2;
 
 static const UInt32 k_SourceFlags_DoNotWaitFinish   = 1 << 3;
@@ -747,7 +747,7 @@ SetData(,, release = TRUE) from different processes (DropSource and DropTarget)
     until it has successfully received it and no error code is returned.
 
   Each of processes (Source and Target) has own copy of medium allocated.
-  Windows code creates proxy IDataObject object in Target process to transferr
+  Windows code creates proxy IDataObject object in Target process to transfer
   SetData() call between Target and Source processes via special proxies:
     DropTarget ->
     proxy_DataObject_in_Target ->
@@ -826,7 +826,7 @@ for 7zip-Target to 7zip-Source calls:
 
 for 7zip-Target to Explorer-Source calls:
   we use (release == TRUE).
-  beacuse Explorer-Source doesn't accept (release == FALSE).
+  because Explorer-Source doesn't accept (release == FALSE).
 }
 */
 

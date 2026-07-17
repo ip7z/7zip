@@ -173,7 +173,7 @@ static bool IsThereMethodOverride(bool is7z, const UStringVector &strings)
   return false;
 }
 
-static void ParseAndAddPropertires(CObjectVector<CProperty> &properties,
+static void ParseAndAddProperties(CObjectVector<CProperty> &properties,
     const UStringVector &strings)
 {
   FOR_VECTOR (i, strings)
@@ -511,7 +511,7 @@ static HRESULT ShowDialog(
       !methodOverride); // setMethod
   
   options.OpenShareForWrite = di.OpenShareForWrite;
-  ParseAndAddPropertires(options.MethodMode.Properties, optionStrings);
+  ParseAndAddProperties(options.MethodMode.Properties, optionStrings);
 
   if (di.SFXMode)
     options.SfxMode = true;

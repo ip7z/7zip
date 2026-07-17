@@ -63,7 +63,7 @@ HRESULT CDecoder::Code(ISequentialInStream *inStream, ISequentialOutStream *outS
   if (maxbits < kNumMinBits || maxbits > kNumMaxBits)
     return S_FALSE;
   const UInt32 numItems = (UInt32)1 << maxbits;
-  // Speed optimization: blockSymbol can contain unused velue.
+  // Speed optimization: blockSymbol can contain unused value.
 
   if (maxbits != _numMaxBits || !_parents || !_suffixes || !_stack)
   {

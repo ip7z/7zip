@@ -391,7 +391,7 @@ HRESULT DataObject_GetData_FILE_ATTRS(IDataObject *dataObject, CFileAttribs &att
   const unsigned numFiles = faa->cItems;
   if (numFiles == 0)
   {
-    // is it posssible to have empty array here?
+    // is it possible to have empty array here?
     return E_INVALIDARG;
   }
   if ((blockSize - (sizeof(MYWIN_FILE_ATTRIBUTES_ARRAY) - sizeof(DWORD)))

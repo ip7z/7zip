@@ -228,7 +228,7 @@ static UInt32 Is_Deflate(const Byte *p, size_t size)
     return k_IsArc_Res_NO;
   if (type == 0)
   {
-    // Stored (uncompreessed data)
+    // Stored (uncompressed data)
     if ((b >> 3) != 0)
       return k_IsArc_Res_NO;
     if (size < 4)

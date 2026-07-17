@@ -1857,7 +1857,7 @@ struct CKeyValPair
 {
   CByteBuffer Key;
   CByteBuffer Val;
-  // unsigned ValPos; // for alognment
+  // unsigned ValPos; // for alignment
 };
 
 
@@ -1945,7 +1945,7 @@ struct CMap
   btree_info bti;
   UInt64 NumNodes;
 
-  // we use thnese options to check:
+  // we use these options to check:
   UInt32 Subtype;
   bool IsPhysical;
   
@@ -2884,7 +2884,7 @@ HRESULT CDatabase::OpenVolume(const CObjectMap &omap, const oid_t fs_oid)
           return S_FALSE;
         if (vol.NodeIDs.Back() != id)
         {
-          // extents for Attributs;
+          // extents for Attributes;
           if (vol.SmallNodeIDs.IsEmpty() ||
               vol.SmallNodeIDs.Back() != id)
           {
@@ -3365,7 +3365,7 @@ HRESULT CVol::FillRefs()
       CRef &ref = Refs[item.RefIndex];
 
       /*
-      // it's optional check that parent_id is set correclty
+      // it's optional check that parent_id is set correctly
       if (IsViDef(ref.NodeIndex))
       {
         const CNode &node = Nodes[ref.NodeIndex];
@@ -3377,7 +3377,7 @@ HRESULT CVol::FillRefs()
       /*
       if (id == ROOT_DIR_INO_NUM)
       {
-        // ItemIndex in Node for ROOT_DIR_INO_NUM was not set bofere
+        // ItemIndex in Node for ROOT_DIR_INO_NUM was not set before
         // probably unused now.
         ref.ParentRefIndex = VI_MINUS1;
       }

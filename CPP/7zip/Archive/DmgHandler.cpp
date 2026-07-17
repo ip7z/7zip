@@ -976,12 +976,12 @@ HRESULT CHandler::Open2(IInStream *stream, IArchiveOpenCallback *openArchiveCall
   memcpy(_segmentGUID, (const Byte *)(const void *)buf + 0x40, 16);
   _dataForkChecksum.Parse((const Byte *)(const void *)buf + 0x50);
   xmlPair.Parse((const Byte *)(const void *)buf + 0xD8);
-  // Byte resereved[]
+  // Byte reserved[]
   blobPair.Parse((const Byte *)(const void *)buf + 0x128);
   _masterChecksum.Parse((const Byte *)(const void *)buf + 0x160);
   // UInt32 imageVariant = Get32a((const Byte *)(const void *)buf + 0x1E8); imageVariant = imageVariant;
   _numSectors = Get64((const Byte *)(const void *)buf + 0x1EC);  // it's not aligned for 8-bytes
-  // Byte resereved[12];
+  // Byte reserved[12];
 
   if (_dataForkPair.Offset == HEADER_SIZE
       && headerPos + HEADER_SIZE < fileSize)
@@ -1297,7 +1297,7 @@ HRESULT CHandler::Open2(IInStream *stream, IArchiveOpenCallback *openArchiveCall
       {
         /* xml code removes front space for such string:
              <string> (Apple_Free : 3)</string>
-           maybe we shoud fix xml code and return full string with space.
+           maybe we should fix xml code and return full string with space.
         */
         const AString *name = GetStringFromKeyPair(item, "Name", "string");
         if (!name || name->IsEmpty())

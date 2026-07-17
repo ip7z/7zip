@@ -2411,7 +2411,7 @@ HRESULT CCrcInfo_Base::CrcProcess(UInt64 numIterations,
 }
 
 extern
-UInt32 g_BenchCpuFreqTemp; // we need non-static variavble to disable compiler optimization
+UInt32 g_BenchCpuFreqTemp; // we need non-static variable to disable compiler optimization
 UInt32 g_BenchCpuFreqTemp = 1;
 
 #define YY1 sum += val; sum ^= val;

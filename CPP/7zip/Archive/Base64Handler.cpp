@@ -83,7 +83,7 @@ API_FUNC_static_IsArc IsArc_Base64(const Byte *p, size_t size)
   }
 
   {
-    // we try to redece false positive detection here.
+    // we try to reduce false positive detection here.
     // we don't expect space character in starting base64 line
     const unsigned kNumExpectedNonSpaceSyms = 20;
     if (firstSpace != 0 && firstSpace < num && firstSpace < kNumExpectedNonSpaceSyms)

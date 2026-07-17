@@ -269,7 +269,7 @@ Z7_COM7F_IMF(CStdInFileStream::Read(void *data, UInt32 size, UInt32 *processedSi
   BOOL res = ::ReadFile(GetStdHandle(STD_INPUT_HANDLE), data, sizeTemp, &realProcessedSize, NULL);
 
   /*
-  printf("\nCInFileStream::Read: size=%d, processed=%8d res=%d 4rror=%3d\n",
+  printf("\nCInFileStream::Read: size=%d, processed=%8d res=%d error=%3d\n",
     (unsigned)size, (int)realProcessedSize,
     (int)res, GetLastError());
   */

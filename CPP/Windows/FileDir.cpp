@@ -51,7 +51,7 @@ static bool FiTime_To_timespec(const CFiTime *ft, timespec &ts)
     ts.tv_sec = 0;
     ts.tv_nsec =
     #ifdef UTIME_OMIT
-      UTIME_OMIT; // -2 keep old timesptamp
+      UTIME_OMIT; // -2 keep old timestamp
     #else
       // UTIME_NOW; -1 // set to the current time
       0;
@@ -1078,7 +1078,7 @@ static BOOL My_CopyFile(CFSTR oldFile, CFSTR newFile, ICopyFileProgress *progres
   }
   // There is file IO error or process was interrupted by user.
   // We close output file and delete it.
-  // DeleteFileAlways doesn't change errno (if successed), but we restore errno.
+  // DeleteFileAlways doesn't change errno (if succeed), but we restore errno.
   const int errno_save = errno;
   DeleteFileAlways(newFile);
   errno = errno_save;
@@ -1334,7 +1334,7 @@ bool SetFileAttrib_PosixHighDetect(CFSTR path, DWORD attrib)
   {
     printf("\nfchmodat()\n");
     TRACE_chmod(path, (st.st_mode) & g_umask.mask)
-    // AT_SYMLINK_NOFOLLOW is not implemted still in Linux.
+    // AT_SYMLINK_NOFOLLOW is not implemented still in Linux.
     res = fchmodat(AT_FDCWD, path, (st.st_mode) & g_umask.mask,
         S_ISLNK(st.st_mode) ? AT_SYMLINK_NOFOLLOW : 0);
   }

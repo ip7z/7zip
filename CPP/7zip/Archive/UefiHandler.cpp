@@ -303,12 +303,12 @@ static const CUInt32PCharPair g_FFS_FILE_ATTRIBUTES[] =
   { 6, "" /* "CHECKSUM" */ }
 };
 
-// static const Byte g_Allignment[8] = { 3, 4, 7, 9, 10, 12, 15, 16 };
+// static const Byte g_Alignment[8] = { 3, 4, 7, 9, 10, 12, 15, 16 };
 
 // typedef Byte FFS_FILE_STATE;
 
 // Look also FVB_ERASE_POLARITY.
-// Lower-order State bits are superceded by higher-order State bits.
+// Lower-order State bits are superseded by higher-order State bits.
 
 // #define FILE_HEADER_CONSTRUCTION  0x01
 // #define FILE_HEADER_VALID         0x02
@@ -553,7 +553,7 @@ public:
     if (align != 0)
     {
       s += " Align:";
-      s.Add_UInt32((UInt32)1 << g_Allignment[align]);
+      s.Add_UInt32((UInt32)1 << g_Alignment[align]);
     }
     */
     return s;
@@ -1118,7 +1118,7 @@ HRESULT CHandler::ParseSections(unsigned bufIndex, UInt32 posBase, UInt32 size, 
         // item.Name = "guid.lzma";
         // AddItem(item);
         const Byte *pStart = bufData + newOffset;
-        // do we need correct pStart here for lzma steram offset?
+        // do we need correct pStart here for lzma stream offset?
         RINOK(DecodeLzma(pStart, newSectSize))
         _methodsMask |= (1 << COMPRESSION_TYPE_LZMA);
         newBufIndex = _bufs.Size() - 1;

@@ -440,7 +440,7 @@ Z7_COM7F_IMF(CHandler::Extract(const UInt32 *indices, UInt32 numItems,
   /* We use tempBuf for solid archives, if there is duplicate item.
      We don't know uncompressed size for non-solid archives, so we can't
      allocate exact buffer.
-     We use tempBuf also for first part (EXE stub) of unistall.exe
+     We use tempBuf also for first part (EXE stub) of uninstall.exe
      and tempBuf2 is used for second part (NSIS script). */
 
   CByteBuffer tempBuf;

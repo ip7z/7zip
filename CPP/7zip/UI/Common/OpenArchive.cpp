@@ -1834,10 +1834,10 @@ HRESULT CArc::OpenStream2(const COpenOptions &op)
           /*
           check type order:
             0) matched_extension && Backward
-            1) matched_extension && (no_signuature || SignatureOffset != 0)
+            1) matched_extension && (no_signature || SignatureOffset != 0)
             2) matched_extension && (matched_signature)
-            // 3) no signuature
-            // 4) matched signuature
+            // 3) no signature
+            // 4) matched signature
           */
           // we move index from orderIndices to orderIndices2 for priority handlers.
 
@@ -1923,7 +1923,7 @@ HRESULT CArc::OpenStream2(const COpenOptions &op)
   
   if (mode.CanReturnArc)
   {
-    // ---------- OPEN main type by extenssion ----------
+    // ---------- OPEN main type by extension ----------
   
     unsigned numCheckTypes = orderIndices.Size();
     if (formatIndex >= 0)
@@ -2772,7 +2772,7 @@ HRESULT CArc::OpenStream2(const COpenOptions &op)
           if (PhySize_Defined && PhySize == 0)
           {
             PRF(printf("  phySize_Defined && PhySize == 0 "));
-            // we skip that epmty archive case with unusual unexpected (PhySize == 0) from Code function.
+            // we skip that empty archive case with unusual unexpected (PhySize == 0) from Code function.
             continue;
           }
           isOpen = true;

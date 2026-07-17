@@ -151,13 +151,13 @@ IStreamSetRestriction::SetRestriction(UInt64 begin, UInt64 end)
     - The callee usually doesn't flush the data in restricted region.
     - The callee usually can flush data from non-restricted region after writing.
 
-Actual restiction rules depend also from current stream position.
+Actual restriction rules depend also from current stream position.
 It's recommended to call SetRestriction() just before the Write() call.
 So the callee can optimize writing and flushing, if that Write()
 operation is not restricted.
 
-Note: Each new call of SetRestriction() sets new restictions,
-so previous restrction calls has no effect anymore.
+Note: Each new call of SetRestriction() sets new restrictions,
+so previous restriction calls has no effect anymore.
 
 inputs:
  

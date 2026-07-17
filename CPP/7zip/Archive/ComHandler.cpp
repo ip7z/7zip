@@ -853,7 +853,7 @@ HRESULT CDatabase::Open(IInStream *inStream)
     used[sid] = k_Used_ChainTo;
     do
     {
-      // we need to check sid here becase kEndOfChain sid < numFatItems is required
+      // we need to check sid here because kEndOfChain sid < numFatItems is required
       if (sid >= numFatItems)
         return S_FALSE;
       if (numDirSectors && numDirSectors_Processed >= numDirSectors)
@@ -1010,7 +1010,7 @@ HRESULT CDatabase::Open(IInStream *inStream)
   }
 
   {
-    // Don't move that code up, becase Check_Item uses Mat[] array.
+    // Don't move that code up, because Check_Item uses Mat[] array.
     FOR_VECTOR(t, Items)
     {
       RINOK(Check_Item(t))

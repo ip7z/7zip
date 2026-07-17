@@ -135,9 +135,9 @@ public:
   CheckPathVect() doesn't check path in Parent CCensorNode
   so use CheckPathVect() for root CCensorNode
   OUT:
-    returns (true) && (include = false) - file in exlude list
-    returns (true) && (include = true)  - file in include list and is not in exlude list
-    returns (false)  - file is not in (include/exlude) list
+    returns (true) && (include = false) - file in exclude list
+    returns (true) && (include = true)  - file in include list and is not in exclude list
+    returns (false)  - file is not in (include/exclude) list
   */
   bool CheckPathVect(const UStringVector &pathParts, bool isFile, bool &include) const;
 
