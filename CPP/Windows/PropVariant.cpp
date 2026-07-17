@@ -145,7 +145,7 @@ CPropVariant& CPropVariant::operator=(const UString2 &s)
 
     /* MSDN: Windows CE: SysAllocStringLen() : Passing invalid (and under some circumstances NULL)
                          pointers to this function causes  an unexpected termination of the application.
-       Is it safe? Maybe we must chamnge the code for that case ? */
+       Is it safe? Maybe we must change the code for that case ? */
   }
   return *this;
 }

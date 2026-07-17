@@ -560,7 +560,7 @@ bool CPanel::OnNotifyList(LPNMHDR header, LRESULT &result)
         // Post_Refresh_StatusBar();
         /* 9.26: we don't call Post_Refresh_StatusBar.
            it was very slow if we select big number of files
-           and then clead slection by selecting just new file.
+           and then clear selection by selecting just new file.
            probably it called slow Refresh_StatusBar for each item deselection.
            I hope Refresh_StatusBar still will be called for each key / mouse action.
         */

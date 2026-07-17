@@ -31,7 +31,7 @@ bool CThreadInfo::Alloc()
 
   if (!m_Block_Base)
   {
-    const unsigned kPadSize = 1 << 7; // we need at least 1 byte backward padding, becuase we use (m_Block - 1) pointer;
+    const unsigned kPadSize = 1 << 7; // we need at least 1 byte backward padding, because we use (m_Block - 1) pointer;
     m_Block_Base = (Byte *)::MidAlloc(kBlockSizeMax * 5
         + kBlockSizeMax / 10 + (20 << 10)
         + kPadSize);

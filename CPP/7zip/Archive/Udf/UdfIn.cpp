@@ -461,7 +461,7 @@ Deleted bit:
         the implementation shall set the ICB field to zero.
     ECMA 167 4/8.6 requires that the File Identifiers of all FIDs in a directory shall be unique.
     The implementations shall follow these rules when a Deleted bit is set:
-    rewrire the compression ID of the File Identifier: 8 -> 254, 16 -> 255.
+    rewrite the compression ID of the File Identifier: 8 -> 254, 16 -> 255.
 */
 
 struct CFileId
@@ -586,7 +586,7 @@ HRESULT CInArchive::ReadItem(unsigned volIndex, int fsIndex, const CLongAllocDes
   item.IcbTag.Parse(p + 16);
 
   // maybe another FileType values are possible in rare cases.
-  // Shoud we ignore FileType here?
+  // Should we ignore FileType here?
   if (fsIndex < 0)
   {
     // if (item.IcbTag.FileType == ICB_FILE_TYPE_DIR) return S_FALSE;

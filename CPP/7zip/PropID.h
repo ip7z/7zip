@@ -156,8 +156,8 @@ PROPVARIANT for timestamps in 7-Zip:
     16 + (1,2,3,4,5,6,7,8,9) : set subsecond precision level :
          (number of decimal digits after point)
     16 + 9 : 1 ns  (9 digits after point)
-  wReserved2 = ns % 100 : if     (8 or 9 digits pecision)
-             = 0        : if not (8 or 9 digits pecision)
+  wReserved2 = ns % 100 : if     (8 or 9 digits precision)
+             = 0        : if not (8 or 9 digits precision)
   wReserved3 = 0;
   filetime
 }

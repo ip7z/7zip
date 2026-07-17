@@ -125,7 +125,7 @@ enum EEnum
   
   kConfigPluginEnabled,
 
-  // ---------- IDs for Properies (kpid*) ----------
+  // ---------- IDs for Properties (kpid*) ----------
   kNoProperty,
   k_Last_MessageID_for_Property = kNoProperty + k_Last_PropId_supported_by_plugin
   // ----------

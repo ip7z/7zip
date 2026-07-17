@@ -172,7 +172,7 @@ HRESULT CEncoder::CodeReal(
   // enc.relatExcludeBits = _excludeRangeBits;
   enc.finishMode = BCJ2_ENC_FINISH_MODE_CONTINUE;
 
-  // Varibales that correspond processed data in input stream:
+  // Variables that correspond processed data in input stream:
   UInt64 inPos_without_Temp = 0;  // it doesn't include data in enc.temp[]
   UInt64 inPos_with_Temp = 0;     // it        includes data in enc.temp[]
 

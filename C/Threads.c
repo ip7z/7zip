@@ -447,7 +447,7 @@ Z7_DIAGNOSTIC_IGNORE_END_RESERVED_MACRO_IDENTIFIER
 
 WRes Thread_Create_With_CpuSet(CThread *p, THREAD_FUNC_TYPE func, LPVOID param, const CCpuSet *cpuSet)
 {
-  // new thread in Posix probably inherits affinity from parrent thread
+  // new thread in Posix probably inherits affinity from parent thread
   Print("Thread_Create_With_CpuSet")
 
   pthread_attr_t attr;

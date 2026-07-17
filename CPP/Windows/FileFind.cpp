@@ -167,7 +167,7 @@ bool CFileInfoBase::SetAs_StdInFile()
 #endif
 #endif
 
-#else // non-Wiondow
+#else // non-Windows
 
   mode = S_IFIFO | 0777; // 0755 : 0775 : 0664 : 0644 :
 #if 1
@@ -812,7 +812,7 @@ bool CFileInfo::FollowReparse(CFSTR path, bool isDir)
         break;
       if (fi.Name.IsEqualTo_Ascii_NoCase("."))
       {
-        // we can copy preperies;
+        // we can copy preperties;
         CTime = fi.CTime;
         ATime = fi.ATime;
         MTime = fi.MTime;

@@ -1359,10 +1359,10 @@ bool SetFileAttrib_PosixHighDetect(CFSTR path, DWORD attrib)
   if (S_ISLNK(mode))
   {
     printf("\nfchmodat()\n");
-    TRACE_chmod(path, (mode))
-    // AT_SYMLINK_NOFOLLOW is not implemented still in Linux.
-    res = fchmodat(AT_FDCWD, path, (mode),
-        S_ISLNK(mode) ? AT_SYMLINK_NOFOLLOW : 0);
+    TRACE_chmod(path, (st.st_mode) & g_umask.mask)
+    // AT_SYMLINK_NOFOLLOW is not implemted still in Linux.
+    res = fchmodat(AT_FDCWD, path, (st.st_mode) & g_umask.mask,
+        S_ISLNK(st.st_mode) ? AT_SYMLINK_NOFOLLOW : 0);
   }
   else
   */

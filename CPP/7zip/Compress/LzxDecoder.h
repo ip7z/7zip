@@ -25,7 +25,7 @@ const unsigned kNumLenSymols_Big = kNumLenSymols_Big_Start + kNumLenSymbols;
   // for smallest structure size:
   const unsigned kPosSlotOffset = 0;
 #else
-  // use virtual entries for mispredicted branches:
+  // use virtual entries for unpredicted branches:
   const unsigned kPosSlotOffset = 256 / kNumLenSlots;
 #endif
 

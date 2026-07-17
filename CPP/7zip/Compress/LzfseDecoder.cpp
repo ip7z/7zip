@@ -626,7 +626,7 @@ HRESULT CDecoder::DecodeLzfse(UInt32 unpackSize, Byte version)
       // (total header size in bytes; this does not
       // correspond to a field in the uncompressed header version,
       // but is required; we wouldn't know the size of the
-      // compresssed header otherwise.
+      // compressed header otherwise.
       GET_BITS_32(v32, 0, 10, l_state)
       GET_BITS_32(v32, 10, 10, m_state)
       GET_BITS_32(v32, 20, 10 + 2, d_state)

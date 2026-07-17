@@ -212,7 +212,7 @@ endm
         jnc     @B
 
 if 0
-        ; byte verson
+        ; byte version
         add     rD, rN
         xor     x0, dword ptr [rD]
         add     rN, NUM_BYTES_LIMIT - 1

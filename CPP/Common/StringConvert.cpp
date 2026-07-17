@@ -362,7 +362,7 @@ void MultiByteToUnicodeString2(UString &dest, const AString &src, UINT codePage)
       Byte c = (Byte)s[i];
       if (c == 0)
         break;
-      // we can use ascii compatibilty character '_'
+      // we can use ascii compatibility character '_'
       // if (c > 0x7F) c = '_'; // we replace "bad: character
       d[i++] = (wchar_t)c;
     }
@@ -699,7 +699,7 @@ void MY_SetLocale()
       // newLocale = ".utf8";    // supported in new Windows 10 build 17134 (April 2018 Update), the Universal C Runtime
       // newLocale = "en_US.utf8"; // supported by ubuntu ?
       // newLocale = "en_US.UTF-8";
-      /* setlocale() in ubuntu allows locales with minor chracter changes in strings
+      /* setlocale() in ubuntu allows locales with minor character changes in strings
         "en_US.UTF-8" /  "en_US.utf8" */
     }
     

@@ -580,7 +580,7 @@ static void AddToCensorFromNonSwitchesStrings(
     /* for rename command: -i switch sets the mask for archive item reading.
        if (thereAreSwitchIncludes), { we don't use UniversalWildcard. }
        also for non-rename command: we set UniversalWildcard, only if there are no nonSwitches. */
-    // we use default fileds in (CNameOption) for UniversalWildcard.
+    // we use default files in (CNameOption) for UniversalWildcard.
     CNameOption nop2;
     // recursive mode is not important for UniversalWildcard (*)
     // nop2.RecursedType = nop.RecursedType; // we don't need it
@@ -812,7 +812,7 @@ static void AddSwitchWildcardsToCensor(
     
     if (error)
     {
-      errorMessage = "inorrect switch";
+      errorMessage = "incorrect switch";
       break;
     }
 
