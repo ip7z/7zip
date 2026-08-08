@@ -62,6 +62,7 @@ namespace NCompressDialog
     CBoolPair NtSecurity;
 
     CBoolPair PreserveATime;
+    CBoolPair OldestCTime;
 
     UInt32 TimePrec;
     CBoolPair MTime;
@@ -147,6 +148,7 @@ public:
   CBool1 AltStreams;
   CBool1 NtSecurity;
   CBool1 PreserveATime;
+  CBool1 OldestCTime;
 private:
   bool _ramSize_Defined;
 
@@ -468,7 +470,7 @@ public:
 
   INT_PTR Create(HWND wndParent = NULL)
   {
-    BIG_DIALOG_SIZE(240, 232);
+    BIG_DIALOG_SIZE(240, 252);
     return CModalDialog::Create(SIZED_DIALOG(IDD_COMPRESS_OPTIONS), wndParent);
   }
 

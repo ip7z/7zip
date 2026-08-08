@@ -104,6 +104,7 @@
 #define IDX_COMPRESS_ATIME              4084
 #define IDX_COMPRESS_ZTIME              4085
 #define IDX_COMPRESS_PRESERVE_ATIME     4086
+#define IDX_COMPRESS_OLDEST_CTIME       4087
 
 #define IDS_COMPRESS_SEC                4090
 #define IDS_COMPRESS_NS                 4091
