@@ -621,6 +621,7 @@ static HRESULT Compress(
   CMyComPtr<IArchiveUpdateCallback> updateCallback(updateCallbackSpec);
   
   updateCallbackSpec->PreserveATime = options.PreserveATime;
+  updateCallbackSpec->StoreOldestCTime = options.StoreOldestCTime;
   updateCallbackSpec->ShareForWrite = options.OpenShareForWrite;
   updateCallbackSpec->StopAfterOpenError = options.StopAfterOpenError;
   updateCallbackSpec->StdInMode = options.StdInMode;

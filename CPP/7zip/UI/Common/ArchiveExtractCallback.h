@@ -64,6 +64,7 @@ struct CExtractNtOptions
   // used for hash arcs only, when we open external files
   bool PreserveATime;
   bool OpenShareForWrite;
+  bool OldestCTime;
 
   unsigned SymLinks_DangerousLevel;
 
@@ -75,6 +76,7 @@ struct CExtractNtOptions
       ExtractOwner(false),
       PreserveATime(false),
       OpenShareForWrite(false),
+      OldestCTime(false),
       SymLinks_DangerousLevel(5),
       MemLimit((UInt64)(Int64)-1)
   {
