@@ -42,7 +42,10 @@ Z7_COM7F_IMF(CAgent::SetFolder(IFolderFolder *folder))
   }
 
   if (_proxy2)
-    _updatePathPrefix = _proxy2->GetDirPath_as_Prefix(_agentFolder->_proxyDirIndex, _updatePathPrefix_is_AltFolder);
+  {
+    _updatePathPrefix = _proxy2->GetDirPath_as_Prefix(_agentFolder->_proxyDirIndex);
+    _updatePathPrefix_is_AltFolder = _proxy2->IsAltDir(_agentFolder->_proxyDirIndex);
+  }
   else
     _updatePathPrefix = _proxy->GetDirPath_as_Prefix(_agentFolder->_proxyDirIndex);
   return S_OK;
@@ -58,85 +61,139 @@ Z7_COM7F_IMF(CAgent::SetFiles(const wchar_t *folderPrefix,
   return S_OK;
 }
 
-static HRESULT EnumerateArchiveItems(CAgent *agent,
-    const CProxyDir &item,
-    const UString &prefix,
+
+static HRESULT EnumerateArchiveItems(const CAgent *agent,
     CObjectVector<CArcItem> &arcItems)
 {
-  unsigned i;
-  
-  for (i = 0; i < item.SubFiles.Size(); i++)
+  CUIntVector vec;
+  CArcItem ai;
+  ai.Censored = true; // test it
+  unsigned prefixLen = 0;
+  unsigned dirIndex = k_Proxy_RootDirIndex; // 0
+  unsigned i = 0;
+  for (;;)
   {
-    unsigned arcIndex = item.SubFiles[i];
-    const CProxyFile &fileItem = agent->_proxy->Files[arcIndex];
-    CArcItem ai;
-    RINOK(agent->GetArc().GetItem_MTime(arcIndex, ai.MTime))
-    RINOK(agent->GetArc().GetItem_Size(arcIndex, ai.Size, ai.Size_Defined))
-    ai.IsDir = false;
-    ai.Name = prefix + fileItem.Name;
-    ai.Censored = true; // test it
-    ai.IndexInServer = arcIndex;
-    arcItems.Add(ai);
-  }
-  
-  for (i = 0; i < item.SubDirs.Size(); i++)
-  {
-    const CProxyDir &dirItem = agent->_proxy->Dirs[item.SubDirs[i]];
-    UString fullName = prefix + dirItem.Name;
-    if (dirItem.IsLeaf())
+    const CProxyDir &dir = agent->_proxy->Dirs[dirIndex];
+
+    if (i == dir.SubDirs.Size()) // we fill SubFiles after SubDirs
     {
-      CArcItem ai;
-      RINOK(agent->GetArc().GetItem_MTime((unsigned)dirItem.ArcIndex, ai.MTime))
+      ai.IsDir = false;
+      FOR_VECTOR (k, dir.SubFiles)
+      {
+        const unsigned arcIndex = dir.SubFiles[k];
+        ai.IndexInServer = arcIndex;
+        RINOK(agent->GetArc().GetItem_MTime(arcIndex, ai.MTime))
+        RINOK(agent->GetArc().GetItem_Size(arcIndex, ai.Size, ai.Size_Defined))
+        RINOK(Archive_IsItem_AltStream(agent->GetArc().Archive, arcIndex, ai.IsAltStream))
+        ai.Name.DeleteFrom(prefixLen);
+        const CProxyFile &file = agent->_proxy->Files[arcIndex];
+        ai.Name += file.Name;
+        arcItems.Add(ai);
+      }
+
+      const unsigned num = vec.Size();
+      if (num < 3)
+        return S_OK;
+      prefixLen = vec[num - 3];
+      dirIndex = vec[num - 2];
+      i = vec[num - 1];
+      vec.DeleteFrom(num - 3);
+      continue;
+    }
+    
+    const unsigned subDirIndex = dir.SubDirs[i];
+    i++;
+    const CProxyDir &subDir = agent->_proxy->Dirs[subDirIndex];
+    ai.Name.DeleteFrom(prefixLen);
+    ai.Name += subDir.Name;
+    if (subDir.IsLeaf())
+    {
+      ai.IndexInServer = (unsigned)subDir.ArcIndex;
+      RINOK(agent->GetArc().GetItem_MTime((unsigned)subDir.ArcIndex, ai.MTime))
       ai.IsDir = true;
+      ai.IsAltStream = false;
       ai.Size_Defined = false;
-      ai.Name = fullName;
-      ai.Censored = true; // test it
-      ai.IndexInServer = (unsigned)dirItem.ArcIndex;
+      ai.Size = 0;
       arcItems.Add(ai);
     }
-    RINOK(EnumerateArchiveItems(agent, dirItem, fullName + WCHAR_PATH_SEPARATOR, arcItems))
+    
+    vec.Add(prefixLen);
+    vec.Add(dirIndex);
+    vec.Add(i);
+    ai.Name.Add_PathSepar();
+    prefixLen = ai.Name.Len();
+    if (prefixLen >= (1 << 15) /* || vec.Size() >= (3 << 14) */ ) // NTFS limit
+      return E_NOTIMPL;
+    dirIndex = subDirIndex;
+    i = 0;
   }
-  
-  return S_OK;
 }
+
 
 static HRESULT EnumerateArchiveItems2(const CAgent *agent,
     unsigned dirIndex,
     const UString &prefix,
     CObjectVector<CArcItem> &arcItems)
 {
-  const CProxyDir2 &dir = agent->_proxy2->Dirs[dirIndex];
-  FOR_VECTOR (i, dir.Items)
+  CUIntVector vec;
+  CArcItem ai;
+  ai.Censored = true; // test it
+  ai.Name = prefix;
+  unsigned prefixLen = ai.Name.Len();
+  unsigned i = 0;
+  for (;;)
   {
-    unsigned arcIndex = dir.Items[i];
+    const CProxyDir2 &dir = agent->_proxy2->Dirs[dirIndex];
+    if (i == dir.Items.Size())
+    {
+      const unsigned num = vec.Size();
+      if (num < 3)
+        return S_OK;
+      prefixLen = vec[num - 3];
+      dirIndex = vec[num - 2];
+      i = vec[num - 1];
+      vec.DeleteFrom(num - 3);
+      continue;
+    }
+
+    const unsigned arcIndex = dir.Items[i];
+    i++;
+    ai.Name.DeleteFrom(prefixLen);
     const CProxyFile2 &file = agent->_proxy2->Files[arcIndex];
-    CArcItem ai;
+    ai.Name += file.Name;
+    // v23.03: we normalize slashes:
+    NArchive::NItemName::NormalizeSlashes_in_FileName_for_OsPath(
+        ai.Name.Ptr_non_const() + (ai.Name.Len() - file.NameLen), file.NameLen);
     ai.IndexInServer = arcIndex;
-    ai.Name = prefix + file.Name;
-    ai.Censored = true; // test it
     RINOK(agent->GetArc().GetItem_MTime(arcIndex, ai.MTime))
-    ai.IsDir = file.IsDir();
+    ai.Size = 0;
     ai.Size_Defined = false;
     ai.IsAltStream = file.IsAltStream;
-    if (!ai.IsDir)
-    {
+    ai.IsDir = file.IsDir();
+    if (!file.IsDir())
       RINOK(agent->GetArc().GetItem_Size(arcIndex, ai.Size, ai.Size_Defined))
-      ai.IsDir = false;
-    }
+    
     arcItems.Add(ai);
-    
+
     if (file.AltDirIndex != -1)
+      RINOK(EnumerateArchiveItems2(agent, (unsigned)file.AltDirIndex,
+          ai.Name + L':', arcItems))
+
+    if (file.IsDir())
     {
-      RINOK(EnumerateArchiveItems2(agent, (unsigned)file.AltDirIndex, ai.Name + L':', arcItems))
-    }
-    
-    if (ai.IsDir)
-    {
-      RINOK(EnumerateArchiveItems2(agent, (unsigned)file.DirIndex, ai.Name + WCHAR_PATH_SEPARATOR, arcItems))
+      vec.Add(prefixLen);
+      vec.Add(dirIndex);
+      vec.Add(i);
+      ai.Name.Add_PathSepar();
+      prefixLen = ai.Name.Len();
+      if (prefixLen >= (1 << 15) /* || vec.Size() >= (3 << 14) */ ) // NTFS limit
+        return E_NOTIMPL;
+      dirIndex = (unsigned)file.DirIndex;
+      i = 0;
     }
   }
-  return S_OK;
 }
+
 
 struct CAgUpCallbackImp Z7_final: public IUpdateProduceCallback
 {
@@ -299,7 +356,7 @@ Z7_COM7F_IMF(CAgent::DoOperation(
     }
     else
     {
-      RINOK(EnumerateArchiveItems(this, _proxy->Dirs[0], L"", arcItems))
+      RINOK(EnumerateArchiveItems(this, arcItems))
     }
   }
 
@@ -497,6 +554,7 @@ HRESULT CAgent::CreateFolder(ISequentialOutStream *outArchiveStream,
     updatePairs.Add(up2);
   }
   CUpdatePair2 up2;
+  up2.Construct();
   up2.NewData = up2.NewProps = true;
   up2.UseArcProps = false;
   up2.DirIndex = 0;
@@ -509,9 +567,8 @@ HRESULT CAgent::CreateFolder(ISequentialOutStream *outArchiveStream,
 
   di.Attrib = FILE_ATTRIBUTE_DIRECTORY;
   di.Size = 0;
-  bool isAltStreamFolder = false;
   if (_proxy2)
-    di.Name = _proxy2->GetDirPath_as_Prefix(_agentFolder->_proxyDirIndex, isAltStreamFolder);
+    di.Name = _proxy2->GetDirPath_as_Prefix(_agentFolder->_proxyDirIndex /* , isAltStreamFolder */);
   else
     di.Name = _proxy->GetDirPath_as_Prefix(_agentFolder->_proxyDirIndex);
   di.Name += folderName;

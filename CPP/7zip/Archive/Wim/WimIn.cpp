@@ -609,6 +609,7 @@ HRESULT CDatabase::ParseDirItem(size_t pos, int parent, unsigned dirLevel)
       return S_FALSE;
 
     CItem item;
+    item.Construct();
     const UInt32 attrib = Get32(p + 8);
     item.IsDir = ((attrib & 0x10) != 0);
     {
@@ -729,6 +730,7 @@ HRESULT CDatabase::ParseDirItem(size_t pos, int parent, unsigned dirLevel)
       {
         ThereAreAltStreams = true;
         CItem item2;
+        item2.Construct();
         item2.Offset = pos;
         item2.IsAltStream = true;
         item2.Parent = (int)prevIndex;
@@ -1092,6 +1094,7 @@ HRESULT CDatabase::Open(IInStream *inStream, const CHeader &h, unsigned numItems
 
     if (h.PartNumber != 1 || si.PartNumber != h.PartNumber)
       continue;
+    si.Resource.UpdatePhySize(PhySize);
 
     const unsigned userImage = Images.Size() + GetStartImageIndex();
     CImage &image = Images.AddNew();
@@ -1531,6 +1534,7 @@ HRESULT CDatabase::FillAndCheck(const CObjectVector<CVolume> &volumes)
         if (!r.IsSolidBig() || Solids[r.SolidIndex].FirstSmallStream < 0)
         {
           CItem item;
+          item.Construct();
           item.Offset = 0;
           item.StreamIndex = (int)i;
           item.ImageIndex = -1;
@@ -1620,6 +1624,22 @@ static void IntVector_SetMinusOne_IfNeed(CIntVector &v, unsigned size)
 }
 
 
+bool CDatabase::Check_PartNumber_in_Items(unsigned numVolumes) const
+{
+  // maybe it's better to check all Items[] or all DataStreams[] items instead
+  FOR_VECTOR(indexInSorted, SortedItems)
+  {
+    const unsigned itemIndex = SortedItems[indexInSorted];
+    const CItem &item = Items[itemIndex];
+    if (item.StreamIndex < 0)
+      continue;
+    const CStreamInfo &si = DataStreams[item.StreamIndex];
+    if (si.PartNumber >= numVolumes)
+      return false;
+  }
+  return true;
+}
+
 HRESULT CDatabase::ExtractReparseStreams(const CObjectVector<CVolume> &volumes, IArchiveOpenCallback *openCallback)
 {
   ItemToReparse.Clear();
@@ -1636,7 +1656,7 @@ HRESULT CDatabase::ExtractReparseStreams(const CObjectVector<CVolume> &volumes, 
   FOR_VECTOR(indexInSorted, SortedItems)
   {
     // we use sorted items for faster access
-    unsigned itemIndex = SortedItems[indexInSorted];
+    const unsigned itemIndex = SortedItems[indexInSorted];
     const CItem &item = Items[itemIndex];
     
     if (!item.HasMetadata() || item.IsAltStream)
@@ -1689,10 +1709,8 @@ HRESULT CDatabase::ExtractReparseStreams(const CObjectVector<CVolume> &volumes, 
     }
     else
     {
-      /*
       if (si.PartNumber >= volumes.Size())
         continue;
-      */
       const CVolume &vol = volumes[si.PartNumber];
       /*
       if (!vol.Stream)

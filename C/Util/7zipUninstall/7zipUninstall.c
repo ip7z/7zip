@@ -1,5 +1,5 @@
 /* 7zipUninstall.c - 7-Zip Uninstaller
-2024-03-21 : Igor Pavlov : Public domain */
+: Igor Pavlov : Public domain */
 
 #include "Precomp.h"
 
@@ -147,7 +147,7 @@ static LPCWSTR const kUninstallExe = L"Uninstall.exe";
 #define MAKE_CHAR_UPPER(c) ((((c) >= 'a' && (c) <= 'z') ? (c) - 0x20 : (c)))
 
 
-static void CpyAscii(wchar_t *dest, const char *s)
+static void CpyAscii(WCHAR *dest, const char *s)
 {
   for (;;)
   {
@@ -158,13 +158,13 @@ static void CpyAscii(wchar_t *dest, const char *s)
   }
 }
 
-static void CatAscii(wchar_t *dest, const char *s)
+static void CatAscii(WCHAR *dest, const char *s)
 {
   dest += wcslen(dest);
   CpyAscii(dest, s);
 }
 
-static void PrintErrorMessage(const char *s1, const wchar_t *s2)
+static void PrintErrorMessage(const char *s1, const WCHAR *s2)
 {
   WCHAR m[MAX_PATH + 512];
   m[0] = 0;
@@ -183,12 +183,12 @@ static void PrintErrorMessage(const char *s1, const wchar_t *s2)
 }
 
 
-static BoolInt AreStringsEqual_NoCase(const wchar_t *s1, const wchar_t *s2)
+static BoolInt AreStringsEqual_NoCase(const WCHAR *s1, const WCHAR *s2)
 {
   for (;;)
   {
-    wchar_t c1 = *s1++;
-    wchar_t c2 = *s2++;
+    WCHAR c1 = *s1++;
+    WCHAR c2 = *s2++;
     if (c1 != c2 && MAKE_CHAR_UPPER(c1) != MAKE_CHAR_UPPER(c2))
       return False;
     if (c2 == 0)
@@ -196,12 +196,12 @@ static BoolInt AreStringsEqual_NoCase(const wchar_t *s1, const wchar_t *s2)
   }
 }
 
-static BoolInt IsString1PrefixedByString2_NoCase(const wchar_t *s1, const wchar_t *s2)
+static BoolInt IsString1PrefixedByString2_NoCase(const WCHAR *s1, const WCHAR *s2)
 {
   for (;;)
   {
-    wchar_t c1;
-    const wchar_t c2 = *s2++;
+    WCHAR c1;
+    const WCHAR c2 = *s2++;
     if (c2 == 0)
       return True;
     c1 = *s1++;
@@ -446,7 +446,7 @@ static LPCWSTR const k_AppPaths_7zFm = L"Software\\Microsoft\\Windows\\CurrentVe
 static LPCWSTR const k_Uninstall_7zip = k_REG_Uninstall L"7-Zip";
 
 
-static void RemoveQuotes(wchar_t *s)
+static void RemoveQuotes(WCHAR *s)
 {
   const size_t len = wcslen(s);
   size_t i;
@@ -457,7 +457,7 @@ static void RemoveQuotes(wchar_t *s)
   s[len - 2] = 0;
 }
 
-static BoolInt AreEqual_Path_PrefixName(const wchar_t *s, const wchar_t *prefix, const wchar_t *name)
+static BoolInt AreEqual_Path_PrefixName(const WCHAR *s, const WCHAR *prefix, const WCHAR *name)
 {
   if (!IsString1PrefixedByString2_NoCase(s, prefix))
     return False;
@@ -558,13 +558,13 @@ static void WriteCLSID(void)
 }
 
 
-static const wchar_t *GetCmdParam(const wchar_t *s)
+static const WCHAR *GetCmdParam(const WCHAR *s)
 {
   unsigned pos = 0;
   BoolInt quoteMode = False;
   for (;; s++)
   {
-    const wchar_t c = *s;
+    const WCHAR c = *s;
     if (c == 0 || (c == L' ' && !quoteMode))
       break;
     if (c == L'\"')
@@ -581,12 +581,12 @@ static const wchar_t *GetCmdParam(const wchar_t *s)
 }
 
 /*
-static void RemoveQuotes(wchar_t *s)
+static void RemoveQuotes(WCHAR *s)
 {
-  const wchar_t *src = s;
+  const WCHAR *src = s;
   for (;;)
   {
-    wchar_t c = *src++;
+    WCHAR c = *src++;
     if (c == '\"')
       continue;
     *s++ = c;
@@ -618,11 +618,11 @@ static BOOL RemoveFileAfterReboot(void)
 
 // #define IS_LIMIT_CHAR(c) (c == 0 || c == ' ')
 
-static BoolInt IsThereSpace(const wchar_t *s)
+static BoolInt IsThereSpace(const WCHAR *s)
 {
   for (;;)
   {
-    const wchar_t c = *s++;
+    const WCHAR c = *s++;
     if (c == 0)
       return False;
     if (c == ' ')
@@ -630,7 +630,7 @@ static BoolInt IsThereSpace(const wchar_t *s)
   }
 }
 
-static void AddPathParam(wchar_t *dest, const wchar_t *src)
+static void AddPathParam(WCHAR *dest, const WCHAR *src)
 {
   const BoolInt needQuote = IsThereSpace(src);
   if (needQuote)
@@ -937,7 +937,7 @@ int APIENTRY WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance,
     #endif
     lpCmdLine, int nCmdShow)
 {
-  const wchar_t *cmdParams;
+  const WCHAR *cmdParams;
   BoolInt useTemp = True;
 
   UNUSED_VAR(hPrevInstance)
@@ -957,7 +957,7 @@ int APIENTRY WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance,
 #endif
 
   {
-    const wchar_t *s = GetCommandLineW();
+    const WCHAR *s = GetCommandLineW();
 
     #ifndef UNDER_CE
     s = GetCmdParam(s);
@@ -968,7 +968,7 @@ int APIENTRY WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance,
     for (;;)
     {
       {
-        wchar_t c = *s;
+        WCHAR c = *s;
         if (c == 0)
           break;
         if (c == ' ')
@@ -979,7 +979,7 @@ int APIENTRY WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance,
       }
 
       {
-        const wchar_t *s2 = GetCmdParam(s);
+        const WCHAR *s2 = GetCmdParam(s);
         BoolInt error = True;
         if (cmd[0] == '/')
         {
@@ -1022,7 +1022,7 @@ int APIENTRY WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance,
   }
   
   {
-    wchar_t *name;
+    WCHAR *name;
     const DWORD len = GetModuleFileNameW(NULL, modulePath, MAX_PATH);
     if (len == 0 || len > MAX_PATH)
       return 1;
@@ -1031,10 +1031,10 @@ int APIENTRY WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance,
     wcscpy(modulePrefix, modulePath);
 
     {
-      wchar_t *s = modulePrefix;
+      WCHAR *s = modulePrefix;
       for (;;)
       {
-        const wchar_t c = *s++;
+        const WCHAR c = *s++;
         if (c == 0)
           break;
         if (c == WCHAR_PATH_SEPARATOR)
@@ -1079,14 +1079,14 @@ int APIENTRY WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance,
         CpyAscii(path + pathLen, "7z");
         
         {
-          wchar_t *s = path + wcslen(path);
+          WCHAR *s = path + wcslen(path);
           UInt32 value = d;
           unsigned k;
           for (k = 0; k < 8; k++)
           {
             const unsigned t = value & 0xF;
             value >>= 4;
-            s[7 - k] = (wchar_t)((t < 10) ? ('0' + t) : ('A' + (t - 10)));
+            s[7 - k] = (WCHAR)((t < 10) ? ('0' + t) : ('A' + (t - 10)));
           }
           s[k] = 0;
         }

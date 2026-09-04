@@ -1,5 +1,5 @@
 /* 7zipInstall.c - 7-Zip Installer
-2024-04-05 : Igor Pavlov : Public domain */
+: Igor Pavlov : Public domain */
 
 #include "Precomp.h"
 
@@ -142,7 +142,7 @@ static WCHAR path[MAX_PATH * 2 + 40];
 
 
 
-static void CpyAscii(wchar_t *dest, const char *s)
+static void CpyAscii(WCHAR *dest, const char *s)
 {
   for (;;)
   {
@@ -153,13 +153,13 @@ static void CpyAscii(wchar_t *dest, const char *s)
   }
 }
 
-static void CatAscii(wchar_t *dest, const char *s)
+static void CatAscii(WCHAR *dest, const char *s)
 {
   dest += wcslen(dest);
   CpyAscii(dest, s);
 }
 
-static void PrintErrorMessage(const char *s1, const wchar_t *s2)
+static void PrintErrorMessage(const char *s1, const WCHAR *s2)
 {
   WCHAR m[MAX_PATH + 512];
   m[0] = 0;
@@ -196,7 +196,7 @@ static DWORD GetFileVersion(LPCWSTR s)
 
   if (!g_version_dll_hModule)
   {
-    wchar_t buf[MAX_PATH + 100];
+    WCHAR buf[MAX_PATH + 100];
     {
       unsigned len = GetSystemDirectoryW(buf, MAX_PATH + 2);
       if (len == 0 || len > MAX_PATH)
@@ -255,13 +255,13 @@ static WRes MyCreateDir(LPCWSTR name)
 #define IS_LETTER_CHAR(c) (((c) >= 'a' && (c) <= 'z') || ((c) >= 'A' && (c) <= 'Z'))
 #define IS_DRIVE_PATH(s) (IS_LETTER_CHAR(s[0]) && s[1] == ':' && IS_SEPAR(s[2]))
 
-static int ReverseFind_PathSepar(const wchar_t *s)
+static int ReverseFind_PathSepar(const WCHAR *s)
 {
   int separ = -1;
   int i;
   for (i = 0;; i++)
   {
-    wchar_t c = s[i];
+    WCHAR c = s[i];
     if (c == 0)
       return separ;
     if (IS_SEPAR(c))
@@ -566,7 +566,7 @@ static void NormalizePrefix(WCHAR *s)
   
   for (;; i++)
   {
-    const wchar_t c = s[i];
+    const WCHAR c = s[i];
     if (c == 0)
       break;
     if (c == '/')
@@ -587,10 +587,10 @@ static char MyCharLower_Ascii(char c)
   return c;
 }
 
-static wchar_t MyWCharLower_Ascii(wchar_t c)
+static WCHAR MyWCharLower_Ascii(WCHAR c)
 {
   if (c >= 'A' && c <= 'Z')
-    return (wchar_t)(c + 0x20);
+    return (WCHAR)(c + 0x20);
   return c;
 }
 
@@ -976,13 +976,13 @@ static void WriteShellEx(void)
 }
 
 
-static const wchar_t *GetCmdParam(const wchar_t *s)
+static const WCHAR *GetCmdParam(const WCHAR *s)
 {
   unsigned pos = 0;
   BoolInt quoteMode = False;
   for (;; s++)
   {
-    wchar_t c = *s;
+    WCHAR c = *s;
     if (c == 0 || (c == L' ' && !quoteMode))
       break;
     if (c == L'\"')
@@ -999,12 +999,12 @@ static const wchar_t *GetCmdParam(const wchar_t *s)
 }
 
 
-static void RemoveQuotes(wchar_t *s)
+static void RemoveQuotes(WCHAR *s)
 {
-  const wchar_t *src = s;
+  const WCHAR *src = s;
   for (;;)
   {
-    wchar_t c = *src++;
+    WCHAR c = *src++;
     if (c == '\"')
       continue;
     *s++ = c;
@@ -1039,7 +1039,7 @@ int APIENTRY WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance,
   CrcGenerateTable();
 
   {
-    const wchar_t *s = GetCommandLineW();
+    const WCHAR *s = GetCommandLineW();
     
     #ifndef UNDER_CE
     s = GetCmdParam(s);
@@ -1048,7 +1048,7 @@ int APIENTRY WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance,
     for (;;)
     {
       {
-        const wchar_t c = *s;
+        const WCHAR c = *s;
         if (c == 0)
           break;
         if (c == ' ')
@@ -1059,7 +1059,7 @@ int APIENTRY WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance,
       }
 
       {
-        const wchar_t *s2 = GetCmdParam(s);
+        const WCHAR *s2 = GetCmdParam(s);
         BoolInt error = True;
         if (cmd[0] == '/')
         {
@@ -1315,7 +1315,7 @@ if (res == SZ_OK)
     
     for (;;)
     {
-      const wchar_t c = path[i++];
+      const WCHAR c = path[i++];
       if (c == 0)
         break;
       if (c != ' ')

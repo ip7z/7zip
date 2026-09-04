@@ -2067,6 +2067,30 @@ SOURCE=..\..\Crypto\7zAesRegister.cpp
 # End Source File
 # Begin Source File
 
+SOURCE=..\..\Crypto\7zKeyDerivation.cpp
+# End Source File
+# Begin Source File
+
+SOURCE=..\..\Crypto\7zKeyDerivation.h
+# End Source File
+# Begin Source File
+
+SOURCE=..\..\Crypto\HmacSha512.cpp
+# End Source File
+# Begin Source File
+
+SOURCE=..\..\Crypto\HmacSha512.h
+# End Source File
+# Begin Source File
+
+SOURCE=..\..\Crypto\Pbkdf2HmacSha512.cpp
+# End Source File
+# Begin Source File
+
+SOURCE=..\..\Crypto\Pbkdf2HmacSha512.h
+# End Source File
+# Begin Source File
+
 SOURCE=..\..\Crypto\MyAes.cpp
 # End Source File
 # Begin Source File

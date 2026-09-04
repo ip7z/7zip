@@ -163,12 +163,16 @@ struct CResource
 
   UInt64 GetEndLimit() const { return Offset + PackSize; }
   void Parse(const Byte *p);
+  void UpdatePhySize(UInt64 &phySize) const
+  {
+    UInt64 v = GetEndLimit();
+    if (phySize < v)
+        phySize = v;
+  }
   void ParseAndUpdatePhySize(const Byte *p, UInt64 &phySize)
   {
     Parse(p);
-    UInt64 v = GetEndLimit();
-    if (phySize < v)
-      phySize = v;
+    UpdatePhySize(phySize);
   }
 
   void WriteTo(Byte *p) const;
@@ -347,15 +351,16 @@ struct CItem
 
   bool HasMetadata() const { return ImageIndex >= 0; }
 
-  CItem():
-    IndexInSorted(-1),
-    StreamIndex(-1),
-    Parent(-1),
-    IsDir(false),
-    IsAltStream(false),
-    DirLevel(0),
-    SubDirOffset(0)
-    {}
+  void Construct()
+  {
+    IndexInSorted = -1;
+    StreamIndex = -1;
+    Parent = -1;
+    IsDir = false;
+    IsAltStream = false;
+    DirLevel = 0;
+    SubDirOffset = 0;
+  }
 };
 
 struct CImage
@@ -390,7 +395,13 @@ struct CImageInfo
 
   int ItemIndexInXml;
 
-  UInt64 GetTotalFilesAndDirs() const { return DirCount + FileCount; }
+  UInt64 GetTotalFilesAndDirs() const
+  {
+    UInt64 v = DirCount + FileCount;
+    if (v < DirCount)
+      v = 0;
+    return v;
+  }
   
   CImageInfo(): CTimeDefined(false), MTimeDefined(false), NameDefined(false),
       IndexDefined(false), ItemIndexInXml(-1) {}
@@ -404,16 +415,21 @@ struct CWimXml
   CXml Xml;
 
   UInt16 VolIndex;
+  bool IsEncrypted;
   CObjectVector<CImageInfo> Images;
 
   UString FileName;
-  bool IsEncrypted;
 
   UInt64 GetTotalFilesAndDirs() const
   {
     UInt64 sum = 0;
     FOR_VECTOR (i, Images)
-      sum += Images[i].GetTotalFilesAndDirs();
+    {
+      const UInt64 v = Images[i].GetTotalFilesAndDirs();
+      sum += v;
+      if (sum < v)
+        return 0;
+    }
     return sum;
   }
 
@@ -473,6 +489,7 @@ public:
   int ExludedItem;          // -1 : if there are no exclude items
   CUIntVector VirtualRoots; // we use them for old 1.10 WIM archives
 
+  UInt64 PhySize;
   bool ThereIsError() const { return RefCountError || HeadersError; }
 
   unsigned GetNumUserItemsInImage(unsigned imageIndex) const
@@ -529,6 +546,7 @@ public:
 
   void Clear()
   {
+    PhySize = 0;
     DataStreams.Clear();
     MetaStreams.Clear();
     Solids.Clear();
@@ -571,6 +589,7 @@ public:
   */
   HRESULT GenerateSortedItems(int imageIndex, bool showImageNumber);
 
+  bool Check_PartNumber_in_Items(unsigned numVolumes) const;
   HRESULT ExtractReparseStreams(const CObjectVector<CVolume> &volumes, IArchiveOpenCallback *openCallback);
 };
 

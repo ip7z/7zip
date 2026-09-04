@@ -95,15 +95,16 @@ struct CBrowseItem
   UInt32 NumRootItems;
   UInt64 Size;
 
-  CBrowseItem():
-    // MainFileIndex(0),
-    SubFileIndex(-1),
-    WasInterrupted(false),
-    NumFiles(0),
-    NumDirs(0),
-    NumRootItems(0),
-    Size(0)
-    {}
+  void Construct()
+  {
+    // MainFileIndex = 0;
+    SubFileIndex = -1;
+    WasInterrupted = false;
+    NumFiles = 0;
+    NumDirs = 0;
+    NumRootItems = 0;
+    Size = 0;
+  }
 };
 
 
@@ -114,6 +115,10 @@ struct CBrowseEnumerator
   CFileInfo fi_SubFile;
   CBrowseItem bi;
 
+  CBrowseEnumerator()
+  {
+    bi.Construct();
+  }
   void Enumerate(unsigned level);
   bool NeedInterrupt() const
   {
@@ -1504,6 +1509,7 @@ HRESULT CBrowseDialog2::Reload(const UString &pathPrefix, const UStringVector &s
       if (d.Len() < 2 || d.Back() != '\\')
         return E_FAIL;
       CBrowseItem item;
+      item.Construct();
       item.MainFileIndex = files.Size();
       CFileInfo &fi = files.AddNew();
       fi.SetAsDir();
@@ -1552,6 +1558,7 @@ HRESULT CBrowseDialog2::Reload(const UString &pathPrefix, const UStringVector &s
           }
         }
         CBrowseItem item;
+        item.Construct();
         item.MainFileIndex = files.Size();
         item.Size = fi.Size;
         files.Add(fi);

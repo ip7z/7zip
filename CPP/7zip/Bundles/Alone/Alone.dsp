@@ -1941,6 +1941,14 @@ SOURCE=..\..\Crypto\7zAesRegister.cpp
 # End Source File
 # Begin Source File
 
+SOURCE=..\..\Crypto\7zKeyDerivation.cpp
+# End Source File
+# Begin Source File
+
+SOURCE=..\..\Crypto\7zKeyDerivation.h
+# End Source File
+# Begin Source File
+
 SOURCE=..\..\Crypto\HmacSha1.cpp
 
 !IF  "$(CFG)" == "Alone - Win32 Release"
@@ -1960,6 +1968,28 @@ SOURCE=..\..\Crypto\HmacSha1.cpp
 # Begin Source File
 
 SOURCE=..\..\Crypto\HmacSha1.h
+# End Source File
+# Begin Source File
+
+SOURCE=..\..\Crypto\HmacSha512.cpp
+
+!IF  "$(CFG)" == "Alone - Win32 Release"
+
+# ADD CPP /O2
+# SUBTRACT CPP /YX /Yc /Yu
+
+!ELSEIF  "$(CFG)" == "Alone - Win32 Debug"
+
+!ELSEIF  "$(CFG)" == "Alone - Win32 ReleaseU"
+
+!ELSEIF  "$(CFG)" == "Alone - Win32 DebugU"
+
+!ENDIF
+
+# End Source File
+# Begin Source File
+
+SOURCE=..\..\Crypto\HmacSha512.h
 # End Source File
 # Begin Source File
 
@@ -2011,6 +2041,31 @@ SOURCE=..\..\Crypto\Pbkdf2HmacSha1.cpp
 # Begin Source File
 
 SOURCE=..\..\Crypto\Pbkdf2HmacSha1.h
+# End Source File
+# Begin Source File
+
+SOURCE=..\..\Crypto\Pbkdf2HmacSha512.cpp
+
+!IF  "$(CFG)" == "Alone - Win32 Release"
+
+# ADD CPP /O2
+# SUBTRACT CPP /YX /Yc /Yu
+
+!ELSEIF  "$(CFG)" == "Alone - Win32 Debug"
+
+!ELSEIF  "$(CFG)" == "Alone - Win32 ReleaseU"
+
+# ADD CPP /O2
+# SUBTRACT CPP /YX /Yc /Yu
+
+!ELSEIF  "$(CFG)" == "Alone - Win32 DebugU"
+
+!ENDIF
+
+# End Source File
+# Begin Source File
+
+SOURCE=..\..\Crypto\Pbkdf2HmacSha512.h
 # End Source File
 # Begin Source File
 

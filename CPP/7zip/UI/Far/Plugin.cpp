@@ -143,8 +143,13 @@ void CPlugin::ReadPluginPanelItem(PluginPanelItem &panelItem, UInt32 itemIndex)
   panelItem.Reserved[1] = 0;
 }
 
+
+static const UInt32 k_NumFiles_Max = 0x7fffffff - 15;
+
 int CPlugin::GetFindData(PluginPanelItem **panelItems, int *itemsNumber, int opMode)
 {
+  *panelItems = NULL;
+  *itemsNumber = 0;
   // CScreenRestorer screenRestorer;
   if ((opMode & OPM_SILENT) == 0 && (opMode & OPM_FIND ) == 0)
   {
@@ -160,8 +165,13 @@ int CPlugin::GetFindData(PluginPanelItem **panelItems, int *itemsNumber, int opM
   }
 
   UInt32 numItems;
-  _folder->GetNumberOfItems(&numItems);
-  *panelItems = new PluginPanelItem[numItems];
+  if (_folder->GetNumberOfItems(&numItems) != S_OK)
+    return FALSE;
+  if (numItems > k_NumFiles_Max)
+    return FALSE;
+
+  Z7_ARRAY_NEW(*panelItems, PluginPanelItem, numItems)
+  memset(*panelItems, 0, (size_t)numItems * sizeof(PluginPanelItem));
   try
   {
     for (UInt32 i = 0; i < numItems; i++)
@@ -174,6 +184,7 @@ int CPlugin::GetFindData(PluginPanelItem **panelItems, int *itemsNumber, int opM
   catch(...)
   {
     delete [](*panelItems);
+    *panelItems = NULL;
     throw;
   }
   *itemsNumber = (int)numItems;

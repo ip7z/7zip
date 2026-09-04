@@ -437,7 +437,7 @@ struct CRef
   int AttrIndex;
   int Parent;
 
-  CRef(): AttrIndex(kAttrIndex_Item), Parent(-1) {}
+  void Construct() { AttrIndex = kAttrIndex_Item; Parent = -1; }
   bool IsResource() const { return AttrIndex == kAttrIndex_Resource; }
   bool IsAltStream() const { return AttrIndex != kAttrIndex_Item; }
   bool IsItem() const { return AttrIndex == kAttrIndex_Item; }
@@ -1259,6 +1259,7 @@ HRESULT CDatabase::LoadCatalog(const CFork &fork, const CObjectVector<CIdExtents
       IdToIndexMap.Add(pair);
 
       CRef ref;
+      ref.Construct();
       ref.ItemIndex = i;
       Refs.Add(ref);
       
@@ -1317,6 +1318,7 @@ HRESULT CDatabase::LoadCatalog(const CFork &fork, const CObjectVector<CIdExtents
       ThereAreAltStreams = true;
 
       CRef ref;
+      ref.Construct();
       ref.AttrIndex = (int)i;
       ref.Parent = refIndex;
       ref.ItemIndex = Refs[refIndex].ItemIndex;
@@ -1427,7 +1429,10 @@ HRESULT CDatabase::Open2(IInStream *inStream, IArchiveOpenCallback *progress)
     const unsigned sector_of_FirstBlock = Get16a(p + 0x1c); // drAlBlSt : first allocation block in volume
     const UInt32 startBlock = Get16a(p + 0x7c + 2);
     const UInt32 blockCount = Get16a(p + 0x7c + 4);
-    SpecOffset = (UInt32)sector_of_FirstBlock << 9; // it's 32-bit here
+    {
+      const UInt32 temp = (UInt32)sector_of_FirstBlock << 9; // it's 32-bit here
+      SpecOffset = temp;
+    }
     PhySize2 = SpecOffset + (UInt64)numBlocks * blockSize;
     SpecOffset += (UInt64)startBlock * blockSize;
     // before v24.09: // SpecOffset = (UInt64)(1 + startBlock) * blockSize;

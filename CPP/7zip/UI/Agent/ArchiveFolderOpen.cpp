@@ -114,7 +114,19 @@ Z7_COM7F_IMF(CArchiveFolderManager::OpenFolderFile(IInStream *inStream,
       return res;
   }
   
-  RINOK(archive->BindToRootFolder(resultFolder))
+  agent->_progress_for_Open = progress;
+  agent->_progress_ArchiveOpenCallback_for_Open = openArchiveCallback;
+  {
+    HRESULT hres = E_OUTOFMEMORY;
+    // IInFolderArchive::BindToRootFolder() doesn't raise exceptions.
+    // so try/catch is optional
+    try {
+      hres = archive->BindToRootFolder(resultFolder);
+    } catch (...) {}
+    agent->_progress_for_Open = NULL;
+    agent->_progress_ArchiveOpenCallback_for_Open = NULL;
+    RINOK(hres)
+  }
   return res;
 }
 

@@ -14,7 +14,6 @@ COMMON_OBJS = \
   $O\Sha256Reg.obj \
   $O\Sha3Reg.obj \
   $O\Sha512Reg.obj \
-  $O\Sha512Prepare.obj \
   $O\StringConvert.obj \
   $O\StringToInt.obj \
   $O\UTFConvert.obj \
@@ -244,11 +243,22 @@ COMPRESS_OBJS = \
 CRYPTO_OBJS = \
   $O\7zAes.obj \
   $O\7zAesRegister.obj \
+  $O\7zKeyDerivation.obj \
+  $O\Ascon.obj \
+  $O\Cascade.obj \
+  $O\CascadeRegister.obj \
+  $O\HkdfBlake2sp.obj \
+  $O\XChaCha20.obj \
+  $O\XChaCha20Register.obj \
+  $O\XChaCha20Poly1305.obj \
+  $O\XChaCha20Poly1305Register.obj \
   $O\HmacSha1.obj \
   $O\HmacSha256.obj \
+  $O\HmacSha512.obj \
   $O\MyAes.obj \
   $O\MyAesReg.obj \
   $O\Pbkdf2HmacSha1.obj \
+  $O\Pbkdf2HmacSha512.obj \
   $O\RandGen.obj \
   $O\Rar20Crypto.obj \
   $O\Rar5Aes.obj \
@@ -289,8 +299,6 @@ C_OBJS = \
   $O\Ppmd8Dec.obj \
   $O\Ppmd8Enc.obj \
   $O\Sha3.obj \
-  $O\Sha512.obj \
-  $O\Sha512Opt.obj \
   $O\SwapBytes.obj \
   $O\Threads.obj \
   $O\Xxh64.obj \
@@ -307,4 +315,5 @@ C_OBJS = \
 !include "../../LzmaDec.mak"
 !include "../../Sha1.mak"
 !include "../../Sha256.mak"
+!include "../../Sha512.mak"
 !include "../../Sort.mak"

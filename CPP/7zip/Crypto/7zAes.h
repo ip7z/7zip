@@ -3,66 +3,22 @@
 #ifndef ZIP7_INC_CRYPTO_7Z_AES_H
 #define ZIP7_INC_CRYPTO_7Z_AES_H
 
-#include "../../Common/MyBuffer.h"
 #include "../../Common/MyCom.h"
-#include "../../Common/MyVector.h"
 
 #include "../ICoder.h"
 #include "../IPassword.h"
 
+#include "7zKeyDerivation.h"
+
 namespace NCrypto {
 namespace N7z {
 
-const unsigned kKeySize = 32;
-const unsigned kSaltSizeMax = 16;
-const unsigned kIvSizeMax = 16; // AES_BLOCK_SIZE;
+using CKeyInfo = N7zKeyDerivation::CKeyInfo;
+using CKeyInfoCache = N7zKeyDerivation::CKeyInfoCache;
 
-class CKeyInfo
-{
-public:
-  unsigned NumCyclesPower;
-  unsigned SaltSize;
-  Byte Salt[kSaltSizeMax];
-  CByteBuffer Password;
-  Byte Key[kKeySize];
+using N7zKeyDerivation::kKeySize;
 
-  bool IsEqualTo(const CKeyInfo &a) const;
-  void CalcKey();
-
-  CKeyInfo() { ClearProps(); }
-  void ClearProps()
-  {
-    NumCyclesPower = 0;
-    SaltSize = 0;
-    for (unsigned i = 0; i < sizeof(Salt); i++)
-      Salt[i] = 0;
-  }
-
-  void Wipe()
-  {
-    Password.Wipe();
-    NumCyclesPower = 0;
-    SaltSize = 0;
-    Z7_memset_0_ARRAY(Salt);
-    Z7_memset_0_ARRAY(Key);
-  }
-
-#ifdef Z7_CPP_IS_SUPPORTED_default
-  CKeyInfo(const CKeyInfo &) = default;
-#endif
-  ~CKeyInfo() { Wipe(); }
-};
-
-class CKeyInfoCache
-{
-  unsigned Size;
-  CObjectVector<CKeyInfo> Keys;
-public:
-  CKeyInfoCache(unsigned size): Size(size) {}
-  bool GetKey(CKeyInfo &key);
-  void Add(const CKeyInfo &key);
-  void FindAndAdd(const CKeyInfo &key);
-};
+const unsigned kIvSizeMax = 16;
 
 class CBase
 {
@@ -74,6 +30,10 @@ protected:
   
   void PrepareKey();
   CBase();
+  ~CBase()
+  {
+    Z7_memset_0_ARRAY(_iv);
+  }
 };
 
 class CBaseCoder:
@@ -94,17 +54,14 @@ protected:
 class CEncoder Z7_final:
   public CBaseCoder,
   public ICompressWriteCoderProperties,
-  // public ICryptoResetSalt,
   public ICryptoResetInitVector
 {
   Z7_COM_UNKNOWN_IMP_4(
       ICompressFilter,
       ICryptoSetPassword,
       ICompressWriteCoderProperties,
-      // ICryptoResetSalt,
       ICryptoResetInitVector)
   Z7_IFACE_COM7_IMP(ICompressWriteCoderProperties)
-  // Z7_IFACE_COM7_IMP(ICryptoResetSalt)
   Z7_IFACE_COM7_IMP(ICryptoResetInitVector)
 public:
   CEncoder();

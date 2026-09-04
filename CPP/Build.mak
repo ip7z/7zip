@@ -63,23 +63,24 @@ COMPL_ASM = $(MY_ML) $** $O/$(*B).obj
 COMPL_ASM = $(MY_ML) -c -Fo$O/ $**
 !ENDIF
 
+CFLAGS_c_switch = -c -Fo$O/
+
 !IFDEF OLD_COMPILER
 CFLAGS_WARN_LEVEL = -W4
 !ELSE
+!IF "$(CC)" != "clang-cl"
+CFLAGS_WARN_LEVEL = -Wall -analyze
+!ELSE
+CFLAGS_WARN_LEVEL = -Wall --analyze -Xclang -analyzer-output=text
+# CFLAGS_c_switch =
+!ENDIF
 CFLAGS_WARN_LEVEL = -Wall
 !ENDIF
 
-CFLAGS = $(CFLAGS) -nologo -c -Fo$O/ $(CFLAGS_WARN_LEVEL) -WX -EHsc -Gy -GR- -GF
+CFLAGS = $(CFLAGS) -nologo $(CFLAGS_c_switch) $(CFLAGS_WARN_LEVEL) -WX -EHsc -Gy -GR- -GF
 
 !IF "$(CC)" == "clang-cl"
-
-CFLAGS = $(CFLAGS) \
-  -Werror \
-  -Wall \
-  -Wextra \
-  -Weverything \
-  -Wfatal-errors \
-
+CFLAGS = $(CFLAGS) -Werror -Wall -Wextra -Weverything -Wfatal-errors
 !ENDIF
 
 # !IFDEF MY_DYNAMIC_LINK
@@ -164,6 +165,9 @@ LFLAGS = $(LFLAGS) /FIXED:NO
 !IF "$(PLATFORM)" == "arm64"
 # we can get better compression ratio with ARM64 filter if we change alignment to 4096
 # LFLAGS = $(LFLAGS) /FILEALIGN:4096
+# ARM64 MSVC compiler doesn't suppress C4746 even with /volatile:ms flag,
+# so we explicitly disable warning 4746 (volatile in /volatile:iso mode)
+CFLAGS = $(CFLAGS) -wd4746
 !ENDIF
 
 !IFNDEF DEF_FILE

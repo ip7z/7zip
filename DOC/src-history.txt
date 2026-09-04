@@ -1,6 +1,19 @@
 HISTORY of the 7-Zip source code
 --------------------------------
 
+26.03          2026-09-03
+-------------------------
+- Improved support for Joliet ISO images and Compound archives.
+- Some bugs and vulnerabilities were fixed.
+- CVE-2026-58052 : 7-Zip failed to preserve the Mark-of-the-Web when extracting a crafted archive.
+
+
+26.02          2026-06-25
+-------------------------
+- Some bugs and vulnerabilities were fixed.
+- CVE-2026-14266 : XZ Decompression Heap-based Buffer Overflow Remote Code Execution.
+
+
 26.01          2026-04-27
 -------------------------
 - linux version of 7-Zip can use huge pages (2 MB pages). It can increase compression
@@ -14,7 +27,15 @@ HISTORY of the 7-Zip source code
             to form the final path to the output directory.
     -spor : 7-Zip will replace asterisk (*) character in the path specified in the -o{dir_path}
             with the archive name. This is the default option.
-- some bugs were fixed.
+- Some bugs and vulnerabilities were fixed.
+- CVE-2026-48092 : A heap memory disclosure via SquashFS fragment offset integer overflow on 32-bit builds.
+- CVE-2026-48095 : A heap buffer overflow in the NTFS archive handler.
+- CVE-2026-48101 : An uninitialized memory disclosure vulnerability in the UEFI archive handler.
+- CVE-2026-48102 : A heap out-of-bounds read in the UDF archive handler.
+- CVE-2026-48103 : A heap out-of-bounds read in the WIM archive handler.
+- CVE-2026-48104 : An uninitialized heap read in the SquashFS archive handler.
+- CVE-2026-48111 : An out-of-bounds read vulnerability UEFI archive handler.
+- CVE-2026-48112 : A heap out-of-bounds read in 7-Zip Ar archive handler.
 
 
 26.00          2026-02-12
@@ -140,7 +161,7 @@ HISTORY of the 7-Zip source code
 - 7-Zip now can unpack ZIP and SquashFS archives that use ZSTD compression method.
 - 7-Zip now supports fast hash algorithm XXH64 that is used in ZSTD.
 - Speed optimizations for archive unpacking: rar, zip, gz, wim, cab.
-- Speed optimizations for hash caclulation: CRC-32, CRC-64, Blake2sp.
+- Speed optimizations for hash calculation: CRC-32, CRC-64, Blake2sp.
 - The bug was fixed: 7-Zip for Linux could fail for multivolume creation in some cases.
 - Some bugs were fixed.
 
@@ -159,7 +180,7 @@ HISTORY of the 7-Zip source code
      // virtual ~IUnknown() {}
   So 7-Zip's dynamically linked shared libraries (codecs) are not compatible
   between new 7-Zip for Linux/macOS and old 7-Zip (and p7zip).
-- Some optimizations in filters code: BCJ, BCJ2, Swap* and opthers.
+- Some optimizations in filters code: BCJ, BCJ2, Swap* and others.
 - If 7-Zip uses BCJ2 filter for big datasets compressing, it can use additional temp
   files in system's TEMP folder. 7-Zip uses temp file for additional compressed
   data stream, if size of such compressed stream is larger than predefined limit:
@@ -414,7 +435,7 @@ HISTORY of the 7-Zip source code
 9.09           2009-12-12
 -------------------------
 - The bug was fixed:
-   Utf16_To_Utf8 funstions in UTFConvert.cpp and 7zMain.c
+   Utf16_To_Utf8 functions in UTFConvert.cpp and 7zMain.c
    incorrectly converted surrogate characters (the code >= 0x10000) to UTF-8.
 
 
@@ -452,7 +473,7 @@ HISTORY of the 7-Zip source code
 -------------------------
 - BUGS was fixed:
     7zOut.cpp: 7-Zip incorrectly wrote size of property records in some cases.
-    7zIn.cpp:  7-Zip incorrectly work with archive, containg archive properties.
+    7zIn.cpp:  7-Zip incorrectly work with archive, containing archive properties.
 
 4.58 alpha 9   2008-04-29
 -------------------------
@@ -508,7 +529,7 @@ HISTORY of the 7-Zip source code
   - ZIP (.XPS file) isZip64 && thisDiskNumber16 == 0xFFFF.
   - ZIP name updating:
       If zip file contains extra field and you try to change properties of files,
-      7-zip tries to delete all extra fileds (except for WzAES).
+      7-zip tries to delete all extra fields (except for WzAES).
       And that code could hang.
   -  7-Zip GUI didn't suggest BZip2 dictionary size used in previous run.
   -  If creation time stamp was included in .RAR archive, 7-zip used creation time stamp
@@ -576,7 +597,7 @@ HISTORY of the 7-Zip source code
     data++
   fixed version:
     data = _matchFinder.GetPointerToCurrentPos(_matchFinderObj) - 1;
-  It could lead to very small cpmpression ratio decreasing when block needs move.
+  It could lead to very small compression ratio decreasing when block needs move.
 
 
 4.30 beta      2005-11-18
@@ -601,7 +622,7 @@ HISTORY of the 7-Zip source code
 
 4.25 beta      2005-07-31
 -------------------------
--  More 64-bit compatibilty
+-  More 64-bit compatibility
 
 
 4.24 beta      2005-07-06
@@ -623,7 +644,7 @@ HISTORY of the 7-Zip source code
 4.14 beta      2005-01-11
 -------------------------
 -  STL using was reduced
--  7za now supports Split(001) archves
+-  7za now supports Split(001) archives
 
 
 4.10 beta      2004-10-21
@@ -741,7 +762,7 @@ HISTORY of the 7-Zip source code
 - SDK/Stream/WindowOut.h
     now it uses only required memory (dictionary size).
 - Project/Archiver/Resource
-    contains common resurces
+    contains common resources
 
 
 2.30 Beta 19   2002-04-11
@@ -761,7 +782,7 @@ HISTORY of the 7-Zip source code
 
 2.30 Beta 17   2002-03-03
 -------------------------
-- ARJ suppport.
+- ARJ support.
 
 
 2.30 Beta 16   2002-02-24
@@ -819,14 +840,14 @@ HISTORY of the 7-Zip source code
   Compress/LZ/MatchFinder/Patricia.h:
   Compress/PPM/PPMd/SubAlloc.h:
     using VirtualAlloc for memory allocating
-- Exlorer/ContextMenu.cpp:
+- Explorer/ContextMenu.cpp:
     Testing supporting.
     CreateProcess instead WinExec
 - Format/Common/IArchiveHandler.h:
-  Exlorer/ProxyHandler.cpp:
+  Explorer/ProxyHandler.cpp:
   FAR/Plugin.cpp:
     New properties names: Method, HostOS.
-- Exlorer/OverwriteDialog.cpp:
+- Explorer/OverwriteDialog.cpp:
   FAR/OverwriteDialog.cpp:
   Windows/PropVariantConversions.h
     Using National time format was eliminated.
@@ -835,16 +856,16 @@ HISTORY of the 7-Zip source code
 
 2.30 Beta 10   2002-01-11
 -------------------------
-- Exlorer/ContextMenu.cpp: bug with context menu on
+- Explorer/ContextMenu.cpp: bug with context menu on
   Windows NT4 in Unicode version was fixed.
 - Format/7z/UpdateArchiveEngine.cpp: bug was fixed -
   Updating in Beta 8 and 9 didn't work.
-- Exlorer/CCompressDialog.cpp: history growing bug was fixed.
+- Explorer/CCompressDialog.cpp: history growing bug was fixed.
 
 
 2.30 Beta 9    2002-01-08
 -------------------------
-- SDK/Common/Vector.h: sopporting sorted object vectors .
+- SDK/Common/Vector.h: supporting sorted object vectors .
 - Lang features.
 - Two new match finders: pat3h and pat4h.
 - SDK/Archive/Zip/InEngine.cpp: bug was fixed.

@@ -8,7 +8,7 @@
 #ifndef UNDER_CE
 #include "../../../Windows/Console.h"
 #endif
-#include "../../../Windows/Defs.h"
+#include "../../../Windows/WinDefs.h"
 #include "../../../Windows/ErrorMsg.h"
 
 #include "FarUtils.h"
@@ -259,17 +259,15 @@ void CStartupInfo::SetRegKeyValue(HKEY parentKey, const char *keyName,
   regKey.SetValue(valueName, value);
 }
 
+/*
 CSysString CStartupInfo::QueryRegKeyValue(HKEY parentKey, const char *keyName,
     LPCTSTR valueName, const CSysString &valueDefault) const
 {
-  NRegistry::CKey regKey;
-  if (OpenRegKey(parentKey, keyName, regKey) != ERROR_SUCCESS)
-    return valueDefault;
-  
   CSysString value;
-  if (regKey.QueryValue(valueName, value) != ERROR_SUCCESS)
-    return valueDefault;
-  
+  NRegistry::CKey regKey;
+  if (OpenRegKey(parentKey, keyName, regKey) != ERROR_SUCCESS
+      || regKey.QueryValue(valueName, value) != ERROR_SUCCESS)
+    value = valueDefault;
   return value;
 }
 
@@ -286,6 +284,7 @@ UInt32 CStartupInfo::QueryRegKeyValue(HKEY parentKey, const char *keyName,
   
   return value;
 }
+*/
 
 bool CStartupInfo::QueryRegKeyValue(HKEY parentKey, const char *keyName,
     LPCTSTR valueName, bool valueDefault) const

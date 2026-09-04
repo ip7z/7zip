@@ -3487,7 +3487,7 @@ static const CStatProp kProps[] =
   { NULL, kpidChangeTime, VT_FILETIME },
   { "Added Time", kpidAddTime, VT_FILETIME },
   { NULL, kpidMethod, VT_BSTR },
-  { NULL, kpidINode, VT_UI8 },
+  { NULL, kpidINode, VT_UI4 },
   { NULL, kpidLinks, VT_UI4 },
   { NULL, kpidSymLink, VT_BSTR },
   { NULL, kpidUserId, VT_UI4 },
@@ -3496,7 +3496,7 @@ static const CStatProp kProps[] =
  #ifdef APFS_SHOW_ALT_STREAMS
   { NULL, kpidIsAltStream, VT_BOOL },
  #endif
-  { "Parent iNode", kpidParentINode, VT_UI8 },
+  { "Parent iNode", kpidParentINode, VT_UI4 },
   { "Primary Name", kpidPrimeName, VT_BSTR },
   { "Generation", kpidGeneration, VT_UI4 },
   { "Written Size", kpidBytesWritten, VT_UI8 },
@@ -3829,7 +3829,7 @@ Z7_COM7F_IMF(CHandler::GetProperty(UInt32 index, PROPID propID, PROPVARIANT *val
      #ifdef APFS_SHOW_ALT_STREAMS
       if (ref.IsAltStream())
       {
-        // if (inode)
+        if (inode)
         {
           const CAttr &attr = inode->Attrs[(unsigned)ref.AttrIndex];
           ConvertUTF8ToUnicode(attr.Name, s);

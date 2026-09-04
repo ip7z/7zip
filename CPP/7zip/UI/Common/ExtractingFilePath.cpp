@@ -99,10 +99,13 @@ void Correct_AltStream_Name(UString &s)
   const unsigned kPostfixSize = 6;
   if (s.Len() >= kPostfixSize
       && StringsAreEqualNoCase_Ascii(s.RightPtr(kPostfixSize), ":$DATA"))
+  {
     len -= kPostfixSize;
+    s.DeleteFrom(len);
+  }
   for (unsigned i = 0; i < len; i++)
   {
-    wchar_t c = s[i];
+    const wchar_t c = s[i];
     if (c == ':' || c == '\\' || c == '/'
         || c == 0x202E // RLO
         )
