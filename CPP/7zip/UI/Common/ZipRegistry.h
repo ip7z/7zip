@@ -97,6 +97,7 @@ namespace NCompression
 
     CSysString FormatID;
     UString Method;
+    UString Filter;
     UString Options;
     UString EncryptionMethod;
     UString MemUse;
@@ -122,6 +123,7 @@ namespace NCompression
       BlockLogSize = NumThreads = Level = Dictionary = Order = (UInt32)(Int32)-1;
       // DictionaryChain = (UInt32)(Int32)-1;
       Method.Empty();
+      Filter.Empty();
       // Options.Empty();
       // EncryptionMethod.Empty();
     }

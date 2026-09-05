@@ -212,13 +212,23 @@ static void SetOutProperties(
     AddProp_UInt32(properties, "x", (UInt32)di.Level);
   if (setMethod)
   {
-    if (!di.Method.IsEmpty())
+    // Preprocessing is independent of the compression method. All dictionary
+    // and order properties below belong to the downstream coder, never Transpose.
+    const bool isAnyz2 = is7z && di.Transpose;
+    AString numPrefix ("0");
+    if (isAnyz2)
+    {
+      AddProp_UString(properties, "0", UString("Transpose:a=3"));
+      AddProp_UString(properties, "1", di.Method.IsEmpty() ? UString("LZMA2") : di.Method);
+      numPrefix = "1";
+    }
+    else if (!di.Method.IsEmpty())
       AddProp_UString(properties, is7z ? "0": "m", di.Method);
     if (di.Dict64 != (UInt64)(Int64)-1)
     {
       AString name;
       if (is7z)
-        name = "0";
+        name = numPrefix;
       name += (di.OrderMode ? "mem" : "d");
       AddProp_Size(properties, name, di.Dict64);
     }
@@ -236,7 +246,7 @@ static void SetOutProperties(
     {
       AString name;
       if (is7z)
-        name = "0";
+        name = numPrefix;
       name += (di.OrderMode ? "o" : "fb");
       AddProp_UInt32(properties, name, (UInt32)di.Order);
     }

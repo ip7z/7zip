@@ -32,7 +32,6 @@ else
 
 MT_OBJS = \
   $O/Synchronization.o \
-  $O/Threads.o \
 
 endif
 
@@ -166,6 +165,14 @@ C_OBJS = \
   $O/Sort.o \
   $O/7zCrc.o \
   $O/7zCrcOpt.o \
+  $O/Transpose.o \
+  $O/LzmaEnc.o \
+  $O/LzFind.o \
+  $O/LzFindMt.o \
+  $O/LzFindOpt.o \
+  $O/Ppmd7.o \
+  $O/Ppmd7Enc.o \
+  $O/Threads.o \
 
 
 OBJS = \

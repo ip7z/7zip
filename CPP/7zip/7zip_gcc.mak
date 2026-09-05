@@ -751,6 +751,8 @@ $O/DeflateRegister.o: ../../Compress/DeflateRegister.cpp
 	$(CXX) $(CXXFLAGS) $<
 $O/DeltaFilter.o: ../../Compress/DeltaFilter.cpp
 	$(CXX) $(CXXFLAGS) $<
+$O/TransposeFilter.o: ../../Compress/TransposeFilter.cpp
+	$(CXX) $(CXXFLAGS) $<
 $O/DllExports2Compress.o: ../../Compress/DllExports2Compress.cpp
 	$(CXX) $(CXXFLAGS) $<
 $O/DllExportsCompress.o: ../../Compress/DllExportsCompress.cpp
@@ -1185,6 +1187,8 @@ $O/BwtSort.o: ../../../../C/BwtSort.c
 $O/CpuArch.o: ../../../../C/CpuArch.c
 	$(CC) $(CFLAGS) $<
 $O/Delta.o: ../../../../C/Delta.c
+	$(CC) $(CFLAGS) $<
+$O/Transpose.o: ../../../../C/Transpose.c
 	$(CC) $(CFLAGS) $<
 $O/DllSecur.o: ../../../../C/DllSecur.c
 	$(CC) $(CFLAGS) $<

@@ -39,7 +39,6 @@ List of defined IDs
 09 - SPARC
 0A - ARM64
 0B - RISCV
-
 21 - LZMA2
           
 02.. - Common
@@ -175,3 +174,26 @@ List of defined IDs
 
 ---
 End of document
+
+Third-party IDs
+---------------
+
+04 F7 13 xx - plokijuter (allocated by Igor Pavlov, PR #245)
+
+  04 F7 13 01 - Transpose (byte transposition, records of R bytes)
+       Properties: exactly 2 bytes: R-1, log2(records per block).
+       R = 1..256; step exponent = 0..16; R << exponent <= 65536.
+       Block size = R << exponent, with no division in the decoder.
+       Within each complete block, output[j * records + i] = input[i * R + j].
+       Final incomplete blocks are copied unchanged. R=1 is identity.
+       This layout does NOT interpret the old experimental IDs (0C or
+       3F E2B7E19B8A 0001) or their one-/two-byte exponent-of-byte-size layouts.
+       Keep the previous fork binary to extract those experimental archives.
+       -m0=Transpose : heuristic selection of R.
+       -m0=Transpose:15 : force R=15.
+       In this fork, a=3 requests a prepass, up to 64 MiB of the largest file.
+       It is a compression probe, not a guarantee of improvement for the
+       actual coder settings or a heterogeneous solid stream.
+       The GUI offers anyz2 (Transpose) as Preprocessing, independently of
+       LZMA, LZMA2 or PPMd. It is unavailable for ZIP, Store and SFX.
+       Built into 7z.dll; no external plugin is required in this fork.

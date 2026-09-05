@@ -34,7 +34,7 @@
 #define g4xs (xc - gSize - gSpace)
 #define g4xs2 (g4xs - m - m)
 
-#define yOpt 80
+#define yOpt 101
 
 #define xArcFolderOffs 40
 
@@ -115,6 +115,9 @@ BEGIN
   LTEXT     "Path mode:", IDT_COMPRESS_PATH_MODE, g4x, 61, 80, 8
   COMBOBOX  IDC_COMPRESS_PATH_MODE, g4x + 84, 59, g4xs - 84, 80, MY_COMBO
 
+
+  LTEXT "Preprocessing:", IDT_COMPRESS_PREPROCESS, g4x, 82, 72, 8
+  COMBOBOX IDC_COMPRESS_PREPROCESS, g4x + 74, 80, g4xs - 74, 80, MY_COMBO
 
   GROUPBOX  "Options", IDG_COMPRESS_OPTIONS, g4x, yOpt, g4xs, GROUP_Y_SIZE
 

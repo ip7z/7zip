@@ -284,6 +284,7 @@ void CInfo::Save() const
       fk.Create(optionsKey, fo.FormatID);
       
       SetRegString(fk, kMethod, fo.Method);
+      SetRegString(fk, L"Filter", fo.Filter);
       SetRegString(fk, kOptions, fo.Options);
       SetRegString(fk, kEncryptionMethod, fo.EncryptionMethod);
       SetRegString(fk, kMemUse, fo.MemUse);
@@ -342,6 +343,7 @@ void CInfo::Load()
         if (fk.Open(optionsKey, fo.FormatID, KEY_READ) == ERROR_SUCCESS)
         {
           GetRegString(fk, kMethod, fo.Method);
+          GetRegString(fk, L"Filter", fo.Filter);
           GetRegString(fk, kOptions, fo.Options);
           GetRegString(fk, kEncryptionMethod, fo.EncryptionMethod);
           GetRegString(fk, kMemUse, fo.MemUse);

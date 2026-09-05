@@ -254,6 +254,7 @@ COMPRESS_OBJS = \
   $O/DeflateEncoder.o \
   $O/DeflateRegister.o \
   $O/DeltaFilter.o \
+  $O/TransposeFilter.o \
   $O/ImplodeDecoder.o \
   $O/LzfseDecoder.o \
   $O/LzhDecoder.o \
@@ -334,6 +335,7 @@ C_OBJS = \
   $O/BwtSort.o \
   $O/CpuArch.o \
   $O/Delta.o \
+  $O/Transpose.o \
   $O/HuffEnc.o \
   $O/LzFind.o \
   $O/Lzma2Dec.o \

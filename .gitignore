@@ -1,0 +1,12 @@
+C/Util/7zipInstall/_w/
+CPP/7zip/Bundles/Alone2/_o/
+CPP/7zip/Bundles/Alone2/_w/
+CPP/7zip/Bundles/Format7zF/_w/
+CPP/7zip/UI/Console/_w/
+mingw-shim/*.h
+
+# Local fork builds and test executables
+**/_anyz2/
+**/_linux/
+tests/transpose_streams
+tests/transpose_gui.exe

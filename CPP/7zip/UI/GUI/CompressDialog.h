@@ -44,6 +44,7 @@ namespace NCompressDialog
 
     UInt32 Level;
     UString Method;
+    bool Transpose;
     UInt64 Dict64;
     // UInt64 Dict64_Chain;
     bool OrderMode;
@@ -97,6 +98,7 @@ namespace NCompressDialog
       // Dict64_Chain = (UInt64)(Int64)(-1);
       OrderMode = false;
       Method.Empty();
+      Transpose = false;
       Options.Empty();
       EncryptionMethod.Empty();
       TimePrec = (UInt32)(Int32)(-1);
@@ -154,6 +156,10 @@ private:
   NWindows::NControl::CComboBox m_Format;
   NWindows::NControl::CComboBox m_Level;
   NWindows::NControl::CComboBox m_Method;
+  NWindows::NControl::CComboBox m_Preprocess;
+  UString _preprocessFormat;
+  void SetPreprocess();
+  bool UseTranspose();
   NWindows::NControl::CComboBox m_Dictionary;
   // NWindows::NControl::CComboBox m_Dictionary_Chain;
   NWindows::NControl::CComboBox m_Order;
@@ -226,6 +232,7 @@ public:
   {
     SetMethod2(keepMethodId);
     EnableMultiCombo(IDC_COMPRESS_METHOD);
+    SetPreprocess();
   }
 
   void MethodChanged()

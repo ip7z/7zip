@@ -53,7 +53,10 @@ HRESULT CFilterCoder::Alloc()
   /* minimal bufSize is 16 bytes for AES and IA64 filter.
      bufSize for AES must be aligned for 16 bytes.
      We use (1 << 12) min size to support future aligned filters. */
-  const UInt32 kMinSize = 1 << 12;
+  // This fork includes Transpose, whose largest complete block is 64 KiB.
+  // Every call path (Code, Read and Write) must hold at least one block.
+  // Smaller buffers can otherwise stall or pass untransformed data through.
+  const UInt32 kMinSize = 1 << 16;
   size &= ~(UInt32)(kMinSize - 1);
   if (size < kMinSize)
     size = kMinSize;
