@@ -87,6 +87,15 @@ HRESULT COpenCallbackConsole::Open_CryptoGetTextPassword(BSTR *password)
   if (!PasswordIsDefined)
   {
     ClosePercents();
+    if (PasswordFd) {
+      FILE *_file = fdopen(PasswordFd, "r");
+
+      if (!_file)
+        return S_FALSE;
+
+      g_StdIn = CStdInStream(_file);
+    }
+
     RINOK(GetPassword_HRESULT(_so, Password))
     PasswordIsDefined = true;
   }
