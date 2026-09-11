@@ -107,6 +107,10 @@
 #define IDM_VIEW_TIME            761
 #define IDM_VIEW_TIME_UTC        799
 
+#define IDM_VIEW_SIZE_POPUP      770
+#define IDM_VIEW_SIZE_BYTES      771
+#define IDM_VIEW_SIZE_AUTO       772
+
 #define IDM_ADD_TO_FAVORITES     800
 #define IDS_BOOKMARK             801
 
