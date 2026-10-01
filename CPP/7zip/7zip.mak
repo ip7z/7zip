@@ -231,7 +231,7 @@ $(C_OBJS): ../../../../C/$(*B).c
 {../../Compress}.cpp{$O}.obj::
 	$(COMPLB_O2)
 {../../Crypto}.cpp{$O}.obj::
-	$(COMPLB_O2)
+	$(COMPLB_O2) -utf-8
 {../../../../C}.c{$O}.obj::
 	$(CCOMPLB)
 

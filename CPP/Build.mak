@@ -165,6 +165,9 @@ LFLAGS = $(LFLAGS) /FIXED:NO
 !IF "$(PLATFORM)" == "arm64"
 # we can get better compression ratio with ARM64 filter if we change alignment to 4096
 # LFLAGS = $(LFLAGS) /FILEALIGN:4096
+# ARM64 MSVC compiler doesn't suppress C4746 even with /volatile:ms flag,
+# so we explicitly disable warning 4746 (volatile in /volatile:iso mode)
+CFLAGS = $(CFLAGS) -wd4746
 !ENDIF
 
 !IFNDEF DEF_FILE

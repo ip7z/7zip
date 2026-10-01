@@ -307,7 +307,7 @@ bool CHandler::IsFolderEncrypted(CNum folderIndex) const
     for (unsigned j = 0; j < idSize; j++)
       id64 = ((id64 << 8) | longID[j]);
     inByte.SkipDataNoCheck(idSize);
-    if (id64 == k_AES)
+    if (id64 == k_AES || id64 == k_XCHACHA20 || id64 == k_XCHACHA20_POLY1305 || id64 == k_AES_XCHACHA20_ASCON || id64 == k_AES_XCHACHA20_POLY1305 || id64 == k_XCHACHA20_AES_AEGIS256)
       return true;
     if ((mainByte & 0x10) != 0)
     {
@@ -503,6 +503,56 @@ HRESULT CHandler::SetMethodToProp(CNum folderIndex, PROPVARIANT *prop) const
       else if (id == k_AES)
       {
         name = "7zAES";
+        if (propsSize >= 1)
+        {
+          const Byte firstByte = props[0];
+          const UInt32 numCyclesPower = firstByte & 0x3F;
+          ConvertUInt32ToString(numCyclesPower, s);
+        }
+      }
+      else if (id == k_XCHACHA20)
+      {
+        name = "XChaCha20";
+        if (propsSize >= 1)
+        {
+          const Byte firstByte = props[0];
+          const UInt32 numCyclesPower = firstByte & 0x3F;
+          ConvertUInt32ToString(numCyclesPower, s);
+        }
+      }
+      else if (id == k_XCHACHA20_POLY1305)
+      {
+        name = "XChaCha20-Poly1305";
+        if (propsSize >= 1)
+        {
+          const Byte firstByte = props[0];
+          const UInt32 numCyclesPower = firstByte & 0x3F;
+          ConvertUInt32ToString(numCyclesPower, s);
+        }
+      }
+      else if (id == k_AES_XCHACHA20_ASCON)
+      {
+        name = "AES+XChaCha20+Ascon";
+        if (propsSize >= 1)
+        {
+          const Byte firstByte = props[0];
+          const UInt32 numCyclesPower = firstByte & 0x3F;
+          ConvertUInt32ToString(numCyclesPower, s);
+        }
+      }
+      else if (id == k_AES_XCHACHA20_POLY1305)
+      {
+        name = "AES+XChaCha20-Poly1305";
+        if (propsSize >= 1)
+        {
+          const Byte firstByte = props[0];
+          const UInt32 numCyclesPower = firstByte & 0x3F;
+          ConvertUInt32ToString(numCyclesPower, s);
+        }
+      }
+      else if (id == k_XCHACHA20_AES_AEGIS256)
+      {
+        name = "XChaCha20+AES+AEGIS";
         if (propsSize >= 1)
         {
           const Byte firstByte = props[0];

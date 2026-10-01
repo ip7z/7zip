@@ -22,6 +22,14 @@ namespace NCryptoFlags
   const unsigned kUseMAC   = 1 << 1;
 }
 
+inline bool ConstantTimeCompare(const Byte *a, const Byte *b, size_t size)
+{
+  volatile Byte result = 0;
+  for (size_t i = 0; i < size; i++)
+    result |= a[i] ^ b[i];
+  return result == 0;
+}
+
 struct CKeyBase
 {
 protected:
@@ -49,9 +57,13 @@ struct CKey: public CKeyBase
   
   bool IsKeyEqualTo(const CKey &key)
   {
-    return _numIterationsLog == key._numIterationsLog
-        && memcmp(_salt, key._salt, sizeof(_salt)) == 0
-        && _password == key._password;
+    if (_numIterationsLog != key._numIterationsLog)
+      return false;
+    if (!ConstantTimeCompare(_salt, key._salt, sizeof(_salt)))
+      return false;
+    if (_password.Size() != key._password.Size())
+      return false;
+    return ConstantTimeCompare(_password, key._password, _password.Size());
   }
 
   CKey();
@@ -79,6 +91,7 @@ public:
   Byte _iv[AES_BLOCK_SIZE];
   
   CDecoder();
+  ~CDecoder() { Z7_memset_0_ARRAY(_iv); }
 
   Z7_COM7F_IMP(Init())
 
