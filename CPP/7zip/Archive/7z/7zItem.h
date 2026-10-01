@@ -85,7 +85,7 @@ public:
     FOR_VECTOR(i, Coders)
     {
       CMethodId id = Coders[i].MethodID;
-      if (id == k_AES || id == k_XCHACHA20 || id == k_XCHACHA20_POLY1305 || id == k_AES_XCHACHA20_ASCON || id == k_AES_XCHACHA20_POLY1305)
+      if (id == k_AES || id == k_XCHACHA20 || id == k_XCHACHA20_POLY1305 || id == k_AES_XCHACHA20_ASCON || id == k_AES_XCHACHA20_POLY1305 || id == k_XCHACHA20_AES_AEGIS256)
         return true;
     }
     return false;

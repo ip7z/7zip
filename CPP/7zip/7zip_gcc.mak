@@ -831,6 +831,8 @@ $O/7zKeyDerivation.o: ../../Crypto/7zKeyDerivation.cpp
 	$(CXX) $(CXXFLAGS) $<
 $O/Ascon.o: ../../Crypto/Ascon.cpp
 	$(CXX) $(CXXFLAGS) $<
+$O/Aegis256.o: ../../Crypto/Aegis256.cpp
+	$(CXX) $(CXXFLAGS) $<
 $O/Cascade.o: ../../Crypto/Cascade.cpp
 	$(CXX) $(CXXFLAGS) $<
 $O/CascadeRegister.o: ../../Crypto/CascadeRegister.cpp

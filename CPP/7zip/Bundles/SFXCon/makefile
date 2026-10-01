@@ -114,6 +114,7 @@ CRYPTO_OBJS = \
   $O\HmacSha512.obj \
   $O\Pbkdf2HmacSha512.obj \
   $O\Ascon.obj \
+  $O\Aegis256.obj \
   $O\Cascade.obj \
   $O\CascadeRegister.obj \
   $O\MyAes.obj \

@@ -188,6 +188,7 @@ CRYPTO_OBJS = \
   $O\7zAesRegister.obj \
   $O\7zKeyDerivation.obj \
   $O\Ascon.obj \
+  $O\Aegis256.obj \
   $O\Cascade.obj \
   $O\CascadeRegister.obj \
   $O\HkdfBlake2sp.obj \
