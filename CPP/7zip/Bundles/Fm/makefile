@@ -1,4 +1,8 @@
 PROG = 7zFM.exe
+UI_FILEMANAGER_PROGPATH = ..\..\UI\FileManager\$(O)\$(PROG)
+REPO_LANG_DIR = ..\..\..\..\Lang
+FM_LANG_DIR = $(O)\Lang
+UI_FILEMANAGER_LANG_DIR = ..\..\UI\FileManager\$(O)\Lang
 
 !include "../Format7zF/Arc.mak"
 
@@ -80,3 +84,22 @@ GUI_OBJS = \
 
 
 !include "../../7zip.mak"
+
+all: copy_lang $(UI_FILEMANAGER_PROGPATH)
+
+copy_lang:
+	if not exist "$(FM_LANG_DIR)" mkdir "$(FM_LANG_DIR)"
+	copy /Y "$(REPO_LANG_DIR)\*" "$(FM_LANG_DIR)\" >nul
+	if not exist "$(UI_FILEMANAGER_LANG_DIR)" mkdir "$(UI_FILEMANAGER_LANG_DIR)"
+	copy /Y "$(REPO_LANG_DIR)\*" "$(UI_FILEMANAGER_LANG_DIR)\" >nul
+
+$(UI_FILEMANAGER_PROGPATH): $(PROGPATH)
+	if not exist "..\..\UI\FileManager\$(O)" mkdir "..\..\UI\FileManager\$(O)"
+	copy /Y "$(PROGPATH)" "$(UI_FILEMANAGER_PROGPATH)" >nul
+
+$O\CompressDialog.obj: ../../UI/GUI/CompressDialog.cpp ../../UI/GUI/CompressDialog.h ../../UI/GUI/CompressDialogRes.h
+$O\CompressCall2.obj: ../../UI/Common/CompressCall2.cpp ../../UI/Common/Update.h ../../UI/GUI/UpdateGUI.h
+$O\Update.obj: ../../UI/Common/Update.cpp ../../UI/Common/Update.h
+$O\UpdateCallbackGUI.obj: ../../UI/GUI/UpdateCallbackGUI.cpp ../../UI/Common/Update.h ../../UI/GUI/UpdateCallbackGUI.h
+$O\UpdateGUI.obj: ../../UI/GUI/UpdateGUI.cpp ../../UI/Common/Update.h ../../UI/GUI/UpdateGUI.h ../../UI/GUI/CompressDialog.h ../../UI/GUI/CompressDialogRes.h
+$O\resource.res: resource.rc ../../UI/GUI/resource2.rc ../../UI/GUI/CompressDialog.rc ../../UI/GUI/CompressDialogRes.h ../../UI/FileManager/AboutDialog.rc ../../UI/FileManager/AboutDialogRes.h

@@ -45,6 +45,7 @@ extern bool g_IsNT;
 static const UInt32 kLangIDs[] =
 {
   IDT_COMPRESS_ARCHIVE,
+  IDT_COMPRESS_OUTPUT_PATHS_NUM,
   IDT_COMPRESS_UPDATE_MODE,
   IDT_COMPRESS_FORMAT,
   IDT_COMPRESS_LEVEL,
@@ -78,6 +79,8 @@ static const UInt32 kLangIDs[] =
 };
 #endif
 
+extern HINSTANCE g_hInstance;
+
 using namespace NWindows;
 using namespace NFile;
 using namespace NName;
@@ -91,6 +94,99 @@ static const UInt32 kSolidLog_FullSolid = 64;
 static const UInt32 kLzmaMaxDictSize = (UInt32)15 << 28;
 
 static const UINT k_Message_ArcChanged = WM_APP + 1;
+
+extern void AddUniqueString(UStringVector &strings, const UString &srcString);
+
+static const unsigned kArchivePathComboIds[] =
+{
+  IDC_COMPRESS_ARCHIVE,
+  IDC_COMPRESS_ARCHIVE2,
+  IDC_COMPRESS_ARCHIVE3,
+  IDC_COMPRESS_ARCHIVE4,
+  IDC_COMPRESS_ARCHIVE5
+};
+
+static const unsigned kArchivePathButtonIds[] =
+{
+  IDB_COMPRESS_SET_ARCHIVE,
+  IDB_COMPRESS_SET_ARCHIVE2,
+  IDB_COMPRESS_SET_ARCHIVE3,
+  IDB_COMPRESS_SET_ARCHIVE4,
+  IDB_COMPRESS_SET_ARCHIVE5
+};
+
+static const unsigned kOutputPathLayoutMoveIds[] =
+{
+  IDT_COMPRESS_FORMAT,
+  IDC_COMPRESS_FORMAT,
+  IDT_COMPRESS_LEVEL,
+  IDC_COMPRESS_LEVEL,
+  IDT_COMPRESS_METHOD,
+  IDC_COMPRESS_METHOD,
+  IDT_COMPRESS_DICTIONARY,
+  IDC_COMPRESS_DICTIONARY,
+  IDT_COMPRESS_ORDER,
+  IDC_COMPRESS_ORDER,
+  IDT_COMPRESS_SOLID,
+  IDC_COMPRESS_SOLID,
+  IDT_COMPRESS_THREADS,
+  IDC_COMPRESS_THREADS,
+  IDT_COMPRESS_HARDWARE_THREADS,
+  IDT_COMPRESS_MEMORY,
+  IDC_COMPRESS_MEM_USE,
+  IDT_COMPRESS_MEMORY_VALUE,
+  IDT_COMPRESS_MEMORY_DE,
+  IDT_COMPRESS_MEMORY_DE_VALUE,
+  IDT_SPLIT_TO_VOLUMES,
+  IDC_COMPRESS_VOLUME,
+  IDT_COMPRESS_PARAMETERS,
+  IDE_COMPRESS_PARAMETERS,
+  IDB_COMPRESS_OPTIONS,
+  IDT_COMPRESS_OPTIONS,
+  IDT_COMPRESS_UPDATE_MODE,
+  IDC_COMPRESS_UPDATE_MODE,
+  IDT_COMPRESS_PATH_MODE,
+  IDC_COMPRESS_PATH_MODE,
+  IDG_COMPRESS_OPTIONS,
+  IDX_COMPRESS_SFX,
+  IDX_COMPRESS_SHARED,
+  IDX_COMPRESS_DEL,
+  IDG_COMPRESS_ENCRYPTION,
+  IDT_PASSWORD_ENTER,
+  IDE_COMPRESS_PASSWORD1,
+  IDT_PASSWORD_REENTER,
+  IDE_COMPRESS_PASSWORD2,
+  IDX_PASSWORD_SHOW,
+  IDT_COMPRESS_ENCRYPTION_METHOD,
+  IDC_COMPRESS_ENCRYPTION_METHOD,
+  IDX_COMPRESS_ENCRYPT_FILE_NAMES,
+  IDOK,
+  IDCANCEL,
+  IDHELP
+};
+
+static const unsigned kDynamicOutputGroupIdBase = 50000;
+static const unsigned kDynamicOutputGroupIdStep = 100;
+
+static unsigned GetDynamicGroupBase(unsigned groupIndex)
+{
+  return kDynamicOutputGroupIdBase + groupIndex * kDynamicOutputGroupIdStep;
+}
+
+static unsigned GetDynamicGroupItemLabelId(unsigned groupIndex) { return GetDynamicGroupBase(groupIndex) + 1; }
+static unsigned GetDynamicGroupCountLabelId(unsigned groupIndex) { return GetDynamicGroupBase(groupIndex) + 2; }
+static unsigned GetDynamicGroupCountComboId(unsigned groupIndex) { return GetDynamicGroupBase(groupIndex) + 3; }
+static unsigned GetDynamicGroupArchiveLabelId(unsigned groupIndex) { return GetDynamicGroupBase(groupIndex) + 4; }
+static unsigned GetDynamicGroupArchiveComboId(unsigned groupIndex, unsigned pathIndex) { return GetDynamicGroupBase(groupIndex) + 10 + pathIndex; }
+static unsigned GetDynamicGroupArchiveButtonId(unsigned groupIndex, unsigned pathIndex) { return GetDynamicGroupBase(groupIndex) + 20 + pathIndex; }
+
+static int FindArchivePathButtonIndex(unsigned id)
+{
+  for (unsigned i = 0; i < Z7_ARRAY_SIZE(kArchivePathButtonIds); i++)
+    if (kArchivePathButtonIds[i] == id)
+      return (int)i;
+  return -1;
+}
 
 /*
 static const UInt32 kZstd_MAX_DictSize = (UInt32)1 << MY_ZSTD_WINDOWLOG_MAX;
@@ -466,6 +562,9 @@ bool CCompressDialog::OnInit()
   _default_encryptionMethod_Index = -1;
 
   m_ArchivePath.Attach(GetItem(IDC_COMPRESS_ARCHIVE));
+  m_OutputPathCount.Attach(GetItem(IDC_COMPRESS_OUTPUT_PATHS_NUM));
+  for (unsigned i = 1; i < Z7_ARRAY_SIZE(kArchivePathComboIds); i++)
+    m_ExtraArchivePaths[i - 1].Attach(GetItem(kArchivePathComboIds[i]));
   m_Format.Attach(GetItem(IDC_COMPRESS_FORMAT)); // that combo has CBS_SORT style in resources
   m_Level.Attach(GetItem(IDC_COMPRESS_LEVEL));
   m_Method.Attach(GetItem(IDC_COMPRESS_METHOD));
@@ -523,15 +622,67 @@ bool CCompressDialog::OnInit()
 
   CheckButton(IDX_COMPRESS_SFX, Info.SFXMode);
 
+  for (unsigned i = 0; i < m_RegistryInfo.ArcPaths.Size() && i < kHistorySize; i++)
   {
+    m_ArchivePath.AddString(m_RegistryInfo.ArcPaths[i]);
+    for (unsigned k = 0; k < Z7_ARRAY_SIZE(m_ExtraArchivePaths); k++)
+      m_ExtraArchivePaths[k].AddString(m_RegistryInfo.ArcPaths[i]);
+  }
+
+  for (unsigned i = 1; i <= Z7_ARRAY_SIZE(kArchivePathComboIds); i++)
+  {
+    wchar_t s[16];
+    ConvertUInt32ToString(i, s);
+    m_OutputPathCount.AddString_SetItemData(s, (LPARAM)i);
+  }
+
+  ShowItem_Bool(IDX_COMPRESS_SEPARATE_ITEMS, false);
+
+  if (IsMultiItemMode())
+  {
+    DirPrefix.Empty();
+    StartDirPrefix.Empty();
+    InitItemOutputGroups();
+    if (!_itemOutputGroups.IsEmpty())
+      _outputArcPaths = _itemOutputGroups[0].ArcPaths;
+    if (_outputArcPaths.IsEmpty() && !Info.ItemPaths.IsEmpty())
+    {
+      UString path;
+      BuildItemArcPath(Info.ItemPaths.Front(), path);
+      _outputArcPaths.Add(path);
+    }
+    if (_outputArcPaths.Size() > Z7_ARRAY_SIZE(kArchivePathComboIds))
+      _outputArcPaths.DeleteFrom(Z7_ARRAY_SIZE(kArchivePathComboIds));
+    if (!_outputArcPaths.IsEmpty())
+      m_ArchivePath.SetText(_outputArcPaths.Front());
+  }
+  else
+  {
+    if (Info.ArcPaths.IsEmpty() && !Info.ArcPath.IsEmpty())
+      Info.ArcPaths.Add(Info.ArcPath);
+    _outputArcPaths = Info.ArcPaths;
+    if (_outputArcPaths.Size() > Z7_ARRAY_SIZE(kArchivePathComboIds))
+      _outputArcPaths.DeleteFrom(Z7_ARRAY_SIZE(kArchivePathComboIds));
+
+    UString initPath = Info.ArcPath;
+    if (!_outputArcPaths.IsEmpty())
+      initPath = _outputArcPaths.Front();
+
     UString fileName;
-    SetArcPathFields(Info.ArcPath, fileName, true);
+    SetArcPathFields(initPath, fileName, true);
     StartDirPrefix = DirPrefix;
     SetArchiveName(fileName);
+    SyncPrimaryArcPathFromControl();
   }
-  
-  for (unsigned i = 0; i < m_RegistryInfo.ArcPaths.Size() && i < kHistorySize; i++)
-    m_ArchivePath.AddString(m_RegistryInfo.ArcPaths[i]);
+
+  SetOutputPathCount(_outputArcPaths.IsEmpty() ? 1 : (unsigned)_outputArcPaths.Size(), false);
+  if (IsMultiItemMode())
+  {
+    CreateDynamicItemOutputControls();
+    UpdateOutputPathControls();
+    UpdateOutputPathLayout();
+  }
+  UpdateSeparateItemModeControls();
 
   AddComboItems(m_UpdateMode, k_UpdateMode_IDs, Z7_ARRAY_SIZE(k_UpdateMode_IDs),
       k_UpdateMode_Vals, Info.UpdateMode);
@@ -585,13 +736,26 @@ void CCompressDialog::UpdatePasswordControl()
 
 bool CCompressDialog::OnButtonClicked(unsigned buttonID, HWND buttonHWND)
 {
+  const int archivePathButtonIndex = FindArchivePathButtonIndex(buttonID);
+  if (archivePathButtonIndex >= 0)
+  {
+    OnButtonSetArchivePath((unsigned)archivePathButtonIndex);
+    return true;
+  }
+
+  if (IsMultiItemMode())
+  {
+    for (unsigned groupIndex = 1; groupIndex < _itemOutputGroups.Size(); groupIndex++)
+      for (unsigned pathIndex = 0; pathIndex < kNumOutputPathRows; pathIndex++)
+        if (buttonID == GetDynamicGroupArchiveButtonId(groupIndex, pathIndex))
+        {
+          BrowseItemOutputPath(groupIndex, pathIndex);
+          return true;
+        }
+  }
+
   switch (buttonID)
   {
-    case IDB_COMPRESS_SET_ARCHIVE:
-    {
-      OnButtonSetArchive();
-      return true;
-    }
     case IDX_COMPRESS_SFX:
     {
       SetMethod(GetMethodID());
@@ -778,8 +942,34 @@ static int GetExtDotPos(const UString &s)
   return -1;
 }
 
+static void RemoveTailExtensionIfMatches(UString &fileName, const UString &fullExtension)
+{
+  const unsigned extLen = fullExtension.Len();
+  if (fileName.Len() >= extLen)
+    if (StringsAreEqualNoCase(fileName.RightPtr(extLen), fullExtension))
+      fileName.DeleteFrom(fileName.Len() - extLen);
+}
+
+static void AppendExtensionWithoutDup(UString &fileName, const UString &fullExtension)
+{
+  if (fullExtension.IsEmpty())
+    return;
+  RemoveTailExtensionIfMatches(fileName, fullExtension);
+  fileName += fullExtension;
+}
+
 void CCompressDialog::OnButtonSFX()
 {
+  const bool prevWasSFX = !IsSFX();
+  const int prevFormat = m_PrevFormat;
+
+  if (IsMultiItemMode())
+  {
+    SyncAllItemOutputGroupsFromControls();
+    UpdateExtraArcPathsForFormatChange(prevFormat, prevWasSFX);
+    return;
+  }
+
   UString fileName;
   m_ArchivePath.GetText(fileName);
   const int dotPos = GetExtDotPos(fileName);
@@ -805,6 +995,9 @@ void CCompressDialog::OnButtonSFX()
   }
 
   // CheckVolumeEnable();
+  SyncPrimaryArcPathFromControl();
+  SyncExtraArcPathsFromControls();
+  UpdateExtraArcPathsForFormatChange(prevFormat, prevWasSFX);
 }
 
 
@@ -827,6 +1020,965 @@ bool CCompressDialog::GetFinalPath_Smart(UString &resPath) const
 }
 
 
+static void SetWindowFont_Simple(HWND hwnd, HFONT font)
+{
+  if (hwnd != NULL && font != NULL)
+    ::SendMessage(hwnd, WM_SETFONT, (WPARAM)font, TRUE);
+}
+
+
+static bool CreateDialogChildWindow_Simple(
+    NWindows::CWindow &window,
+    LPCTSTR className,
+    LPCTSTR text,
+    DWORD style,
+    const RECT &rect,
+    HWND parent,
+    unsigned id,
+    HFONT font)
+{
+  if (!window.Create(className, text, style,
+      rect.left, rect.top, RECT_SIZE_X(rect), RECT_SIZE_Y(rect),
+      parent, (HMENU)(INT_PTR)id, g_hInstance, NULL))
+    return false;
+  SetWindowFont_Simple(window, font);
+  return true;
+}
+
+
+void CCompressDialog::InitItemOutputGroups()
+{
+  _itemOutputGroups.Clear();
+
+  FOR_VECTOR (i, Info.ItemPaths)
+  {
+    CItemOutputGroup group;
+    group.ItemPath = Info.ItemPaths[i];
+    _itemOutputGroups.Add(group);
+  }
+
+  if (Info.ItemOutputItemPaths.Size() == Info.ItemArcPaths.Size())
+  {
+    FOR_VECTOR (i, Info.ItemOutputItemPaths)
+    {
+      FOR_VECTOR (k, _itemOutputGroups)
+        if (_itemOutputGroups[k].ItemPath == Info.ItemOutputItemPaths[i])
+        {
+          _itemOutputGroups[k].ArcPaths.Add(Info.ItemArcPaths[i]);
+          break;
+        }
+    }
+  }
+
+  FOR_VECTOR (i, _itemOutputGroups)
+  {
+    CItemOutputGroup &group = _itemOutputGroups[i];
+    if (group.ArcPaths.IsEmpty())
+    {
+      UString path;
+      BuildItemArcPath(group.ItemPath, path);
+      group.ArcPaths.Add(path);
+    }
+    if (group.ArcPaths.Size() > kNumOutputPathRows)
+      group.ArcPaths.DeleteFrom(kNumOutputPathRows);
+  }
+}
+
+
+void CCompressDialog::InitOutputPathLayout()
+{
+  if (_outputLayout_Inited)
+    return;
+
+  RECT windowRect;
+  if (GetWindowRect(&windowRect))
+  {
+    _outputLayout_BaseWindowX = RECT_SIZE_X(windowRect);
+    _outputLayout_BaseWindowY = RECT_SIZE_Y(windowRect);
+  }
+
+  _outputPathRowStep = 0;
+  if (GetItem(IDC_COMPRESS_ARCHIVE) != NULL && GetItem(IDC_COMPRESS_ARCHIVE2) != NULL)
+  {
+    RECT r1;
+    RECT r2;
+    GetClientRectOfItem(IDC_COMPRESS_ARCHIVE, r1);
+    GetClientRectOfItem(IDC_COMPRESS_ARCHIVE2, r2);
+    _outputPathRowStep = r2.top - r1.top;
+  }
+
+  _outputLayout_Items.Clear();
+  _outputLayout_Items.Reserve(Z7_ARRAY_SIZE(kOutputPathLayoutMoveIds));
+  for (unsigned i = 0; i < Z7_ARRAY_SIZE(kOutputPathLayoutMoveIds); i++)
+  {
+    const unsigned id = kOutputPathLayoutMoveIds[i];
+    if (GetItem(id) == NULL)
+      continue;
+    CLayoutItem item;
+    item.Id = id;
+    GetClientRectOfItem(id, item.Rect);
+    _outputLayout_Items.Add(item);
+  }
+
+  _outputLayout_BaseControlsTop = 0;
+  if (!_outputLayout_Items.IsEmpty())
+    _outputLayout_BaseControlsTop = _outputLayout_Items[0].Rect.top;
+
+  GetClientRectOfItem(IDT_COMPRESS_ARCHIVE_FOLDER, _outputTemplate_ItemLabelRect);
+  GetClientRectOfItem(IDT_COMPRESS_OUTPUT_PATHS_NUM, _outputTemplate_CountLabelRect);
+  GetClientRectOfItem(IDC_COMPRESS_OUTPUT_PATHS_NUM, _outputTemplate_CountComboRect);
+  GetClientRectOfItem(IDT_COMPRESS_ARCHIVE, _outputTemplate_ArchiveLabelRect);
+  for (unsigned i = 0; i < Z7_ARRAY_SIZE(kArchivePathComboIds); i++)
+  {
+    GetClientRectOfItem(kArchivePathComboIds[i], _outputTemplate_ArchiveComboRects[i]);
+    GetClientRectOfItem(kArchivePathButtonIds[i], _outputTemplate_ArchiveButtonRects[i]);
+  }
+
+  _outputGroupGapY = _outputPathRowStep / 2;
+  if (_outputGroupGapY < 8)
+    _outputGroupGapY = 8;
+
+  _outputLayout_Inited = true;
+}
+
+
+void CCompressDialog::CreateDynamicItemOutputControls()
+{
+  if (!IsMultiItemMode() || _itemOutputGroups.Size() <= 1)
+    return;
+
+  InitOutputPathLayout();
+
+  HFONT labelFont = (HFONT)::SendMessage(GetItem(IDT_COMPRESS_ARCHIVE_FOLDER), WM_GETFONT, 0, 0);
+  HFONT comboFont = (HFONT)::SendMessage(GetItem(IDC_COMPRESS_ARCHIVE), WM_GETFONT, 0, 0);
+
+  UString countLabel;
+  UString archiveLabel;
+  GetItemText(IDT_COMPRESS_OUTPUT_PATHS_NUM, countLabel);
+  GetItemText(IDT_COMPRESS_ARCHIVE, archiveLabel);
+  const CSysString countLabelSys = GetSystemString(countLabel);
+  const CSysString archiveLabelSys = GetSystemString(archiveLabel);
+
+  for (unsigned groupIndex = 1; groupIndex < _itemOutputGroups.Size(); groupIndex++)
+  {
+    const unsigned itemLabelId = GetDynamicGroupItemLabelId(groupIndex);
+    if (GetItem(itemLabelId) != NULL)
+      continue;
+
+    NWindows::CWindow itemLabel;
+    CreateDialogChildWindow_Simple(itemLabel, TEXT("STATIC"), TEXT(""),
+        WS_CHILD | WS_VISIBLE | SS_NOPREFIX,
+        _outputTemplate_ItemLabelRect, *this, itemLabelId, labelFont);
+
+    NWindows::CWindow countText;
+    CreateDialogChildWindow_Simple(countText, TEXT("STATIC"), countLabelSys,
+        WS_CHILD | WS_VISIBLE,
+        _outputTemplate_CountLabelRect, *this, GetDynamicGroupCountLabelId(groupIndex), labelFont);
+
+    NWindows::NControl::CComboBox countCombo;
+    CreateDialogChildWindow_Simple(countCombo, TEXT("COMBOBOX"), TEXT(""),
+        WS_CHILD | WS_VISIBLE | WS_VSCROLL | WS_TABSTOP | CBS_DROPDOWNLIST,
+        _outputTemplate_CountComboRect, *this, GetDynamicGroupCountComboId(groupIndex), comboFont);
+    for (unsigned i = 1; i <= kNumOutputPathRows; i++)
+    {
+      wchar_t s[16];
+      ConvertUInt32ToString(i, s);
+      countCombo.AddString_SetItemData(s, (LPARAM)i);
+    }
+
+    NWindows::CWindow archiveText;
+    CreateDialogChildWindow_Simple(archiveText, TEXT("STATIC"), archiveLabelSys,
+        WS_CHILD | WS_VISIBLE,
+        _outputTemplate_ArchiveLabelRect, *this, GetDynamicGroupArchiveLabelId(groupIndex), labelFont);
+
+    for (unsigned pathIndex = 0; pathIndex < kNumOutputPathRows; pathIndex++)
+    {
+      NWindows::NControl::CComboBox combo;
+      CreateDialogChildWindow_Simple(combo, TEXT("COMBOBOX"), TEXT(""),
+          WS_CHILD | WS_VISIBLE | WS_VSCROLL | WS_TABSTOP | CBS_DROPDOWN | CBS_AUTOHSCROLL,
+          _outputTemplate_ArchiveComboRects[pathIndex], *this,
+          GetDynamicGroupArchiveComboId(groupIndex, pathIndex), comboFont);
+      for (unsigned i = 0; i < m_RegistryInfo.ArcPaths.Size() && i < kHistorySize; i++)
+        combo.AddString(m_RegistryInfo.ArcPaths[i]);
+
+      NWindows::CWindow button;
+      CreateDialogChildWindow_Simple(button, TEXT("BUTTON"), TEXT("..."),
+          WS_CHILD | WS_VISIBLE | WS_TABSTOP,
+          _outputTemplate_ArchiveButtonRects[pathIndex], *this,
+          GetDynamicGroupArchiveButtonId(groupIndex, pathIndex), labelFont);
+    }
+  }
+}
+
+
+void CCompressDialog::LayoutItemOutputGroups()
+{
+  InitOutputPathLayout();
+  if (!_outputLayout_Inited || !IsMultiItemMode())
+    return;
+
+  const int templateTop = _outputTemplate_ItemLabelRect.top;
+  const int templateBottom =
+      _outputTemplate_ArchiveComboRects[kNumOutputPathRows - 1].bottom;
+  const int baseGapToControls = _outputLayout_BaseControlsTop - templateBottom;
+
+  SetRedraw(false);
+
+  int currentTop = templateTop;
+  for (unsigned groupIndex = 0; groupIndex < _itemOutputGroups.Size(); groupIndex++)
+  {
+    const unsigned count = _itemOutputGroups[groupIndex].ArcPaths.IsEmpty() ? 1 :
+        (unsigned)_itemOutputGroups[groupIndex].ArcPaths.Size();
+    const int deltaY = currentTop - templateTop;
+
+    if (groupIndex > 0 && GetItem(GetDynamicGroupItemLabelId(groupIndex)) != NULL)
+    {
+      RECT r = _outputTemplate_ItemLabelRect;
+      r.top += deltaY;
+      r.bottom += deltaY;
+      MoveItem_RECT(GetDynamicGroupItemLabelId(groupIndex), r, false);
+
+      r = _outputTemplate_CountLabelRect;
+      r.top += deltaY;
+      r.bottom += deltaY;
+      MoveItem_RECT(GetDynamicGroupCountLabelId(groupIndex), r, false);
+
+      r = _outputTemplate_CountComboRect;
+      r.top += deltaY;
+      r.bottom += deltaY;
+      MoveItem_RECT(GetDynamicGroupCountComboId(groupIndex), r, false);
+
+      r = _outputTemplate_ArchiveLabelRect;
+      r.top += deltaY;
+      r.bottom += deltaY;
+      MoveItem_RECT(GetDynamicGroupArchiveLabelId(groupIndex), r, false);
+
+      for (unsigned pathIndex = 0; pathIndex < kNumOutputPathRows; pathIndex++)
+      {
+        r = _outputTemplate_ArchiveComboRects[pathIndex];
+        r.top += deltaY;
+        r.bottom += deltaY;
+        MoveItem_RECT(GetDynamicGroupArchiveComboId(groupIndex, pathIndex), r, false);
+
+        r = _outputTemplate_ArchiveButtonRects[pathIndex];
+        r.top += deltaY;
+        r.bottom += deltaY;
+        MoveItem_RECT(GetDynamicGroupArchiveButtonId(groupIndex, pathIndex), r, false);
+      }
+    }
+
+    const int groupBottom = currentTop
+        + (_outputTemplate_ArchiveComboRects[count - 1].bottom - templateTop);
+    currentTop = groupBottom + _outputGroupGapY;
+  }
+
+  const int desiredControlsTop = currentTop + baseGapToControls;
+  const int deltaY = desiredControlsTop - _outputLayout_BaseControlsTop;
+
+  FOR_VECTOR (i, _outputLayout_Items)
+  {
+    const CLayoutItem &item = _outputLayout_Items[i];
+    RECT r = item.Rect;
+    r.top += deltaY;
+    r.bottom += deltaY;
+    MoveItem_RECT(item.Id, r, false);
+  }
+
+  RECT windowRect;
+  if (GetWindowRect(&windowRect))
+    Move(windowRect.left, windowRect.top,
+        _outputLayout_BaseWindowX, _outputLayout_BaseWindowY + deltaY, false);
+
+  SetRedraw(true);
+  InvalidateRect(NULL, true);
+  Update();
+}
+
+
+void CCompressDialog::UpdateOutputPathLayout()
+{
+  InitOutputPathLayout();
+  if (!_outputLayout_Inited || _outputPathRowStep == 0)
+    return;
+
+  if (IsMultiItemMode())
+  {
+    LayoutItemOutputGroups();
+    return;
+  }
+
+  const int deltaY = ((int)_outputPathCount - (int)kNumOutputPathRows) * _outputPathRowStep;
+
+  SetRedraw(false);
+
+  FOR_VECTOR (i, _outputLayout_Items)
+  {
+    const CLayoutItem &item = _outputLayout_Items[i];
+    RECT r = item.Rect;
+    r.top += deltaY;
+    r.bottom += deltaY;
+    MoveItem_RECT(item.Id, r, false);
+  }
+
+  RECT windowRect;
+  if (GetWindowRect(&windowRect))
+    Move(windowRect.left, windowRect.top, _outputLayout_BaseWindowX, _outputLayout_BaseWindowY + deltaY, false);
+
+  SetRedraw(true);
+  InvalidateRect(NULL, true);
+  Update();
+}
+
+
+void CCompressDialog::UpdateOutputPathControls()
+{
+  if (IsMultiItemMode())
+  {
+    UpdateItemOutputGroupControls(0);
+    for (unsigned i = 1; i < _itemOutputGroups.Size(); i++)
+      UpdateItemOutputGroupControls(i);
+    return;
+  }
+
+  m_OutputPathCount.SetCurSel((int)_outputPathCount - 1);
+
+  for (unsigned i = 1; i < Z7_ARRAY_SIZE(kArchivePathComboIds); i++)
+  {
+    const bool show = (i < _outputPathCount);
+    ShowItem_Bool(kArchivePathComboIds[i], show);
+    ShowItem_Bool(kArchivePathButtonIds[i], show);
+
+    UString path;
+    if (i < _outputArcPaths.Size())
+      path = _outputArcPaths[i];
+    m_ExtraArchivePaths[i - 1].SetText(path);
+  }
+}
+
+
+void CCompressDialog::UpdateItemOutputGroupControls(unsigned groupIndex)
+{
+  if (groupIndex >= _itemOutputGroups.Size())
+    return;
+
+  const CItemOutputGroup &group = _itemOutputGroups[groupIndex];
+  const unsigned count = group.ArcPaths.IsEmpty() ? 1 : (unsigned)group.ArcPaths.Size();
+
+  if (groupIndex == 0)
+  {
+    m_OutputPathCount.SetCurSel((int)count - 1);
+    if (!group.ArcPaths.IsEmpty())
+      m_ArchivePath.SetText(group.ArcPaths.Front());
+    for (unsigned i = 1; i < Z7_ARRAY_SIZE(kArchivePathComboIds); i++)
+    {
+      const bool show = (i < count);
+      ShowItem_Bool(kArchivePathComboIds[i], show);
+      ShowItem_Bool(kArchivePathButtonIds[i], show);
+
+      UString path;
+      if (i < group.ArcPaths.Size())
+        path = group.ArcPaths[i];
+      m_ExtraArchivePaths[i - 1].SetText(path);
+    }
+    return;
+  }
+
+  if (GetItem(GetDynamicGroupItemLabelId(groupIndex)) == NULL)
+    return;
+
+  SetItemText(GetDynamicGroupItemLabelId(groupIndex), group.ItemPath);
+
+  NWindows::NControl::CComboBox countCombo;
+  countCombo.Attach(GetItem(GetDynamicGroupCountComboId(groupIndex)));
+  countCombo.SetCurSel((int)count - 1);
+
+  for (unsigned pathIndex = 0; pathIndex < kNumOutputPathRows; pathIndex++)
+  {
+    const bool show = (pathIndex < count);
+    ShowItem_Bool(GetDynamicGroupArchiveComboId(groupIndex, pathIndex), show);
+    ShowItem_Bool(GetDynamicGroupArchiveButtonId(groupIndex, pathIndex), show);
+
+    NWindows::NControl::CComboBox combo;
+    combo.Attach(GetItem(GetDynamicGroupArchiveComboId(groupIndex, pathIndex)));
+
+    UString path;
+    if (pathIndex < group.ArcPaths.Size())
+      path = group.ArcPaths[pathIndex];
+    combo.SetText(path);
+  }
+}
+
+
+void CCompressDialog::UpdateSeparateItemModeControls()
+{
+  ShowItem_Bool(IDX_COMPRESS_SEPARATE_ITEMS, false);
+  RefreshArchivePathInfo();
+}
+
+
+void CCompressDialog::BuildItemArcPath(const UString &inputPath, UString &path)
+{
+  UString dirPrefix;
+  UString fileName;
+  SplitPathToParts_Smart(inputPath, dirPrefix, fileName);
+  if (fileName.IsEmpty())
+    fileName = ExtractFileNameFromPath(inputPath);
+
+  const CArcInfoEx &ai = Get_ArcInfoEx();
+  if (!ai.Flags_KeepName())
+  {
+    const int dotPos = GetExtDotPos(fileName);
+    if (dotPos >= 0)
+      fileName.DeleteFrom(dotPos);
+  }
+
+  if (IsSFX())
+    AppendExtensionWithoutDup(fileName, UString(kExeExt));
+  else
+  {
+    UString ext = ai.GetMainExt();
+    if (ai.Flags_HashHandler())
+    {
+      UString estimatedName;
+      GetMethodSpec(estimatedName);
+      if (!estimatedName.IsEmpty())
+      {
+        ext = estimatedName;
+        ext.MakeLower_Ascii();
+      }
+    }
+    UString fullExt;
+    fullExt.Add_Dot();
+    fullExt += ext;
+    AppendExtensionWithoutDup(fileName, fullExt);
+  }
+
+  path = dirPrefix + fileName;
+}
+
+
+void CCompressDialog::SyncItemOutputGroupFromControls(unsigned groupIndex)
+{
+  if (!IsMultiItemMode() || groupIndex >= _itemOutputGroups.Size())
+    return;
+
+  CItemOutputGroup &group = _itemOutputGroups[groupIndex];
+
+  unsigned count = (group.ArcPaths.IsEmpty() ? 1 : (unsigned)group.ArcPaths.Size());
+  if (groupIndex == 0)
+    count = _outputPathCount;
+  else
+  {
+    NWindows::NControl::CComboBox countCombo;
+    countCombo.Attach(GetItem(GetDynamicGroupCountComboId(groupIndex)));
+    const int sel = countCombo.GetCurSel();
+    if (sel >= 0)
+      count = (unsigned)sel + 1;
+  }
+
+  if (count < 1)
+    count = 1;
+  if (count > kNumOutputPathRows)
+    count = kNumOutputPathRows;
+
+  if (group.ArcPaths.Size() > count)
+    group.ArcPaths.DeleteFrom(count);
+
+  UString defaultPath;
+  if (!group.ArcPaths.IsEmpty())
+    defaultPath = group.ArcPaths.Front();
+  if (defaultPath.IsEmpty())
+    BuildItemArcPath(group.ItemPath, defaultPath);
+
+  if (group.ArcPaths.IsEmpty())
+    group.ArcPaths.Add(defaultPath);
+  while (group.ArcPaths.Size() < count)
+    group.ArcPaths.Add(UString());
+
+  for (unsigned pathIndex = 0; pathIndex < count; pathIndex++)
+  {
+    UString path;
+    if (groupIndex == 0)
+    {
+      if (pathIndex == 0)
+      {
+        if (!GetFinalPath_Smart(path))
+        {
+          m_ArchivePath.GetText(path);
+          path.Trim();
+        }
+      }
+      else
+      {
+        m_ExtraArchivePaths[pathIndex - 1].GetText(path);
+        path.Trim();
+      }
+    }
+    else
+    {
+      NWindows::NControl::CComboBox combo;
+      combo.Attach(GetItem(GetDynamicGroupArchiveComboId(groupIndex, pathIndex)));
+      combo.GetText(path);
+      path.Trim();
+    }
+
+    group.ArcPaths[pathIndex] = path;
+  }
+
+  if (groupIndex == 0)
+    _outputArcPaths = group.ArcPaths;
+}
+
+
+void CCompressDialog::SyncAllItemOutputGroupsFromControls()
+{
+  if (!IsMultiItemMode())
+    return;
+  for (unsigned i = 0; i < _itemOutputGroups.Size(); i++)
+    SyncItemOutputGroupFromControls(i);
+}
+
+
+void CCompressDialog::SetItemOutputGroupCount(unsigned groupIndex, unsigned count, bool syncFromControls)
+{
+  if (!IsMultiItemMode() || groupIndex >= _itemOutputGroups.Size())
+    return;
+
+  if (count < 1)
+    count = 1;
+  if (count > kNumOutputPathRows)
+    count = kNumOutputPathRows;
+
+  if (syncFromControls)
+    SyncItemOutputGroupFromControls(groupIndex);
+
+  CItemOutputGroup &group = _itemOutputGroups[groupIndex];
+  UString defaultPath;
+  if (!group.ArcPaths.IsEmpty())
+    defaultPath = group.ArcPaths.Front();
+  if (defaultPath.IsEmpty())
+    BuildItemArcPath(group.ItemPath, defaultPath);
+
+  if (group.ArcPaths.IsEmpty())
+    group.ArcPaths.Add(defaultPath);
+  if (group.ArcPaths.Size() > count)
+    group.ArcPaths.DeleteFrom(count);
+  while (group.ArcPaths.Size() < count)
+    group.ArcPaths.Add(UString());
+
+  if (groupIndex == 0)
+  {
+    _outputPathCount = count;
+    _outputArcPaths = group.ArcPaths;
+  }
+
+  UpdateItemOutputGroupControls(groupIndex);
+  RefreshArchivePathInfo();
+  UpdateOutputPathLayout();
+}
+
+
+bool CCompressDialog::BrowseItemOutputPath(unsigned groupIndex, unsigned pathIndex)
+{
+  if (!IsMultiItemMode() || groupIndex >= _itemOutputGroups.Size() || pathIndex >= kNumOutputPathRows)
+    return false;
+
+  SyncAllItemOutputGroupsFromControls();
+
+  CItemOutputGroup &group = _itemOutputGroups[groupIndex];
+  if (group.ArcPaths.IsEmpty())
+  {
+    UString defaultPath;
+    BuildItemArcPath(group.ItemPath, defaultPath);
+    group.ArcPaths.Add(defaultPath);
+  }
+  while (group.ArcPaths.Size() <= pathIndex)
+    group.ArcPaths.Add(UString());
+
+  UString path = group.ArcPaths[pathIndex];
+  if (path.IsEmpty())
+    BuildItemArcPath(group.ItemPath, path);
+
+  const int prevFormat = m_PrevFormat;
+  const bool prevWasSFX = IsSFX();
+  bool formatWasChanged = false;
+  if (!BrowseArchivePath(path, true, formatWasChanged))
+    return false;
+
+  group.ArcPaths[pathIndex] = path;
+  if (groupIndex == 0)
+    _outputArcPaths = group.ArcPaths;
+
+  if (formatWasChanged)
+  {
+    SaveOptionsInMem();
+    FormatChanged(true);
+    UpdateExtraArcPathsForFormatChange(prevFormat, prevWasSFX);
+  }
+
+  UpdateItemOutputGroupControls(groupIndex);
+  RefreshArchivePathInfo();
+  return true;
+}
+
+
+bool CCompressDialog::GetItemOutputGroupPaths(UStringVector &itemPaths, UStringVector &paths) const
+{
+  itemPaths.Clear();
+  paths.Clear();
+  if (!IsMultiItemMode() || _itemOutputGroups.IsEmpty())
+    return false;
+
+  FOR_VECTOR (g, _itemOutputGroups)
+  {
+    const CItemOutputGroup &group = _itemOutputGroups[g];
+    FOR_VECTOR (i, group.ArcPaths)
+    {
+      UString path = group.ArcPaths[i];
+      path.Trim();
+      if (path.IsEmpty())
+        return false;
+
+      FString fullPath;
+      if (!MyGetFullPathName(us2fs(path), fullPath))
+        return false;
+
+      const UString fullPathU = fs2us(fullPath);
+      const unsigned prevSize = paths.Size();
+      AddUniqueString(paths, fullPathU);
+      if (paths.Size() == prevSize)
+        return false;
+
+      itemPaths.Add(group.ItemPath);
+    }
+  }
+
+  return (paths.Size() == itemPaths.Size() && !paths.IsEmpty());
+}
+
+
+bool CCompressDialog::GetItemArcPaths(UStringVector &itemPaths, UStringVector &paths) const
+{
+  return GetItemOutputGroupPaths(itemPaths, paths);
+}
+
+
+void CCompressDialog::RefreshArchivePathInfo()
+{
+  if (IsMultiItemMode())
+  {
+    if (!_itemOutputGroups.IsEmpty())
+      SetItemText(IDT_COMPRESS_ARCHIVE_FOLDER, _itemOutputGroups[0].ItemPath);
+    return;
+  }
+
+  UString s = DirPrefix;
+
+  if (_outputPathCount > 1)
+  {
+    if (!s.IsEmpty())
+      s.Add_Space();
+    s += "(+";
+    s.Add_UInt32((UInt32)_outputPathCount - 1);
+    s += " more)";
+  }
+  SetItemText(IDT_COMPRESS_ARCHIVE_FOLDER, s);
+}
+
+
+void CCompressDialog::SyncPrimaryArcPathFromControl()
+{
+  UString path;
+  if (!GetFinalPath_Smart(path))
+  {
+    m_ArchivePath.GetText(path);
+    path.Trim();
+  }
+
+  if (_outputArcPaths.IsEmpty())
+    _outputArcPaths.Add(path);
+  else
+    _outputArcPaths[0] = path;
+
+  if (IsMultiItemMode() && !_itemOutputGroups.IsEmpty())
+  {
+    while (_itemOutputGroups[0].ArcPaths.IsEmpty())
+      _itemOutputGroups[0].ArcPaths.Add(UString());
+    _itemOutputGroups[0].ArcPaths[0] = path;
+  }
+
+  RefreshArchivePathInfo();
+}
+
+
+void CCompressDialog::SyncExtraArcPathsFromControls()
+{
+  if (_outputArcPaths.Size() > _outputPathCount)
+    _outputArcPaths.DeleteFrom(_outputPathCount);
+  while (_outputArcPaths.Size() < _outputPathCount)
+    _outputArcPaths.Add(UString());
+
+  for (unsigned i = 1; i < _outputPathCount; i++)
+  {
+    UString path;
+    m_ExtraArchivePaths[i - 1].GetText(path);
+    path.Trim();
+    _outputArcPaths[i] = path;
+  }
+
+  if (IsMultiItemMode() && !_itemOutputGroups.IsEmpty())
+    _itemOutputGroups[0].ArcPaths = _outputArcPaths;
+}
+
+
+void CCompressDialog::SetOutputPathCount(unsigned count, bool syncFromControls)
+{
+  const unsigned maxCount = Z7_ARRAY_SIZE(kArchivePathComboIds);
+  if (count < 1)
+    count = 1;
+  if (count > maxCount)
+    count = maxCount;
+
+  if (IsMultiItemMode())
+  {
+    SetItemOutputGroupCount(0, count, syncFromControls);
+    return;
+  }
+
+  if (syncFromControls)
+  {
+    SyncPrimaryArcPathFromControl();
+    SyncExtraArcPathsFromControls();
+  }
+
+  _outputPathCount = count;
+
+  if (_outputArcPaths.Size() > count)
+    _outputArcPaths.DeleteFrom(count);
+  while (_outputArcPaths.Size() < count)
+    _outputArcPaths.Add(UString());
+
+  UpdateOutputPathControls();
+  RefreshArchivePathInfo();
+  UpdateOutputPathLayout();
+}
+
+
+void CCompressDialog::SetOutputArcPaths(const UStringVector &paths)
+{
+  _outputArcPaths.Clear();
+  FOR_VECTOR (i, paths)
+  {
+    UString s = paths[i];
+    s.Trim();
+    if (!s.IsEmpty())
+      AddUniqueString(_outputArcPaths, s);
+  }
+  if (_outputArcPaths.Size() > Z7_ARRAY_SIZE(kArchivePathComboIds))
+    _outputArcPaths.DeleteFrom(Z7_ARRAY_SIZE(kArchivePathComboIds));
+
+  if (IsMultiItemMode() && !_itemOutputGroups.IsEmpty())
+    _itemOutputGroups[0].ArcPaths = _outputArcPaths;
+
+  SetOutputPathCount(_outputArcPaths.IsEmpty() ? 1 : (unsigned)_outputArcPaths.Size(), false);
+}
+
+
+bool CCompressDialog::GetOutputArcPaths(UStringVector &paths) const
+{
+  paths.Clear();
+
+  if (IsMultiItemMode())
+  {
+    if (_itemOutputGroups.IsEmpty())
+      return false;
+
+    FOR_VECTOR (i, _itemOutputGroups[0].ArcPaths)
+    {
+      UString path = _itemOutputGroups[0].ArcPaths[i];
+      path.Trim();
+      if (path.IsEmpty())
+        return false;
+
+      FString fullPath;
+      if (!MyGetFullPathName(us2fs(path), fullPath))
+        return false;
+      AddUniqueString(paths, fs2us(fullPath));
+    }
+    return (paths.Size() == _itemOutputGroups[0].ArcPaths.Size());
+  }
+
+  UString s;
+  if (!GetFinalPath_Smart(s))
+    return false;
+  s.Trim();
+  if (s.IsEmpty())
+    return false;
+  AddUniqueString(paths, s);
+
+  for (unsigned i = 1; i < _outputPathCount; i++)
+  {
+    UString path;
+    m_ExtraArchivePaths[i - 1].GetText(path);
+    path.Trim();
+    if (path.IsEmpty())
+      return false;
+
+    FString fullPath;
+    if (!MyGetFullPathName(us2fs(path), fullPath))
+      return false;
+    AddUniqueString(paths, fs2us(fullPath));
+  }
+
+  return (paths.Size() == _outputPathCount);
+}
+
+
+void CCompressDialog::UpdateItemArcPathToCurrentFormat(UString &path, int prevFormat, bool prevWasSFX)
+{
+  UString trimmed = path;
+  trimmed.Trim();
+  if (trimmed.IsEmpty())
+  {
+    path.Empty();
+    return;
+  }
+
+  UString dirPrefix;
+  UString fileName;
+  SplitPathToParts_2(path, dirPrefix, fileName);
+
+  if (prevWasSFX)
+    RemoveTailExtensionIfMatches(fileName, UString(kExeExt));
+  else if (prevFormat >= 0)
+  {
+    const CArcInfoEx &prevArchiverInfo = (*ArcFormats)[(unsigned)prevFormat];
+    UString prevExtension;
+    prevExtension.Add_Dot();
+    prevExtension += prevArchiverInfo.GetMainExt();
+    RemoveTailExtensionIfMatches(fileName, prevExtension);
+  }
+
+  const CArcInfoEx &ai = Get_ArcInfoEx();
+  if (IsSFX())
+    AppendExtensionWithoutDup(fileName, UString(kExeExt));
+  else
+  {
+    UString ext = ai.GetMainExt();
+    if (ai.Flags_HashHandler())
+    {
+      UString estimatedName;
+      GetMethodSpec(estimatedName);
+      if (!estimatedName.IsEmpty())
+      {
+        ext = estimatedName;
+        ext.MakeLower_Ascii();
+      }
+    }
+    UString fullExt;
+    fullExt.Add_Dot();
+    fullExt += ext;
+    AppendExtensionWithoutDup(fileName, fullExt);
+  }
+
+  path = dirPrefix + fileName;
+}
+
+
+void CCompressDialog::UpdateArcPathToCurrentFormat(UString &path, int prevFormat, bool prevWasSFX)
+{
+  UString trimmed = path;
+  trimmed.Trim();
+  if (trimmed.IsEmpty())
+  {
+    path.Empty();
+    return;
+  }
+
+  UString dirPrefix;
+  UString fileName;
+  SplitPathToParts_2(path, dirPrefix, fileName);
+
+  const CArcInfoEx &prevArchiverInfo = (*ArcFormats)[(unsigned)prevFormat];
+  if (prevArchiverInfo.Flags_KeepName() || Info.KeepName)
+  {
+    UString prevExtension;
+    if (prevWasSFX)
+      prevExtension = kExeExt;
+    else
+    {
+      prevExtension.Add_Dot();
+      prevExtension += prevArchiverInfo.GetMainExt();
+    }
+    const unsigned prevExtensionLen = prevExtension.Len();
+    if (fileName.Len() >= prevExtensionLen)
+      if (StringsAreEqualNoCase(fileName.RightPtr(prevExtensionLen), prevExtension))
+        fileName.DeleteFrom(fileName.Len() - prevExtensionLen);
+  }
+
+  const CArcInfoEx &ai = Get_ArcInfoEx();
+  if (ai.Flags_KeepName())
+    fileName = OriginalFileName;
+  else if (!Info.KeepName)
+  {
+    const int dotPos = GetExtDotPos(fileName);
+    if (dotPos >= 0)
+      fileName.DeleteFrom(dotPos);
+  }
+
+  if (IsSFX())
+  {
+    AppendExtensionWithoutDup(fileName, UString(kExeExt));
+  }
+  else
+  {
+    UString ext = ai.GetMainExt();
+    if (ai.Flags_HashHandler())
+    {
+      UString estimatedName;
+      GetMethodSpec(estimatedName);
+      if (!estimatedName.IsEmpty())
+      {
+        ext = estimatedName;
+        ext.MakeLower_Ascii();
+      }
+    }
+    UString fullExt;
+    fullExt.Add_Dot();
+    fullExt += ext;
+    AppendExtensionWithoutDup(fileName, fullExt);
+  }
+
+  path = dirPrefix + fileName;
+}
+
+
+void CCompressDialog::UpdateExtraArcPathsForFormatChange(int prevFormat, bool prevWasSFX)
+{
+  if (prevFormat >= 0)
+  {
+    if (IsMultiItemMode())
+    {
+      FOR_VECTOR (g, _itemOutputGroups)
+        FOR_VECTOR (i, _itemOutputGroups[g].ArcPaths)
+          UpdateItemArcPathToCurrentFormat(_itemOutputGroups[g].ArcPaths[i], prevFormat, prevWasSFX);
+
+      if (!_itemOutputGroups.IsEmpty())
+        _outputArcPaths = _itemOutputGroups[0].ArcPaths;
+    }
+    else
+    {
+      if (_outputPathCount > 1)
+        for (unsigned i = 1; i < _outputPathCount; i++)
+          UpdateArcPathToCurrentFormat(_outputArcPaths[i], prevFormat, prevWasSFX);
+    }
+  }
+
+  UpdateOutputPathControls();
+  RefreshArchivePathInfo();
+}
+
+
 bool CCompressDialog::SetArcPathFields(const UString &path)
 {
   UString name;
@@ -843,6 +1995,19 @@ bool CCompressDialog::SetArcPathFields(const UString &path, UString &name, bool 
   {
     DirPrefix = fs2us(resDirPrefix);
     name = fs2us(resFileName);
+    if (name.IsEmpty() && !DirPrefix.IsEmpty())
+    {
+      UString smartDirPrefix;
+      UString smartName;
+      SplitPathToParts_Smart(DirPrefix, smartDirPrefix, smartName);
+      if (!smartName.IsEmpty())
+      {
+        DirPrefix = smartDirPrefix;
+        name = smartName;
+      }
+    }
+    if (name.IsEmpty() && !OriginalFileName.IsEmpty())
+      name = OriginalFileName;
   }
   else
   {
@@ -851,7 +2016,7 @@ bool CCompressDialog::SetArcPathFields(const UString &path, UString &name, bool 
     DirPrefix.Empty();
     name = path;
   }
-  SetItemText(IDT_COMPRESS_ARCHIVE_FOLDER, DirPrefix);
+  RefreshArchivePathInfo();
   m_ArchivePath.SetText(name);
   return res;
 }
@@ -876,14 +2041,9 @@ static void AddFilter(CObjectVector<CBrowseFilterInfo> &filters,
 static const char * const k_DontSave_Exts =
   "xpi odt ods docx xlsx ";
 
-void CCompressDialog::OnButtonSetArchive()
+bool CCompressDialog::BrowseArchivePath(UString &path, bool allowFormatChange, bool &formatWasChanged)
 {
-  UString path;
-  if (!GetFinalPath_Smart(path))
-  {
-    ShowErrorMessage(*this, k_IncorrectPathMessage);
-    return;
-  }
+  formatWasChanged = false;
 
   int filterIndex;
   CObjectVector<CBrowseFilterInfo> filters;
@@ -898,55 +2058,80 @@ void CCompressDialog::OnButtonSetArchive()
   }
   else
   {
-    filterIndex = m_Format.GetCurSel();
-    numFormats = (unsigned)m_Format.GetCount();
-
-    // filters [0, ... numFormats - 1] corresponds to items in m_Format combo
-    UString desc;
-    UStringVector masks;
-    CStringFinder finder;
-
-    for (unsigned i = 0; i < numFormats; i++)
+    if (allowFormatChange)
     {
-      const CArcInfoEx &ai = (*ArcFormats)[(unsigned)m_Format.GetItemData(i)];
+      filterIndex = m_Format.GetCurSel();
+      numFormats = (unsigned)m_Format.GetCount();
+
+      // filters [0, ... numFormats - 1] corresponds to items in m_Format combo
+      UString desc;
+      UStringVector masks;
+      CStringFinder finder;
+
+      for (unsigned i = 0; i < numFormats; i++)
+      {
+        const CArcInfoEx &ai = (*ArcFormats)[(unsigned)m_Format.GetItemData(i)];
+        CBrowseFilterInfo &f = filters.AddNew();
+        f.Description = ai.Name;
+        f.Description += " (";
+        bool needSpace_desc = false;
+
+        FOR_VECTOR (k, ai.Exts)
+        {
+          const UString &ext = ai.Exts[k].Ext;
+          UString mask ("*.");
+          mask += ext;
+
+          if (finder.FindWord_In_LowCaseAsciiList_NoCase(k_DontSave_Exts, ext))
+            continue;
+
+          f.Masks.Add(mask);
+          masks.Add(mask);
+          if (needSpace_desc)
+            f.Description.Add_Space();
+          needSpace_desc = true;
+          f.Description += ext;
+        }
+        f.Description += ")";
+        if (i != 0)
+          desc.Add_Space();
+        desc += ai.GetMainExt();
+      }
+
+      CBrowseFilterInfo &f = filters.AddNew();
+      f.Description = LangString(IDT_COMPRESS_ARCHIVE);
+      if (f.Description.IsEmpty())
+        GetItemText(IDT_COMPRESS_ARCHIVE, f.Description);
+      f.Description.RemoveChar(L'&');
+      f.Description += " (";
+      f.Description += desc;
+      f.Description += ")";
+      f.Masks = masks;
+    }
+    else
+    {
+      filterIndex = 0;
+      const CArcInfoEx &ai = Get_ArcInfoEx();
       CBrowseFilterInfo &f = filters.AddNew();
       f.Description = ai.Name;
       f.Description += " (";
       bool needSpace_desc = false;
-
+      CStringFinder finder;
       FOR_VECTOR (k, ai.Exts)
       {
         const UString &ext = ai.Exts[k].Ext;
         UString mask ("*.");
         mask += ext;
-
         if (finder.FindWord_In_LowCaseAsciiList_NoCase(k_DontSave_Exts, ext))
           continue;
-
         f.Masks.Add(mask);
-        masks.Add(mask);
         if (needSpace_desc)
           f.Description.Add_Space();
         needSpace_desc = true;
         f.Description += ext;
       }
       f.Description += ")";
-      // we use only main ext in desc to reduce the size of list
-      if (i != 0)
-        desc.Add_Space();
-      desc += ai.GetMainExt();
     }
-
-    CBrowseFilterInfo &f = filters.AddNew();
-    f.Description = LangString(IDT_COMPRESS_ARCHIVE); // IDS_ARCHIVES_COLON;
-    if (f.Description.IsEmpty())
-      GetItemText(IDT_COMPRESS_ARCHIVE, f.Description);
-    f.Description.RemoveChar(L'&');
-    // f.Description = "archive";
-    f.Description += " (";
-    f.Description += desc;
-    f.Description += ")";
-    f.Masks = masks;
   }
 
   AddFilter(filters, LangString(IDS_OPEN_TYPE_ALL_FILES), UString("*"));
@@ -962,7 +2147,7 @@ void CCompressDialog::OnButtonSetArchive()
   bi.FilePath = path;
 
   if (!bi.BrowseForFile(filters))
-    return;
+    return false;
   
   path = bi.FilePath;
 
@@ -974,13 +2159,13 @@ void CCompressDialog::OnButtonSetArchive()
     path += kExeExt;
   }
   else
-  // if (bi.FilterIndex >= 0)
-  // if (bi.FilterIndex != filterIndex)
-  if ((unsigned)bi.FilterIndex < numFormats)
+  if (allowFormatChange ? ((unsigned)bi.FilterIndex < numFormats) : !filters.IsEmpty())
   {
-    // archive format was confirmed. So we try to set format extension
+    const unsigned arcIndex = allowFormatChange ?
+        (unsigned)m_Format.GetItemData((unsigned)bi.FilterIndex) :
+        GetFormatIndex();
+    const CArcInfoEx &ai = (*ArcFormats)[arcIndex];
     bool needAddExt = true;
-    const CArcInfoEx &ai = (*ArcFormats)[(unsigned)m_Format.GetItemData((unsigned)bi.FilterIndex)];
     const int dotPos = GetExtDotPos(path);
     if (dotPos >= 0)
     {
@@ -996,24 +2181,89 @@ void CCompressDialog::OnButtonSetArchive()
     }
   }
 
-  SetArcPathFields(path);
-
-  if (!isSFX)
+  if (!isSFX && allowFormatChange)
   if ((unsigned)bi.FilterIndex < numFormats)
   if (bi.FilterIndex != m_Format.GetCurSel())
   {
     m_Format.SetCurSel(bi.FilterIndex);
-    SaveOptionsInMem();
-    FormatChanged(true); // isChanged
-    return;
+    formatWasChanged = true;
   }
-  
-  ArcPath_WasChanged(path);
+
+  return true;
 }
 
 
-// in ExtractDialog.cpp
-extern void AddUniqueString(UStringVector &strings, const UString &srcString);
+void CCompressDialog::OnButtonSetArchivePath(unsigned index)
+{
+  if (IsMultiItemMode())
+  {
+    BrowseItemOutputPath(0, index);
+    return;
+  }
+
+  if (index == 0)
+  {
+    UString path;
+    if (!GetFinalPath_Smart(path))
+    {
+      ShowErrorMessage(*this, k_IncorrectPathMessage);
+      return;
+    }
+
+    SyncExtraArcPathsFromControls();
+
+    const int prevFormat = m_PrevFormat;
+    const bool prevWasSFX = IsSFX();
+    bool formatWasChanged;
+    if (!BrowseArchivePath(path, true, formatWasChanged))
+      return;
+
+    SetArcPathFields(path);
+    SyncPrimaryArcPathFromControl();
+
+    if (formatWasChanged)
+    {
+      SaveOptionsInMem();
+      FormatChanged(true); // isChanged
+      UpdateExtraArcPathsForFormatChange(prevFormat, prevWasSFX);
+      m_PrevFormat = (int)GetFormatIndex();
+      return;
+    }
+
+    ArcPath_WasChanged(path);
+    return;
+  }
+
+  SyncPrimaryArcPathFromControl();
+  SyncExtraArcPathsFromControls();
+
+  while (_outputArcPaths.Size() <= index)
+    _outputArcPaths.Add(UString());
+
+  UString path = _outputArcPaths[index];
+  if (path.IsEmpty())
+  {
+    if (index > 0 && index - 1 < _outputArcPaths.Size())
+      path = _outputArcPaths[index - 1];
+    if (path.IsEmpty())
+      GetFinalPath_Smart(path);
+  }
+
+  bool formatWasChanged;
+  if (!BrowseArchivePath(path, false, formatWasChanged))
+    return;
+
+  _outputArcPaths[index] = path;
+  m_ExtraArchivePaths[index - 1].SetText(path);
+  RefreshArchivePathInfo();
+}
+
+
+void CCompressDialog::OnButtonSetArchive()
+{
+  OnButtonSetArchivePath(0);
+}
+
 
 static bool IsAsciiString(const UString &s)
 {
@@ -1121,16 +2371,54 @@ void CCompressDialog::OnOK()
 
   SaveOptionsInMem();
 
-  UStringVector arcPaths;
+  if (IsMultiItemMode())
+    SyncAllItemOutputGroupsFromControls();
+
+  const bool separateItemMode = IsMultiItemMode();
+  Info.SeparateItemArchives = separateItemMode;
+
+  UStringVector outputArcPaths;
+  if (separateItemMode)
   {
-    UString s;
-    if (!GetFinalPath_Smart(s))
+    UStringVector outputItemPaths;
+    if (!GetItemArcPaths(outputItemPaths, outputArcPaths))
+    {
+      MessageBoxError(L"Specify one unique output path for each selected item output");
+      return;
+    }
+    Info.ItemOutputItemPaths = outputItemPaths;
+    Info.ItemArcPaths = outputArcPaths;
+    Info.ArcPaths = outputArcPaths;
+    Info.ArcPath = outputArcPaths.Front();
+
+    if (IsButtonCheckedBool(IDX_COMPRESS_DEL))
+    {
+      FOR_VECTOR (i, outputItemPaths)
+        FOR_VECTOR (k, outputItemPaths)
+          if (i != k && outputItemPaths[i] == outputItemPaths[k])
+          {
+            MessageBoxError(L"Delete after compression is not supported when the same item is mapped to multiple outputs");
+            return;
+          }
+    }
+  }
+  else
+  {
+    Info.ItemOutputItemPaths.Clear();
+    Info.ItemArcPaths.Clear();
+    if (!GetOutputArcPaths(outputArcPaths))
     {
       ShowErrorMessage(*this, k_IncorrectPathMessage);
       return;
     }
-    Info.ArcPath = s;
-    AddUniqueString(arcPaths, s);
+    Info.ArcPaths = outputArcPaths;
+    Info.ArcPath = outputArcPaths.Front();
+  }
+
+  if (!separateItemMode && outputArcPaths.Size() > 1 && IsButtonCheckedBool(IDX_COMPRESS_DEL))
+  {
+    MessageBoxError(L"Delete after compression is not supported for multiple output paths");
+    return;
   }
   
   Info.UpdateMode = (NCompressDialog::NUpdateMode::EEnum)k_UpdateMode_Vals[m_UpdateMode.GetCurSel()];
@@ -1238,6 +2526,8 @@ void CCompressDialog::OnOK()
     m_RegistryInfo.ArcType = (*ArcFormats)[Info.FormatIndex].Name;
   m_RegistryInfo.ShowPassword = IsShowPasswordChecked();
 
+  UStringVector arcPaths;
+  AddUniqueString(arcPaths, Info.ArcPath);
   FOR_VECTOR (i, m_RegistryInfo.ArcPaths)
   {
     if (arcPaths.Size() >= kHistorySize)
@@ -1262,6 +2552,9 @@ void CCompressDialog::OnHelp()
 
 void CCompressDialog::ArcPath_WasChanged(const UString &path)
 {
+  const int prevFormat = m_PrevFormat;
+  const bool prevWasSFX = IsSFX();
+  SyncExtraArcPathsFromControls();
   const int dotPos = GetExtDotPos(path);
   if (dotPos < 0)
     return;
@@ -1281,6 +2574,8 @@ void CCompressDialog::ArcPath_WasChanged(const UString &path)
       m_Format.SetCurSel(i);
       SaveOptionsInMem();
       FormatChanged(true); // isChanged
+      UpdateExtraArcPathsForFormatChange(prevFormat, prevWasSFX);
+      m_PrevFormat = (int)i;
       return;
     }
   }
@@ -1300,7 +2595,15 @@ bool CCompressDialog::OnMessage(UINT message, WPARAM wParam, LPARAM lParam)
       // if (path == m_RegistryInfo.ArcPaths[select])
       {
         const UString &path = m_RegistryInfo.ArcPaths[select];
-        SetArcPathFields(path);
+        if (_outputArcPaths.IsEmpty())
+          _outputArcPaths.Add(path);
+        else
+          _outputArcPaths[0] = path;
+        if (IsMultiItemMode())
+          m_ArchivePath.SetText(path);
+        else
+          SetArcPathFields(path);
+        SyncPrimaryArcPathFromControl();
         // ArcPath_WasChanged(path);
       }
       return 0;
@@ -1314,10 +2617,38 @@ bool CCompressDialog::OnCommand(unsigned code, unsigned itemID, LPARAM lParam)
 {
   if (code == CBN_SELCHANGE)
   {
+    if (IsMultiItemMode())
+    {
+      for (unsigned groupIndex = 1; groupIndex < _itemOutputGroups.Size(); groupIndex++)
+        if (itemID == GetDynamicGroupCountComboId(groupIndex))
+        {
+          NWindows::NControl::CComboBox countCombo;
+          countCombo.Attach(GetItem(itemID));
+          const int select = countCombo.GetCurSel();
+          if (select >= 0)
+            SetItemOutputGroupCount(groupIndex, (unsigned)select + 1);
+          return true;
+        }
+    }
+
     switch (itemID)
     {
+      case IDC_COMPRESS_OUTPUT_PATHS_NUM:
+      {
+        const int select = m_OutputPathCount.GetCurSel();
+        if (select >= 0)
+          SetOutputPathCount((unsigned)select + 1);
+        return true;
+      }
+
       case IDC_COMPRESS_ARCHIVE:
       {
+        if (IsMultiItemMode())
+        {
+          SyncPrimaryArcPathFromControl();
+          return true;
+        }
+
         /* CBN_SELCHANGE is called before actual value of combo text will be changed.
            So GetText() here returns old value (before change) of combo text.
            So here we can change all controls except of m_ArchivePath.
@@ -1339,9 +2670,19 @@ bool CCompressDialog::OnCommand(unsigned code, unsigned itemID, LPARAM lParam)
       case IDC_COMPRESS_FORMAT:
       {
         const bool isSFX = IsSFX();
+        const int prevFormat = m_PrevFormat;
+        if (IsMultiItemMode())
+          SyncAllItemOutputGroupsFromControls();
+        else
+          SyncExtraArcPathsFromControls();
         SaveOptionsInMem();
         FormatChanged(true); // isChanged
-        SetArchiveName2(isSFX);
+        if (!IsMultiItemMode())
+        {
+          SetArchiveName2(isSFX);
+          SyncPrimaryArcPathFromControl();
+        }
+        UpdateExtraArcPathsForFormatChange(prevFormat, isSFX);
         return true;
       }
       
@@ -1375,7 +2716,13 @@ bool CCompressDialog::OnCommand(unsigned code, unsigned itemID, LPARAM lParam)
         CheckSFXNameChange();
         SetMemoryUsage();
         if (Get_ArcInfoEx().Flags_HashHandler())
-          SetArchiveName2(false);
+        {
+          if (!IsMultiItemMode())
+          {
+            SetArchiveName2(false);
+            SyncPrimaryArcPathFromControl();
+          }
+        }
 
         return true;
       }
@@ -1442,9 +2789,20 @@ bool CCompressDialog::OnCommand(unsigned code, unsigned itemID, LPARAM lParam)
 void CCompressDialog::CheckSFXNameChange()
 {
   const bool isSFX = IsSFX();
+  const int prevFormat = m_PrevFormat;
   CheckSFXControlsEnable();
   if (isSFX != IsSFX())
-    SetArchiveName2(isSFX);
+  {
+    if (IsMultiItemMode())
+      SyncAllItemOutputGroupsFromControls();
+    else
+    {
+      SetArchiveName2(isSFX);
+      SyncPrimaryArcPathFromControl();
+      SyncExtraArcPathsFromControls();
+    }
+    UpdateExtraArcPathsForFormatChange(prevFormat, isSFX);
+  }
 }
 
 void CCompressDialog::SetArchiveName2(bool prevWasSFX)
@@ -1495,10 +2853,9 @@ void CCompressDialog::SetArchiveName(const UString &name)
   }
 
   if (IsSFX())
-    fileName += kExeExt;
+    AppendExtensionWithoutDup(fileName, UString(kExeExt));
   else
   {
-    fileName.Add_Dot();
     UString ext = ai.GetMainExt();
     if (ai.Flags_HashHandler())
     {
@@ -1510,7 +2867,10 @@ void CCompressDialog::SetArchiveName(const UString &name)
         ext.MakeLower_Ascii();
       }
     }
-    fileName += ext;
+    UString fullExt;
+    fullExt.Add_Dot();
+    fullExt += ext;
+    AppendExtensionWithoutDup(fileName, fullExt);
   }
   m_ArchivePath.SetText(fileName);
 }
@@ -3375,9 +4735,6 @@ void CCompressDialog::ShowOptionsString()
   
   SetItemText(IDT_COMPRESS_OPTIONS, GetUnicodeString(s));
 }
-
-
-
 
 
 // ---------- OPTIONS ----------

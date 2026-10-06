@@ -244,7 +244,7 @@ $(PROGPATH): $O $O/asm $(OBJS) $(DEF_FILE)
 
 !IFNDEF NO_DEFAULT_RES
 $O\resource.res: $(*B).rc
-	rc $(RFLAGS) -fo$@ $**
+	rc $(RFLAGS) -fo$@ $(@B).rc
 !ENDIF
 $O\StdAfx.obj: $(*B).cpp
 	$(COMPL_PCH)

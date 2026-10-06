@@ -5,6 +5,8 @@
 #include "../../../Common/Lang.h"
 
 #include "../../../Windows/DLL.h"
+#include "../../../Windows/FileFind.h"
+#include "../../../Windows/FileName.h"
 #include "../../../Windows/Synchronization.h"
 #include "../../../Windows/Window.h"
 
@@ -30,9 +32,45 @@ bool LangOpen(CLang &lang, CFSTR fileName)
   return lang.Open(fileName, "7-Zip");
 }
 
+static bool GetParentDirPrefix(FString &dirPrefix)
+{
+  if (dirPrefix.IsEmpty())
+    return false;
+
+  NFile::NName::NormalizeDirPathPrefix(dirPrefix);
+
+  FString parent = dirPrefix;
+  if (!NFile::NName::IsDriveRootPath_SuperAllowed(parent))
+    parent.DeleteBack();
+
+  const int pos = parent.ReverseFind_PathSepar();
+  if (pos < 0)
+    return false;
+
+  parent.DeleteFrom((unsigned)(pos + 1));
+  if (parent.IsEmpty() || parent == dirPrefix)
+    return false;
+
+  dirPrefix = parent;
+  return true;
+}
+
 FString GetLangDirPrefix()
 {
-  return NDLL::GetModuleDirPrefix() + FTEXT("Lang") FSTRING_PATH_SEPARATOR;
+  const FString moduleDir = NDLL::GetModuleDirPrefix();
+  FString dirPrefix = moduleDir;
+  NFile::NName::NormalizeDirPathPrefix(dirPrefix);
+
+  for (;;)
+  {
+    const FString langDir = dirPrefix + FTEXT("Lang") FSTRING_PATH_SEPARATOR;
+    if (NFile::NFind::DoesDirExist(langDir))
+      return langDir;
+    if (!GetParentDirPrefix(dirPrefix))
+      break;
+  }
+
+  return moduleDir + FTEXT("Lang") FSTRING_PATH_SEPARATOR;
 }
 
 #ifdef Z7_LANG

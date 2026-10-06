@@ -27,6 +27,9 @@ typedef enum {
 #else
 #include <ShlObj.h>
 #endif
+#ifndef UNDER_CE
+#include <TlHelp32.h>
+#endif
 
 #include "../../7zVersion.h"
 
@@ -464,7 +467,7 @@ static BoolInt AreEqual_Path_PrefixName(const WCHAR *s, const WCHAR *prefix, con
   return AreStringsEqual_NoCase(s + wcslen(prefix), name);
 }
 
-static void WriteCLSID(void)
+static void RemoveShellExtensionCLSID(void)
 {
   WCHAR s[MAX_PATH + 30];
   
@@ -540,7 +543,13 @@ static void WriteCLSID(void)
   }
   
   #endif
+}
 
+static void WriteCLSID(void)
+{
+  WCHAR s[MAX_PATH + 30];
+
+  RemoveShellExtensionCLSID();
 
   if (MyRegistry_QueryString2(HKEY_LOCAL_MACHINE, k_AppPaths_7zFm, NULL, s))
   {
@@ -616,6 +625,216 @@ static BOOL RemoveFileAfterReboot(void)
   return RemoveFileAfterReboot2(path);
 }
 
+static BOOL DeleteFileOrScheduleForReboot(const WCHAR *s, WRes *winRes, BoolInt *needReboot)
+{
+  const DWORD attrib = GetFileAttributesW(s);
+  if (attrib == INVALID_FILE_ATTRIBUTES)
+    return TRUE;
+  if (attrib & FILE_ATTRIBUTE_READONLY)
+    SetFileAttributesW(s, 0);
+  if (DeleteFileW(s))
+    return TRUE;
+  if (RemoveFileAfterReboot2(s))
+  {
+    if (needReboot)
+      *needReboot = True;
+    return TRUE;
+  }
+  if (winRes)
+    *winRes = GetLastError();
+  return FALSE;
+}
+
+#ifndef UNDER_CE
+static HMODULE GetRemoteModuleBase(DWORD processId, const WCHAR *moduleName)
+{
+  HMODULE res = NULL;
+  HANDLE snapshot = CreateToolhelp32Snapshot(TH32CS_SNAPMODULE | TH32CS_SNAPMODULE32, processId);
+  if (snapshot != INVALID_HANDLE_VALUE)
+  {
+    MODULEENTRY32W me;
+    me.dwSize = sizeof(me);
+    if (Module32FirstW(snapshot, &me))
+      do
+      {
+        if (AreStringsEqual_NoCase(me.szModule, moduleName))
+        {
+          res = (HMODULE)me.modBaseAddr;
+          break;
+        }
+      }
+      while (Module32NextW(snapshot, &me));
+    CloseHandle(snapshot);
+  }
+  return res;
+}
+
+static LPVOID GetRemoteProcAddress(DWORD processId, const WCHAR *moduleName, const char *procName)
+{
+  HMODULE localModule = GetModuleHandleW(moduleName);
+  BoolInt needFree = False;
+  HMODULE remoteModule;
+  FARPROC localProc;
+
+  if (!localModule)
+  {
+    localModule = LoadLibraryW(moduleName);
+    needFree = (localModule != NULL);
+  }
+  if (!localModule)
+    return NULL;
+
+  localProc = GetProcAddress(localModule, procName);
+  remoteModule = GetRemoteModuleBase(processId, moduleName);
+
+  if (needFree)
+    FreeLibrary(localModule);
+
+  if (!localProc || !remoteModule)
+    return NULL;
+
+  return (LPVOID)((const Byte *)remoteModule + ((const Byte *)localProc - (const Byte *)localModule));
+}
+
+static BoolInt UnloadModuleInProcess(DWORD processId, const WCHAR *moduleName)
+{
+  HMODULE remoteModule = GetRemoteModuleBase(processId, moduleName);
+  LPTHREAD_START_ROUTINE remoteFreeLibrary;
+  HANDLE process;
+  HANDLE thread;
+  DWORD exitCode = 0;
+
+  if (!remoteModule)
+    return True;
+
+  remoteFreeLibrary = (LPTHREAD_START_ROUTINE)GetRemoteProcAddress(processId, L"kernel32.dll", "FreeLibrary");
+  if (!remoteFreeLibrary)
+    return False;
+
+  process = OpenProcess(PROCESS_CREATE_THREAD | PROCESS_QUERY_INFORMATION | PROCESS_VM_OPERATION, FALSE, processId);
+  if (!process)
+    return False;
+
+  thread = CreateRemoteThread(process, NULL, 0, remoteFreeLibrary, (LPVOID)remoteModule, 0, NULL);
+  if (!thread)
+  {
+    CloseHandle(process);
+    return False;
+  }
+
+  if (WaitForSingleObject(thread, 5000) == WAIT_OBJECT_0)
+    GetExitCodeThread(thread, &exitCode);
+
+  CloseHandle(thread);
+  CloseHandle(process);
+  return (exitCode != 0);
+}
+
+static void RequestExplorerToUnloadModule(const WCHAR *moduleName)
+{
+  HANDLE snapshot = CreateToolhelp32Snapshot(TH32CS_SNAPPROCESS, 0);
+  if (snapshot != INVALID_HANDLE_VALUE)
+  {
+    PROCESSENTRY32W pe;
+    pe.dwSize = sizeof(pe);
+    if (Process32FirstW(snapshot, &pe))
+      do
+      {
+        if (AreStringsEqual_NoCase(pe.szExeFile, L"explorer.exe"))
+        {
+          unsigned i;
+          for (i = 0; i < 4; i++)
+          {
+            if (!GetRemoteModuleBase(pe.th32ProcessID, moduleName))
+              break;
+            if (!UnloadModuleInProcess(pe.th32ProcessID, moduleName))
+              break;
+            Sleep(100);
+          }
+        }
+      }
+      while (Process32NextW(snapshot, &pe));
+    CloseHandle(snapshot);
+  }
+}
+
+static void RequestExplorerToUnloadShellExtensions(void)
+{
+  RequestExplorerToUnloadModule(L"7-zip.dll");
+  #ifdef USE_7ZIP_32_DLL
+  RequestExplorerToUnloadModule(L"7-zip32.dll");
+  #endif
+}
+#endif
+
+static BoolInt IsTempCleanupTarget(const WCHAR *s)
+{
+  if (AreStringsEqual_NoCase(s, L"7-zip.dll"))
+    return True;
+  #ifdef USE_7ZIP_32_DLL
+  if (AreStringsEqual_NoCase(s, L"7-zip32.dll"))
+    return True;
+  #endif
+  return False;
+}
+
+static BOOL DeleteTempVariantsForBasePath(const WCHAR *basePath, WRes *winRes, BoolInt *needReboot)
+{
+  #ifndef UNDER_CE
+  BOOL result = TRUE;
+  WCHAR dirPath[MAX_PATH * 2 + 80];
+  WCHAR mask[MAX_PATH * 2 + 80];
+  WCHAR *name;
+  WIN32_FIND_DATAW fd;
+  HANDLE h;
+
+  wcscpy(mask, basePath);
+  CatAscii(mask, ".tmp*");
+
+  wcscpy(dirPath, basePath);
+  name = dirPath;
+  {
+    WCHAR *s = dirPath;
+    for (;;)
+    {
+      const WCHAR c = *s++;
+      if (c == 0)
+        break;
+      if (c == WCHAR_PATH_SEPARATOR)
+        name = s;
+    }
+  }
+
+  if (!name)
+    return TRUE;
+
+  *name = 0;
+
+  h = FindFirstFileW(mask, &fd);
+  if (h == INVALID_HANDLE_VALUE)
+    return TRUE;
+
+  do
+  {
+    if (!(fd.dwFileAttributes & FILE_ATTRIBUTE_DIRECTORY))
+    {
+      wcscpy(name, fd.cFileName);
+      if (!DeleteFileOrScheduleForReboot(dirPath, winRes, needReboot))
+        result = FALSE;
+    }
+  }
+  while (FindNextFileW(h, &fd));
+
+  FindClose(h);
+  return result;
+  #else
+  UNUSED_VAR(basePath)
+  UNUSED_VAR(winRes)
+  UNUSED_VAR(needReboot)
+  return TRUE;
+  #endif
+}
+
 // #define IS_LIMIT_CHAR(c) (c == 0 || c == ' ')
 
 static BoolInt IsThereSpace(const WCHAR *s)
@@ -638,6 +857,55 @@ static void AddPathParam(WCHAR *dest, const WCHAR *src)
   wcscat(dest, src);
   if (needQuote)
     CatAscii(dest, "\"");
+}
+
+static BoolInt IsProcessElevated(void)
+{
+  #ifndef UNDER_CE
+  SID_IDENTIFIER_AUTHORITY ntAuthority = SECURITY_NT_AUTHORITY;
+  PSID adminGroup = NULL;
+  BOOL isMember = FALSE;
+
+  if (!AllocateAndInitializeSid(&ntAuthority, 2,
+      SECURITY_BUILTIN_DOMAIN_RID, DOMAIN_ALIAS_RID_ADMINS,
+      0, 0, 0, 0, 0, 0, &adminGroup))
+    return False;
+
+  CheckTokenMembership(NULL, adminGroup, &isMember);
+  FreeSid(adminGroup);
+  return isMember ? True : False;
+  #else
+  return True;
+  #endif
+}
+
+static BoolInt RelaunchAsAdmin(const WCHAR *params, DWORD *errorCode)
+{
+  #ifndef UNDER_CE
+  SHELLEXECUTEINFOW sei;
+  memset(&sei, 0, sizeof(sei));
+  sei.cbSize = sizeof(sei);
+  sei.fMask = SEE_MASK_NOCLOSEPROCESS;
+  sei.lpVerb = L"runas";
+  sei.lpFile = modulePath;
+  sei.lpParameters = (params[0] == 0 ? NULL : params);
+  sei.nShow = SW_SHOWNORMAL;
+
+  if (ShellExecuteExW(&sei))
+  {
+    if (sei.hProcess)
+      CloseHandle(sei.hProcess);
+    return True;
+  }
+
+  if (errorCode)
+    *errorCode = GetLastError();
+  return False;
+  #else
+  UNUSED_VAR(params)
+  UNUSED_VAR(errorCode)
+  return False;
+  #endif
 }
 
 
@@ -713,7 +981,7 @@ static int Install(void)
   SRes res = SZ_OK;
   WRes winRes = 0;
   
-  // BoolInt needReboot = False;
+  BoolInt needReboot = False;
   const size_t pathLen = wcslen(path);
 
   if (!g_SilentMode)
@@ -722,6 +990,14 @@ static int Install(void)
     ShowWindow(g_InfoLine_HWND, SW_SHOW);
     SendMessage(g_Progress_HWND, PBM_SETRANGE32, 0, NUM_FILES);
   }
+
+  RemoveShellExtensionCLSID();
+  #ifndef UNDER_CE
+  SHChangeNotify(SHCNE_ASSOCCHANGED, SHCNF_IDLIST, NULL, NULL);
+  Sleep(200);
+  RequestExplorerToUnloadShellExtensions();
+  Sleep(100);
+  #endif
 
   {
     unsigned i;
@@ -780,24 +1056,17 @@ static int Install(void)
       if (!g_SilentMode)
         SetWindowTextW(g_InfoLine_HWND, temp);
 
+      if (IsTempCleanupTarget(temp))
       {
-        const DWORD attrib = GetFileAttributesW(path);
-        if (attrib == INVALID_FILE_ATTRIBUTES)
-          continue;
-        if (attrib & FILE_ATTRIBUTE_READONLY)
-          SetFileAttributesW(path, 0);
-        if (!DeleteFileW(path))
-        {
-          if (!RemoveFileAfterReboot())
-          {
-            winRes = GetLastError();
-          }
-          /*
-          else
-            needReboot = True;
-          */
-        }
+        DeleteTempVariantsForBasePath(path, &winRes, &needReboot);
+        #ifndef UNDER_CE
+        RequestExplorerToUnloadModule(temp);
+        Sleep(100);
+        #endif
       }
+
+      if (!DeleteFileOrScheduleForReboot(path, &winRes, &needReboot))
+        break;
     }
 
     CpyAscii(path + pathLen, k_Lang);
@@ -824,7 +1093,11 @@ static int Install(void)
 
   if (res == SZ_OK)
   {
-    // if (!g_SilentMode && needReboot);
+    if (!g_SilentMode && needReboot)
+      MessageBoxW(g_HWND,
+          L"Some files were in use and are scheduled to be removed after restart.",
+          k_7zip_with_Ver_Uninstall,
+          MB_ICONINFORMATION | MB_OK);
     return 0;
   }
 
@@ -1049,6 +1322,21 @@ int APIENTRY WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance,
       useTemp = False;
 
     *name = 0; // keep only prefix for modulePrefix
+  }
+
+  if (!IsProcessElevated())
+  {
+    DWORD errorCode = ERROR_SUCCESS;
+    if (RelaunchAsAdmin(cmdParams, &errorCode))
+      return 0;
+    if (!g_SilentMode && errorCode != ERROR_CANCELLED)
+    {
+      WCHAR m[MAX_PATH + 100];
+      if (!GetErrorMessage(errorCode, m))
+        CpyAscii(m, "Can't relaunch with administrator rights");
+      PrintErrorMessage("Administrator rights are required for uninstall.", m);
+    }
+    return 1;
   }
 
 

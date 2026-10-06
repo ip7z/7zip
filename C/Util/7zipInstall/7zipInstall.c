@@ -59,6 +59,8 @@ typedef enum {
 static LPCSTR const k_7zip = "7-Zip";
 
 static LPCWSTR const k_Reg_Software_7zip = L"Software\\7-Zip";
+static LPCWSTR const k_7zip_DisplayVersion = LLL(MY_VERSION);
+static LPCWSTR const k_7zip_Publisher = LLL(MY_AUTHOR_NAME);
 
 // #define Z7_64BIT_INSTALLER 1
 
@@ -944,7 +946,7 @@ static void WriteShellEx(void)
     if (res == ERROR_SUCCESS)
     {
       MyRegistry_SetString(destKey, L"DisplayName", k_7zip_with_Ver_str);
-      MyRegistry_SetString(destKey, L"DisplayVersion", LLL(MY_VERSION_NUMBERS));
+      MyRegistry_SetString(destKey, L"DisplayVersion", k_7zip_DisplayVersion);
       MyRegistry_SetString(destKey, L"DisplayIcon", destPath);
       MyRegistry_SetString(destKey, L"InstallLocation", path);
 
@@ -964,7 +966,7 @@ static void WriteShellEx(void)
       MyRegistry_SetDWORD(destKey, L"VersionMajor", MY_VER_MAJOR);
       MyRegistry_SetDWORD(destKey, L"VersionMinor", MY_VER_MINOR);
   
-      MyRegistry_SetString(destKey, L"Publisher", LLL(MY_AUTHOR_NAME));
+      MyRegistry_SetString(destKey, L"Publisher", k_7zip_Publisher);
       
       // MyRegistry_SetString(destKey, L"HelpLink", L"http://www.7-zip.org/support.html");
       // MyRegistry_SetString(destKey, L"URLInfoAbout", L"http://www.7-zip.org/");
