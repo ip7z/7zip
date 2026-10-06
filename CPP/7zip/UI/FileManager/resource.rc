@@ -113,6 +113,12 @@ BEGIN
       MENUITEM "Time",                      IDM_VIEW_TIME
     END
 
+    POPUP "Size" MY_MENUITEM_ID(IDM_VIEW_SIZE_POPUP)
+    BEGIN
+      MENUITEM "Bytes",                     IDM_VIEW_SIZE_BYTES
+      MENUITEM "Auto",                      IDM_VIEW_SIZE_AUTO
+    END
+
     POPUP "Toolbars" MY_MENUITEM_ID(IDM_VIEW_TOOLBARS)
     BEGIN
       MENUITEM "Archive Toolbar",           IDM_VIEW_ARCHIVE_TOOLBAR

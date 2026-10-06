@@ -54,6 +54,12 @@ const int kParentFolderID = 100;
 const unsigned kParentIndex = (unsigned)(int)-1;
 const UInt32 kParentIndex_UInt32 = (UInt32)(Int32)kParentIndex;
 
+enum
+{
+  k_SizeDisplayMode_Bytes = 0,
+  k_SizeDisplayMode_Auto = 1
+};
+
 #if !defined(_WIN32) || defined(UNDER_CE)
 #define ROOT_FS_FOLDER L"\\"
 #else
@@ -366,6 +372,7 @@ public:
   DWORD _exStyle;
   // CUIntVector _realIndices;
   int _timestampLevel;
+  int _sizeDisplayMode;
   UInt32 _listViewMode;
   int _xSize;
 private:
@@ -617,6 +624,7 @@ public:
 
       _exStyle(0),
       _timestampLevel(kTimestampPrintLevel_MIN),
+      _sizeDisplayMode(k_SizeDisplayMode_Auto),
       _listViewMode(3),
       _xSize(300),
       _startGroupSelect(0),
