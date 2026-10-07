@@ -945,7 +945,96 @@ MY_HWCAP_CHECK_FUNC (SHA512)
 #endif // __APPLE__
 #endif // _WIN32
 
-#endif // MY_CPU_ARM_OR_ARM64
+#elif defined(MY_CPU_PPC_OR_PPC64)
+
+#if defined(__GLIBC__) && (__GLIBC__ * 100 + __GLIBC_MINOR__ >= 216)
+#include <sys/auxv.h>
+  #if defined __has_include
+  #if __has_include (<asm/cputable.h>)
+#include <asm/cputable.h>
+  #endif
+  #endif
+#define Z7_PPC_USE_HWCAP
+#endif
+
+#ifndef PPC_FEATURE_HAS_VSX
+#define PPC_FEATURE_HAS_VSX        0x00000080
+#endif
+#ifndef PPC_FEATURE2_VEC_CRYPTO
+#define PPC_FEATURE2_VEC_CRYPTO    0x02000000
+#endif
+#ifndef PPC_FEATURE2_ARCH_3_00
+#define PPC_FEATURE2_ARCH_3_00     0x00800000
+#endif
+#ifndef PPC_FEATURE2_ARCH_3_1
+#define PPC_FEATURE2_ARCH_3_1      0x00040000
+#endif
+
+#ifdef Z7_PPC_USE_HWCAP
+
+BoolInt CPU_IsSupported_VSX(void)
+{
+  return (BoolInt)((getauxval(AT_HWCAP)  & PPC_FEATURE_HAS_VSX)     != 0);
+}
+BoolInt CPU_IsSupported_VEC_CRYPTO(void)
+{
+  return (BoolInt)((getauxval(AT_HWCAP2) & PPC_FEATURE2_VEC_CRYPTO) != 0);
+}
+BoolInt CPU_IsSupported_ARCH_3_00(void)
+{
+  return (BoolInt)((getauxval(AT_HWCAP2) & PPC_FEATURE2_ARCH_3_00)  != 0);
+}
+BoolInt CPU_IsSupported_ARCH_3_1(void)
+{
+  return (BoolInt)((getauxval(AT_HWCAP2) & PPC_FEATURE2_ARCH_3_1)   != 0);
+}
+
+#else // !Z7_PPC_USE_HWCAP
+
+BoolInt CPU_IsSupported_VSX(void)
+{
+#if defined(__VSX__)
+  return 1;
+#elif (defined(__GNUC__) && (__GNUC__ >= 6)) || defined(__clang__)
+  return (BoolInt)__builtin_cpu_supports("vsx");
+#else
+  return 0;
+#endif
+}
+BoolInt CPU_IsSupported_VEC_CRYPTO(void)
+{
+#if defined(__CRYPTO__) || defined(__POWER8_VECTOR__)
+  return 1;
+#elif (defined(__GNUC__) && (__GNUC__ >= 6)) || defined(__clang__)
+  return (BoolInt)__builtin_cpu_supports("vcrypto");
+#else
+  return 0;
+#endif
+}
+BoolInt CPU_IsSupported_ARCH_3_00(void)
+{
+#if defined(_ARCH_PWR9)
+  return 1;
+#elif (defined(__GNUC__) && (__GNUC__ >= 6)) || defined(__clang__)
+  return (BoolInt)__builtin_cpu_supports("arch_3_00");
+#else
+  return 0;
+#endif
+}
+BoolInt CPU_IsSupported_ARCH_3_1(void)
+{
+#if defined(_ARCH_PWR10)
+  return 1;
+#elif (defined(__GNUC__) && (__GNUC__ >= 8)) || (defined(__clang__) && (__clang_major__ >= 11))
+  return (BoolInt)__builtin_cpu_supports("arch_3_1");
+#else
+  return 0;
+#endif
+}
+
+#endif // Z7_PPC_USE_HWCAP
+
+#endif // MY_CPU_ARM_OR_ARM64 / MY_CPU_PPC_OR_PPC64
 
 
 
