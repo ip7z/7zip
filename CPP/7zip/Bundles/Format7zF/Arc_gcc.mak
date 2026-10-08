@@ -118,6 +118,8 @@ AR_OBJS = \
   $O/IhexHandler.o \
   $O/LpHandler.o \
   $O/LzhHandler.o \
+  $O/Lz4Handler.o \
+  $O/LzipHandler.o \
   $O/LzmaHandler.o \
   $O/MachoHandler.o \
   $O/MbrHandler.o \
@@ -336,6 +338,7 @@ C_OBJS = \
   $O/Delta.o \
   $O/HuffEnc.o \
   $O/LzFind.o \
+  $O/Lz4Dec.o \
   $O/Lzma2Dec.o \
   $O/Lzma2DecMt.o \
   $O/Lzma2Enc.o \

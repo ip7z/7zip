@@ -544,6 +544,10 @@ $O/LvmHandler.o: ../../Archive/LvmHandler.cpp
 	$(CXX) $(CXXFLAGS) $<
 $O/LzhHandler.o: ../../Archive/LzhHandler.cpp
 	$(CXX) $(CXXFLAGS) $<
+$O/Lz4Handler.o: ../../Archive/Lz4Handler.cpp
+	$(CXX) $(CXXFLAGS) $<
+$O/LzipHandler.o: ../../Archive/LzipHandler.cpp
+	$(CXX) $(CXXFLAGS) $<
 $O/LzmaHandler.o: ../../Archive/LzmaHandler.cpp
 	$(CXX) $(CXXFLAGS) $<
 $O/MachoHandler.o: ../../Archive/MachoHandler.cpp
@@ -1191,6 +1195,8 @@ $O/DllSecur.o: ../../../../C/DllSecur.c
 $O/HuffEnc.o: ../../../../C/HuffEnc.c
 	$(CC) $(CFLAGS) $<
 $O/LzFind.o: ../../../../C/LzFind.c
+	$(CC) $(CFLAGS) $<
+$O/Lz4Dec.o: ../../../../C/Lz4Dec.c
 	$(CC) $(CFLAGS) $<
 
 # ifdef MT_FILES
