@@ -7,10 +7,8 @@
 
 MY_ARCH_2 = $(MY_ARCH)
 
-MY_ASM = asmc
-ifdef USE_JWASM
-MY_ASM = jwasm
-endif
+MY_ASM = nasm
+
 
 ifndef RC
 RC=windres.exe --target=pe-x86-64
@@ -175,28 +173,22 @@ CFLAGS = $(MY_ARCH_2) $(LOCAL_FLAGS) $(CFLAGS_BASE2) $(CFLAGS_BASE) $(FLAGS_FLTO
 ifdef IS_MINGW
 
 ifdef IS_X64
-AFLAGS_ABI = -win64
+AFLAGS_ABI = -fwin64
 else
-AFLAGS_ABI = -coff -DABI_CDECL
-# -DABI_CDECL
-# -DABI_LINUX
-# -DABI_CDECL
+AFLAGS_ABI = -fwin32 -DABI_CDECL
 endif
-AFLAGS = -nologo $(AFLAGS_ABI) -Fo$(O)/$(basename $(<F)).o
 
 else  # IS_MINGW
 
 ifdef IS_X64
-AFLAGS_ABI = -elf64 -DABI_LINUX
+AFLAGS_ABI = -felf64
 else
-AFLAGS_ABI = -elf -DABI_LINUX -DABI_CDECL
-# -DABI_CDECL
-# -DABI_LINUX
-# -DABI_CDECL
+AFLAGS_ABI = -felf32
 endif
-AFLAGS = -nologo $(AFLAGS_ABI) -Fo$(O)/
 
 endif  # IS_MINGW
+
+AFLAGS = $(AFLAGS_ABI) -I$(<D) -o $(O)/$(*F).o
 
 
 
@@ -250,8 +242,20 @@ endif
 
 endif
 
+ifndef IS_MINGW
+ifdef USE_ASM
+ifdef IS_X86
+ifndef IS_X64
+# link with -no-pie, otherwise we get this warning:
+# ld.bfd: _o/Sha1Opt.o: warning: relocation in read-only section `.text$00'
+# ld.bfd: warning: creating DT_TEXTREL in a PIE
+LFLAGS_NOPIE = -no-pie
+endif
+endif
+endif
+endif
 
-LFLAGS_ALL = $(LFLAGS_STRIP) $(MY_ARCH_2) $(LDFLAGS) $(FLAGS_FLTO) $(LD_arch) $(LFLAGS_NOEXECSTACK) $(OBJS) $(MY_LIBS) $(LIB2)
+LFLAGS_ALL = $(LFLAGS_STRIP) $(MY_ARCH_2) $(LDFLAGS) $(FLAGS_FLTO) $(LD_arch) $(LFLAGS_NOEXECSTACK) $(LFLAGS_NOPIE) $(OBJS) $(MY_LIBS) $(LIB2)
 
 # -s : GCC : Remove all symbol table and relocation information from the executable.
 # -s : CLANG : unsupported
@@ -1286,9 +1290,7 @@ $O/Sha256Opt.o: ../../../../Asm/x86/Sha256Opt.asm
 $O/Sort.o: ../../../../Asm/x86/Sort.asm
 	$(MY_ASM) $(AFLAGS) $<
 
-ifndef USE_JWASM
 USE_X86_ASM_AES=1
-endif
 
 else
 $O/7zCrcOpt.o: ../../../../C/7zCrcOpt.c
