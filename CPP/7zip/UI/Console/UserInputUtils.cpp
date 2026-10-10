@@ -57,7 +57,16 @@ NUserAnswerMode::EEnum ScanUserYesNoAllQuit(CStdOutStream *outStream)
 #ifdef _WIN32
 #ifndef UNDER_CE
 #define MY_DISABLE_ECHO
+#define MY_DISABLE_ECHO_WIN32
 #endif
+#endif
+
+#ifdef unix
+#include <stdio.h>
+#include <termios.h>
+#include <unistd.h>
+#define MY_DISABLE_ECHO
+#define MY_DISABLE_ECHO_UNIX
 #endif
 
 static bool GetPassword(CStdOutStream *outStream, UString &psw)
@@ -72,7 +81,7 @@ static bool GetPassword(CStdOutStream *outStream, UString &psw)
     outStream->Flush();
   }
 
-  #ifdef MY_DISABLE_ECHO
+  #ifdef MY_DISABLE_ECHO_WIN32
   
   const HANDLE console = GetStdHandle(STD_INPUT_HANDLE);
 
@@ -90,7 +99,29 @@ static bool GetPassword(CStdOutStream *outStream, UString &psw)
   const bool res = g_StdIn.ScanUStringUntilNewLine(psw);
   if (wasChanged)
     SetConsoleMode(console, mode);
-  
+
+  #elif defined(MY_DISABLE_ECHO_UNIX)
+
+  int ifd = fileno(stdin);
+  bool wasChanged = false;
+  struct termios old_mode = {};
+  struct termios new_mode = {};
+
+  if (tcgetattr(ifd, &old_mode) == 0) {
+    new_mode = old_mode;
+    new_mode.c_lflag &= ~ECHO;
+
+    wasChanged = true;
+
+    tcsetattr(ifd, TCSAFLUSH, &new_mode);
+  }
+
+  bool res = g_StdIn.ScanUStringUntilNewLine(psw);
+
+  if (wasChanged) {
+    tcsetattr(ifd, TCSAFLUSH, &old_mode);
+  }
+    
   #else
   
   const bool res = g_StdIn.ScanUStringUntilNewLine(psw);
