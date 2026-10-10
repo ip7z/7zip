@@ -80,6 +80,7 @@ CInFileStream::CInFileStream():
  #endif
   _info_WasLoaded(false),
   SupportHardLinks(false),
+  StoreOldestCTime(false),
   Callback(NULL),
   CallbackRef(0)
 {
@@ -436,7 +437,9 @@ Z7_COM7F_IMF(CInFileStream::GetProps(UInt64 *size, FILETIME *cTime, FILETIME *aT
   */
   {
     if (size) *size = (((UInt64)info.nFileSizeHigh) << 32) + info.nFileSizeLow;
-    if (cTime) *cTime = info.ftCreationTime;
+    if (cTime) *cTime = StoreOldestCTime ?
+        FiTime_Min3(info.ftCreationTime, info.ftLastAccessTime, info.ftLastWriteTime) :
+        info.ftCreationTime;
     if (aTime) *aTime = info.ftLastAccessTime;
     if (mTime) *mTime = info.ftLastWriteTime;
     if (attrib) *attrib = info.dwFileAttributes;
@@ -603,7 +606,11 @@ Z7_COM7F_IMF(CInFileStream::GetProps(UInt64 *size, FILETIME *cTime, FILETIME *aT
   */
   
   if (size) *size = (UInt64)st.st_size;
-  if (cTime) FiTime_To_FILETIME (ST_CTIME(st), *cTime);
+  if (cTime)
+  {
+    const CFiTime ct = StoreOldestCTime ? FiTime_Min3(ST_CTIME(st), ST_ATIME(st), ST_MTIME(st)) : ST_CTIME(st);
+    FiTime_To_FILETIME(ct, *cTime);
+  }
   if (aTime) FiTime_To_FILETIME (ST_ATIME(st), *aTime);
   if (mTime) FiTime_To_FILETIME (ST_MTIME(st), *mTime);
   if (attrib) *attrib = NWindows::NFile::NFind::Get_WinAttribPosix_From_PosixMode(st.st_mode);

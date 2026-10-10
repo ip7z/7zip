@@ -194,6 +194,7 @@ static const char * const kHelpString =
     "  -sse : stop archive creating, if it can't open some input file\n"
     "  -ssp : do not change Last Access Time of source files while archiving\n"
     "  -ssw : compress shared files\n"
+    "  -stc : set creation time to oldest of access/modification/creation time\n"
     "  -stl : set archive timestamp from the most recently modified file\n"
     "  -stm{HexMask} : set CPU thread affinity mask (hexadecimal number)\n"
     "  -stx{Type} : exclude archive type\n"

@@ -728,9 +728,11 @@ void CCompressDialog::FormatChanged(bool isChanged)
       SET_GUI_BOOL (AltStreams);
       SET_GUI_BOOL (NtSecurity);
       SET_GUI_BOOL (PreserveATime);
+      SET_GUI_BOOL (OldestCTime);
     }
 
     PreserveATime.Supported = true;
+    OldestCTime.Supported = true;
 
     {
       const CArcInfoEx &ai = Get_ArcInfoEx();
@@ -1194,6 +1196,7 @@ void CCompressDialog::OnOK()
     SET_FINAL_BOOL_PAIRS (NtSecurity);
 
     SET_FINAL_BOOL_PAIRS (PreserveATime);
+    SET_FINAL_BOOL_PAIRS (OldestCTime);
   }
 
   {
@@ -3690,7 +3693,8 @@ static const UInt32 kLangIDs_Options[] =
   IDX_COMPRESS_CTIME,
   IDX_COMPRESS_ATIME,
   IDX_COMPRESS_ZTIME,
-  IDX_COMPRESS_PRESERVE_ATIME
+  IDX_COMPRESS_PRESERVE_ATIME,
+  IDX_COMPRESS_OLDEST_CTIME
 };
 #endif
 
@@ -3737,6 +3741,7 @@ bool COptionsDialog::OnInit()
   CheckButton_Bool1 ( IDX_COMPRESS_NT_SECUR,       cd->NtSecurity);
 
   CheckButton_Bool1 (IDX_COMPRESS_PRESERVE_ATIME, cd->PreserveATime);
+  CheckButton_Bool1 (IDX_COMPRESS_OLDEST_CTIME, cd->OldestCTime);
 
   m_Prec.Attach (GetItem(IDC_COMPRESS_TIME_PREC));
 
@@ -3801,6 +3806,7 @@ void COptionsDialog::OnOK()
   GetButton_Bool1 (IDX_COMPRESS_NT_ALT_STREAMS, cd->AltStreams);
   GetButton_Bool1 (IDX_COMPRESS_NT_SECUR,       cd->NtSecurity);
   GetButton_Bool1 (IDX_COMPRESS_PRESERVE_ATIME, cd->PreserveATime);
+  GetButton_Bool1 (IDX_COMPRESS_OLDEST_CTIME, cd->OldestCTime);
 
   Store_TimeBoxes();
   {

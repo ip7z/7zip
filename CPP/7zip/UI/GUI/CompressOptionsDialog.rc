@@ -2,7 +2,7 @@
 #include "../../GuiCommon.rc"
 
 #define xc 240
-#define yc 232
+#define yc 252
 
 #define g5x m
 #define g5x2 (g5x + m)
@@ -35,7 +35,7 @@ BEGIN
   LTEXT     "", IDT_COMPRESS_TIME_INFO, g5x, timePosY - 14, g5xs, 8
 
   
-  GROUPBOX  "Time", IDG_COMPRESS_TIME, g5x, timePosY, g5xs, 112
+  GROUPBOX  "Time", IDG_COMPRESS_TIME, g5x, timePosY, g5xs, 132
   
 //   MY_CONTROL_CHECKBOX ("Default", IDX_COMPRESS_TIME_DEFAULT,
 //             ntPosX, timePosY + 10, ntSizeX)
@@ -71,6 +71,11 @@ BEGIN
     "Do not change source files last access time",
     IDX_COMPRESS_PRESERVE_ATIME,
     ntPosX, timePosY + 92, ntSizeX)
+
+  MY_CONTROL_CHECKBOX_2LINES(
+    "Set creation time to oldest of access/modification/creation time",
+    IDX_COMPRESS_OLDEST_CTIME,
+    ntPosX, timePosY + 112, ntSizeX)
   
   
   DEFPUSHBUTTON  "OK",     IDOK,     bx3, by, bxs, bys, WS_GROUP
