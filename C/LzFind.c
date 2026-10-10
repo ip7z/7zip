@@ -614,6 +614,12 @@ void MatchFinder_Init(void *_p)
     #endif
   #endif
 
+  #ifdef MY_CPU_SSE2
+  // x86[-64] doesn't have integer satur ops instructions (thus slow if not vectorized)
+  // Since all x86-64 CPUs support SSE2, we can use SSE2 as a baseline implementation.
+    #include <immintrin.h>
+  #endif
+
 #elif defined(MY_CPU_ARM64) \
   /* || (defined(__ARM_ARCH) && (__ARM_ARCH >= 7)) */
 
@@ -777,6 +783,28 @@ void
 Z7_FASTCALL
 LzFind_SaturSub_32(UInt32 subValue, CLzRef *items, const CLzRef *lim)
 {
+// This SSE2 implementation is taken from clang >=11 opt result.
+// GCC can't do it in a clean way. MSVC can't even vectorize it.
+#ifdef MY_CPU_SSE2
+  const __m128i sub2 = _mm_set_epi32((Int32)subValue, (Int32)subValue, (Int32)subValue, (Int32)subValue);
+  const __m128i sign2 = _mm_set_epi32(0x80000000, 0x80000000, 0x80000000, 0x80000000);
+  const __m128i cmp2 = _mm_xor_si128(sub2, sign2);
+
+  // by reversing the sign (adding 0x80000000), we flip the strict order of signed/unsigned number as well.
+#define SASUB_SSE2_RSIGN(v) _mm_xor_si128(v, sign2)
+  // so we can use signed compare on unsigned numbers with their sign reversed.
+#define SASUB_SSE2_CMPGT(v) _mm_cmpgt_epi32(SASUB_SSE2_RSIGN(v), cmp2)
+  // the mask can be used to select like (c ? a : b), but here since b is 0, then we just use (a & c)
+#define SASUB_SSE2_v(v) _mm_and_si128(_mm_sub_epi32(v, sub2), SASUB_SSE2_CMPGT(v))
+#define SASUB_SSE2(i) *(__m128i *)(void *)(items + (i) * 4) = SASUB_SSE2_v(*(const __m128i *)(const void *)(items + (i) * 4));
+  Z7_PRAGMA_OPT_DISABLE_LOOP_UNROLL_VECTORIZE
+  do
+  {
+    SASUB_SSE2(0)  SASUB_SSE2(1)  items += 2 * 4;
+    SASUB_SSE2(0)  SASUB_SSE2(1)  items += 2 * 4;
+  }
+  while (items != lim);
+#else
   Z7_PRAGMA_OPT_DISABLE_LOOP_UNROLL_VECTORIZE
   do
   {
@@ -786,6 +814,7 @@ LzFind_SaturSub_32(UInt32 subValue, CLzRef *items, const CLzRef *lim)
     SASUB_32(0)  SASUB_32(1)  items += 2;
   }
   while (items != lim);
+#endif
 }
 
 #endif
