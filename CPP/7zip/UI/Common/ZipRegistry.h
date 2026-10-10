@@ -31,6 +31,7 @@ namespace NExtract
     
     CBoolPair SplitDest;
     CBoolPair ElimDup;
+    CBoolPair OpenDestFolder;
     // CBoolPair AltStreams;
     CBoolPair NtSecurity;
     CBoolPair ShowPassword;
@@ -43,6 +44,7 @@ namespace NExtract
   
   void Save_ShowPassword(bool showPassword);
   bool Read_ShowPassword();
+  bool Read_OpenDestFolder();
 
   void Save_LimitGB(UInt32 limit_GB);
   UInt32 Read_LimitGB();

@@ -32,6 +32,7 @@ struct CExtractOptionsBase
 
   bool PathMode_Force;
   bool OverwriteMode_Force;
+  bool OpenDestFolderAfterExtract;
   NExtract::NPathMode::EEnum PathMode;
   NExtract::NOverwriteMode::EEnum OverwriteMode;
   NExtract::NZoneIdMode::EEnum ZoneMode;
@@ -47,6 +48,7 @@ struct CExtractOptionsBase
       ExcludeFileItems(false),
       PathMode_Force(false),
       OverwriteMode_Force(false),
+      OpenDestFolderAfterExtract(false),
       PathMode(NExtract::NPathMode::kFullPaths),
       OverwriteMode(NExtract::NOverwriteMode::kAsk),
       ZoneMode(NExtract::NZoneIdMode::kNone),
