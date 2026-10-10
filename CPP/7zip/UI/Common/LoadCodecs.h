@@ -184,6 +184,16 @@ struct CArcInfoEx
       return UString();
     return Exts[0].Ext;
   }
+
+  UString GetWrappedExt() const
+  {
+    if (Flags_KeepName())
+      FOR_VECTOR (i, Exts)
+        if (!Exts[i].AddExt.IsEmpty())
+          return Exts[i].AddExt;
+    return UString();
+  }
+
   int FindExtension(const UString &ext) const;
   
   bool Is_7z()    const { return Name.IsEqualTo_Ascii_NoCase("7z"); }

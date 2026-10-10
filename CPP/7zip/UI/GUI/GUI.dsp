@@ -693,6 +693,10 @@ SOURCE=..\..\Common\PropId.cpp
 # End Source File
 # Begin Source File
 
+SOURCE=..\..\Common\StreamBinder.cpp
+# End Source File
+# Begin Source File
+
 SOURCE=..\..\Common\StreamObjects.cpp
 # End Source File
 # Begin Source File
@@ -714,6 +718,14 @@ SOURCE=..\..\Common\UniqBlocks.cpp
 # Begin Source File
 
 SOURCE=..\..\Common\UniqBlocks.h
+# End Source File
+# Begin Source File
+
+SOURCE=..\..\Common\VirtThread.cpp
+# End Source File
+# Begin Source File
+
+SOURCE=..\..\Common\VirtThread.h
 # End Source File
 # End Group
 # Begin Group "Compress"

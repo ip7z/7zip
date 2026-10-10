@@ -3083,11 +3083,10 @@ HRESULT CArc::OpenStreamOrFile(COpenOptions &op)
 #endif
     op.seqStream = seqStream;
   }
-  else if (!op.stream)
+  else if (!op.stream && !op.seqStream)
   {
     fileStreamSpec = new CInFileStream;
     fileStream = fileStreamSpec;
-    Path = filePath;
     if (!fileStreamSpec->Open(us2fs(Path)))
       return GetLastError_noZero_HRESULT();
     op.stream = fileStream;

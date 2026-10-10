@@ -24,6 +24,7 @@ UI_COMMON_OBJS = \
   $O\Bench.obj \
   $O\DefaultName.obj \
   $O\EnumDirItems.obj \
+  $O\ChainedExtract.obj \
   $O\Extract.obj \
   $O\ExtractingFilePath.obj \
   $O\HashCalc.obj \

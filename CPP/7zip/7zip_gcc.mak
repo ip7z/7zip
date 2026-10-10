@@ -896,6 +896,8 @@ $O/DefaultName.o: ../../UI/Common/DefaultName.cpp
 	$(CXX) $(CXXFLAGS) $<
 $O/EnumDirItems.o: ../../UI/Common/EnumDirItems.cpp
 	$(CXX) $(CXXFLAGS) $<
+$O/ChainedExtract.o: ../../UI/Common/ChainedExtract.cpp
+	$(CXX) $(CXXFLAGS) $<
 $O/Extract.o: ../../UI/Common/Extract.cpp
 	$(CXX) $(CXXFLAGS) $<
 $O/ExtractingFilePath.o: ../../UI/Common/ExtractingFilePath.cpp

@@ -45,9 +45,11 @@ WIN_OBJS = \
   $O\MultiOutStream.obj \
   $O\ProgressUtils.obj \
   $O\PropId.obj \
+  $O\StreamBinder.obj \
   $O\StreamObjects.obj \
   $O\StreamUtils.obj \
   $O\UniqBlocks.obj \
+  $O\VirtThread.obj \
 
 AR_COMMON_OBJS = \
   $O\ItemNameUtils.obj \

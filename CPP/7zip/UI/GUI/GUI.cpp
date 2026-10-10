@@ -290,6 +290,12 @@ static int Main2()
     }
     #endif
 
+    if (options.StdInMode)
+    {
+      ArchivePathsSorted.Add(options.ArcName_for_StdInMode);
+      ArchivePathsFullSorted.Add(options.ArcName_for_StdInMode);
+    }
+    else
     {
       CDirItemsStat st;
       HRESULT hresultMain = EnumerateDirItemsAndSort(

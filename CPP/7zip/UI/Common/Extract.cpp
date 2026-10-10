@@ -13,6 +13,7 @@
 #include "../Common/ExtractingFilePath.h"
 #include "../Common/HashCalc.h"
 
+#include "ChainedExtract.h"
 #include "Extract.h"
 #include "SetProperties.h"
 
@@ -33,7 +34,7 @@ static void SetErrorMessage(const char *message,
 }
 
 
-static HRESULT DecompressArchive(
+HRESULT DecompressArchive(
     CCodecs *codecs,
     const CArchiveLink &arcLink,
     UInt64 packSize,
@@ -44,12 +45,14 @@ static HRESULT DecompressArchive(
     IFolderArchiveExtractCallback *callbackFAE,
     CArchiveExtractCallback *ecs,
     UString &errorMessage,
-    UInt64 &stdInProcessed)
+    UInt64 &stdInProcessed,
+    bool chainedMode)
 {
   const CArc &arc = arcLink.Arcs.Back();
   stdInProcessed = 0;
   IInArchive *archive = arc.Archive;
   CRecordVector<UInt32> realIndices;
+  const bool singlePassMode = (options.StdInMode || chainedMode);
   
   UStringVector removePathParts;
 
@@ -98,7 +101,7 @@ static HRESULT DecompressArchive(
 
   const bool allFilesAreAllowed = wildcardCensor.AreAllAllowed();
 
-  if (!options.StdInMode)
+  if (!singlePassMode)
   {
     UInt32 numItems;
     RINOK(archive->GetNumberOfItems(&numItems))
@@ -181,7 +184,7 @@ static HRESULT DecompressArchive(
     }
   }
 
-  if (elimIsPossible)
+  if (elimIsPossible && !singlePassMode)
   {
     removePathParts.Add(elimPrefix);
     // outDir = outDirReduced;
@@ -209,7 +212,7 @@ static HRESULT DecompressArchive(
 
   ecs->Init(
       options.NtOptions,
-      options.StdInMode ? &wildcardCensor : NULL,
+      singlePassMode ? &wildcardCensor : NULL,
       &arc,
       callbackFAE,
       options.StdOutMode, options.TestMode,
@@ -217,12 +220,12 @@ static HRESULT DecompressArchive(
       removePathParts, false,
       packSize);
 
-  ecs->Is_elimPrefix_Mode = elimIsPossible;
+  ecs->Is_elimPrefix_Mode = (elimIsPossible && !singlePassMode);
 
   
   #ifdef SUPPORT_LINKS
   
-  if (!options.StdInMode &&
+  if (!singlePassMode &&
       !options.TestMode &&
       options.NtOptions.HardLinks.Val)
   {
@@ -237,12 +240,15 @@ static HRESULT DecompressArchive(
 
   CArchiveExtractCallback_Closer ecsCloser(ecs);
 
-  if (options.StdInMode)
+  if (singlePassMode)
   {
     result = archive->Extract(NULL, (UInt32)(Int32)-1, testMode, ecs);
-    NCOM::CPropVariant prop;
-    if (archive->GetArchiveProperty(kpidPhySize, &prop) == S_OK)
-      ConvertPropVariantToUInt64(prop, stdInProcessed);
+    if (options.StdInMode)
+    {
+      NCOM::CPropVariant prop;
+      if (archive->GetArchiveProperty(kpidPhySize, &prop) == S_OK)
+        ConvertPropVariantToUInt64(prop, stdInProcessed);
+    }
   }
   else
   {
@@ -259,6 +265,7 @@ static HRESULT DecompressArchive(
 
   return callback->ExtractResult(result);
 }
+
 
 /* v9.31: BUG was fixed:
    Sorted list for file paths was sorted with case insensitive compare function.
@@ -557,15 +564,41 @@ HRESULT Extract(
           false;
         #endif
 
-    RINOK(DecompressArchive(
-        codecs,
-        arcLink,
-        fi.Size + arcLink.VolumesSize,
-        wildcardCensor,
-        options,
-        calcCrc,
-        extractCallback, faeCallback, ecs,
-        errorMessage, packProcessed))
+    HRESULT chainRes = S_FALSE;
+
+    chainRes = TryChainedExtract(
+      codecs,
+      arcLink,
+      fi.Size + arcLink.VolumesSize,
+      totalPackProcessed,
+      multi,
+      wildcardCensor,
+      options,
+      calcCrc,
+      extractCallback,
+      faeCallback,
+      ecs,
+      errorMessage);
+
+    if (chainRes != S_FALSE)
+    {
+      RINOK(chainRes)
+      packProcessed = fi.Size + arcLink.VolumesSize;
+    }
+    else
+      RINOK(DecompressArchive(
+          codecs,
+          arcLink,
+          fi.Size + arcLink.VolumesSize,
+          wildcardCensor,
+          options,
+          calcCrc,
+          extractCallback,
+          faeCallback,
+          ecs,
+          errorMessage,
+          packProcessed,
+          false))
 
     if (!options.StdInMode)
       packProcessed = fi.Size + arcLink.VolumesSize;

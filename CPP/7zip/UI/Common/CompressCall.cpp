@@ -44,6 +44,7 @@ using namespace NWindows;
 #define kArcIncludeSwitches  " -an -ai" ISWITCH_NO_WILDCARD_POSTFIX
 #define kHashIncludeSwitches  kIncludeSwitch
 #define kStopSwitchParsing  " --"
+#define kChainedExtractSwitch  " -sce"
 
 extern HWND g_HWND;
 
@@ -252,7 +253,7 @@ static void ExtractGroupCommand(const UStringVector &arcPaths, UString &params, 
     ErrorMessageHRESULT(result);
 }
 
-void ExtractArchives(const UStringVector &arcPaths, const UString &outFolder, bool showDialog, bool elimDup, UInt32 writeZone)
+void ExtractArchives(const UStringVector &arcPaths, const UString &outFolder, bool showDialog, bool elimDup, UInt32 writeZone, bool enableChainedExtract)
 {
   MY_TRY_BEGIN
   UString params ('x');
@@ -268,6 +269,8 @@ void ExtractArchives(const UStringVector &arcPaths, const UString &outFolder, bo
     params += " -snz";
     params.Add_UInt32(writeZone);
   }
+  if (enableChainedExtract)
+    params += kChainedExtractSwitch;
   if (showDialog)
     params += kShowDialogSwitch;
   ExtractGroupCommand(arcPaths, params, false);
