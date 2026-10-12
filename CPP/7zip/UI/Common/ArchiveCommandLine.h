@@ -89,6 +89,7 @@ struct CArcCmdLineOptions
   #ifndef Z7_NO_CRYPTO
   bool PasswordEnabled;
   UString Password;
+  int PasswordFd;
   #endif
 
   UStringVector HashMethods;
