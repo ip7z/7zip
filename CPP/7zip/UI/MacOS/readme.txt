@@ -44,6 +44,13 @@ Xcode project is not required.
   ./build_app.sh                          ->  b/m_universal/7-Zip.app (arm64 + x86_64)
   ./build_app.sh dmg                      ->  also b/7-Zip-<version>-mac.dmg
 
+Build and install (registers the application and Finder services):
+
+  ./install_app.sh                        ->  /Applications/7-Zip.app
+  ./install_app.sh --user                 ->  ~/Applications/7-Zip.app
+  ./install_app.sh --universal            ->  universal application
+  ./install_app.sh --uninstall            ->  removes installed application
+
 The version in Info.plist is taken from C/7zVersion.h.
 
 Lang files are copied from the folder ../../../../Lang (or from LANG_DIR variable)

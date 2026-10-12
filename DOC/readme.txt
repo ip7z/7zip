@@ -167,6 +167,8 @@ To compile 7-Zip GUI for macOS (7-Zip.app):
   make -j -f ../../cmpl_mac_arm64.mak
 or (universal application for arm64 and x86-64):
   ./build_app.sh
+To compile and install 7-Zip.app to /Applications:
+  ./install_app.sh
 Read CPP/7zip/UI/MacOS/readme.txt for more information.
 
 Also you can change some compiler options in the "mak" files:
