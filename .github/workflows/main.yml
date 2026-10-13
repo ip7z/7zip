@@ -103,7 +103,6 @@ jobs:
           path: ${{ steps.locate.outputs.path }}
           if-no-files-found: error
 
-
   macos:
     name: macOS ${{ matrix.target }}
     runs-on: macos-latest
@@ -147,4 +146,4 @@ jobs:
         with:
           name: 7zip-${{ matrix.target }}
           path: ${{ steps.locate.outputs.path }}
-          if-no-files-found: error  
+          if-no-files-found: error
