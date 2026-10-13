@@ -22,13 +22,19 @@ jobs:
           arch: ${{ matrix.arch }}
       - name: Verify assembler
         shell: cmd
-        run: where ${{ matrix.asm }} || echo WARNING: ${{ matrix.asm }} not found, build may fall back to C
+        run: |
+          where ${{ matrix.asm }} || echo WARNING: ${{ matrix.asm }} not found, build may fall back to C
       - name: Normalize line endings
         shell: pwsh
-        run: Get-ChildItem -Recurse -Filter *.mak | ForEach-Object { (Get-Content $_.FullName -Raw) -replace "`r`n", "`n" | Set-Content $_.FullName -NoNewline }
+        run: |
+          Get-ChildItem -Recurse -Filter *.mak | ForEach-Object {
+            (Get-Content $_.FullName -Raw) -replace "`r`n", "`n" | Set-Content $_.FullName -NoNewline
+          }
       - name: Build 7zz
         shell: cmd
-        run: cd CPP\7zip\Bundles\Alone2 && nmake PLATFORM=${{ matrix.platform }}
+        run: |
+          cd CPP\7zip\Bundles\Alone2
+          nmake PLATFORM=${{ matrix.platform }}
       - name: Locate binary
         id: locate
         shell: pwsh
@@ -60,7 +66,9 @@ jobs:
         run: |
           sudo apt-get update
           sudo apt-get install -y build-essential
-          if [ -n "${{ matrix.cross }}" ]; then sudo apt-get install -y gcc-${{ matrix.cross }} g++-${{ matrix.cross }}; fi
+          if [ -n "${{ matrix.cross }}" ]; then
+            sudo apt-get install -y gcc-${{ matrix.cross }} g++-${{ matrix.cross }}
+          fi
       - name: Install Asmc assembler
         if: matrix.asm == 'asmc'
         run: |
@@ -75,8 +83,12 @@ jobs:
         run: |
           cd CPP/7zip/Bundles/Alone2
           MAKE_ARGS="-j$(nproc) -f ../../${{ matrix.makefile }}"
-          if [ -n "${{ matrix.cross }}" ]; then MAKE_ARGS="$MAKE_ARGS CC=${{ matrix.cross }}-gcc CXX=${{ matrix.cross }}-g++"; fi
-          if [ "${{ matrix.asm }}" = "asmc" ]; then MAKE_ARGS="$MAKE_ARGS USE_ASM=1 MY_ASM=asmc"; fi
+          if [ -n "${{ matrix.cross }}" ]; then
+            MAKE_ARGS="$MAKE_ARGS CC=${{ matrix.cross }}-gcc CXX=${{ matrix.cross }}-g++"
+          fi
+          if [ "${{ matrix.asm }}" = "asmc" ]; then
+            MAKE_ARGS="$MAKE_ARGS USE_ASM=1 MY_ASM=asmc"
+          fi
           make $MAKE_ARGS
       - name: Locate binary
         id: locate
@@ -90,7 +102,9 @@ jobs:
           name: 7zip-${{ matrix.target }}
           path: ${{ steps.locate.outputs.path }}
           if-no-files-found: error
-    macos:
+
+
+  macos:
     name: macOS ${{ matrix.target }}
     runs-on: macos-latest
     strategy:
@@ -102,7 +116,8 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - name: Ensure Xcode CLI tools
-        run: xcode-select -p || xcode-select --install || true
+        run: |
+          xcode-select -p || xcode-select --install || true
       - name: Install Asmc assembler
         if: matrix.asm == 'asmc'
         run: |
@@ -117,7 +132,9 @@ jobs:
         run: |
           cd CPP/7zip/Bundles/Alone2
           MAKE_ARGS="-j$(sysctl -n hw.ncpu) -f ../../${{ matrix.makefile }}"
-          if [ "${{ matrix.asm }}" = "asmc" ]; then MAKE_ARGS="$MAKE_ARGS USE_ASM=1 MY_ASM=asmc"; fi
+          if [ "${{ matrix.asm }}" = "asmc" ]; then
+            MAKE_ARGS="$MAKE_ARGS USE_ASM=1 MY_ASM=asmc"
+          fi
           make $MAKE_ARGS
       - name: Locate binary
         id: locate
@@ -130,5 +147,4 @@ jobs:
         with:
           name: 7zip-${{ matrix.target }}
           path: ${{ steps.locate.outputs.path }}
-          if-no-files-found: error
-  
+          if-no-files-found: error  
