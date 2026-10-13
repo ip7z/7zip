@@ -1,6 +1,9 @@
 name: Build 7-Zip
 
 on:
+  push:
+    branches:
+      - main
   pull_request:
     branches:
       - main
