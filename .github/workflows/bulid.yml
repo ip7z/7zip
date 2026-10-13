@@ -53,7 +53,19 @@ jobs:
         shell: cmd
         run: |
           cd CPP\7zip\Bundles\Alone2
-          nmake PLATFORM=${{ matrix.platform }}
+          echo === ENV ===
+          set
+          echo === BUILD ===
+          nmake PLATFORM=${{ matrix.platform }} > build.log 2>&1
+          type build.log
+
+      - name: Upload build log
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: build-log-windows-${{ matrix.platform }}
+          path: CPP/7zip/Bundles/Alone2/build.log
+          if-no-files-found: warn
 
       - name: Locate binary
         id: locate
@@ -102,6 +114,7 @@ jobs:
 
       - name: Install toolchain
         run: |
+          set -x
           sudo apt-get update
           sudo apt-get install -y build-essential
           if [ -n "${{ matrix.cross }}" ]; then
@@ -111,31 +124,46 @@ jobs:
       - name: Install Asmc assembler
         if: matrix.asm == 'asmc'
         run: |
-          git clone --depth 1 https://github.com/nidud/asmc /tmp/asmc
-          cd /tmp/asmc/source/asmc
+          set -x
+          git clone --depth 1 https://github.com/nidud/asmc_linux /tmp/asmc_linux
+          cd /tmp/asmc_linux
           make -j$(nproc)
-          sudo make install || sudo cp asmc /usr/local/bin/
+          sudo make install
           asmc -? | head -5
 
       - name: Normalize line endings
         run: |
+          set -x
           find . -name "*.mak" -exec sed -i 's/\r$//' {} \;
 
       - name: Build 7zz
         run: |
+          set -x
           cd CPP/7zip/Bundles/Alone2
-          MAKE_ARGS="-j$(nproc) -f ../../${{ matrix.makefile }}"
+          echo "=== ENV ==="
+          env | sort
+          echo "=== BUILD ==="
+          MAKE_ARGS="-j$(nproc) --trace -f ../../${{ matrix.makefile }}"
           if [ -n "${{ matrix.cross }}" ]; then
             MAKE_ARGS="$MAKE_ARGS CC=${{ matrix.cross }}-gcc CXX=${{ matrix.cross }}-g++"
           fi
           if [ "${{ matrix.asm }}" = "asmc" ]; then
             MAKE_ARGS="$MAKE_ARGS USE_ASM=1 MY_ASM=asmc"
           fi
-          make $MAKE_ARGS
+          make $MAKE_ARGS 2>&1 | tee build.log
+
+      - name: Upload build log
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: build-log-${{ matrix.target }}
+          path: CPP/7zip/Bundles/Alone2/build.log
+          if-no-files-found: warn
 
       - name: Locate binary
         id: locate
         run: |
+          set -x
           BIN=$(find CPP/7zip/Bundles/Alone2/b -name "7zz" -type f 2>/dev/null | head -1)
           if [ -z "$BIN" ]; then echo "7zz not found"; exit 1; fi
           echo "path=$BIN" >> $GITHUB_OUTPUT
@@ -149,49 +177,69 @@ jobs:
 
   macos:
     name: macOS ${{ matrix.target }}
-    runs-on: macos-latest
+    runs-on: ${{ matrix.runner }}
     strategy:
       fail-fast: false
       matrix:
         include:
           - target: macos-x64
+            runner: macos-13
             makefile: cmpl_mac_x64.mak
+            var: var_mac_x64.mak
             asm: "asmc"
           - target: macos-arm64
+            runner: macos-latest
             makefile: cmpl_mac_arm64.mak
-            asm: "asmc"
+            var: var_mac_arm64.mak
+            asm: ""
     steps:
       - uses: actions/checkout@v4
 
       - name: Ensure Xcode CLI tools
         run: |
+          set -x
           xcode-select -p || xcode-select --install || true
 
       - name: Install Asmc assembler
         if: matrix.asm == 'asmc'
         run: |
+          set -x
           git clone --depth 1 https://github.com/nidud/asmc /tmp/asmc
           cd /tmp/asmc/source/asmc
           make -j$(sysctl -n hw.ncpu)
-          sudo make install || sudo cp asmc /usr/local/bin/
+          sudo make install
           asmc -? | head -5
 
       - name: Normalize line endings
         run: |
+          set -x
           find . -name "*.mak" -exec sed -i '' 's/\r$//' {} \;
 
       - name: Build 7zz
         run: |
+          set -x
           cd CPP/7zip/Bundles/Alone2
-          MAKE_ARGS="-j$(sysctl -n hw.ncpu) -f ../../${{ matrix.makefile }}"
+          echo "=== ENV ==="
+          env | sort
+          echo "=== BUILD ==="
+          MAKE_ARGS="-j$(sysctl -n hw.ncpu) --trace -f ../../${{ matrix.makefile }} ${{ matrix.var }}"
           if [ "${{ matrix.asm }}" = "asmc" ]; then
             MAKE_ARGS="$MAKE_ARGS USE_ASM=1 MY_ASM=asmc"
           fi
-          make $MAKE_ARGS
+          make $MAKE_ARGS 2>&1 | tee build.log
+
+      - name: Upload build log
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: build-log-${{ matrix.target }}
+          path: CPP/7zip/Bundles/Alone2/build.log
+          if-no-files-found: warn
 
       - name: Locate binary
         id: locate
         run: |
+          set -x
           BIN=$(find CPP/7zip/Bundles/Alone2/b -name "7zz" -type f 2>/dev/null | head -1)
           if [ -z "$BIN" ]; then echo "7zz not found"; exit 1; fi
           echo "path=$BIN" >> $GITHUB_OUTPUT
