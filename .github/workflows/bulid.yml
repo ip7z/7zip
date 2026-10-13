@@ -30,7 +30,7 @@ jobs:
             arch: arm64
             asm_name: armasm64
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
 
       - name: Setup MSVC
         uses: ilammy/msvc-dev-cmd@v1
@@ -46,7 +46,7 @@ jobs:
 
       - name: Upload build log
         if: always()
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v5
         with:
           name: log-windows-msvc-${{ matrix.platform }}
           path: CPP/7zip/Bundles/Alone2/build.log
@@ -66,7 +66,7 @@ jobs:
           echo "path=$($bin.FullName)" >> $env:GITHUB_OUTPUT
 
       - name: Upload artifact
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v5
         with:
           name: 7zip-windows-msvc-${{ matrix.platform }}
           path: ${{ steps.locate.outputs.path }}
@@ -92,7 +92,7 @@ jobs:
             arch: arm64
             asm_name: armasm64
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
 
       - name: Setup MSVC
         uses: ilammy/msvc-dev-cmd@v1
@@ -113,13 +113,18 @@ jobs:
           where link
           if "${{ matrix.platform }}" == "arm64" (
             set LINK=%VCINSTALLDIR%\bin\HostARM64\arm64\link.exe
+          ) else if "${{ matrix.platform }}" == "x64" (
+            set LINK=%VCINSTALLDIR%\bin\HostX64\x64\link.exe
+          ) else (
+            set LINK=%VCINSTALLDIR%\bin\HostX86\x86\link.exe
           )
+          echo Using linker: %LINK%
           nmake PLATFORM=${{ matrix.platform }} CC=clang-cl > build.log 2>&1
           type build.log
 
       - name: Upload build log
         if: always()
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v5
         with:
           name: log-windows-clang-${{ matrix.platform }}
           path: CPP/7zip/Bundles/Alone2/build.log
@@ -139,7 +144,7 @@ jobs:
           echo "path=$($bin.FullName)" >> $env:GITHUB_OUTPUT
 
       - name: Upload artifact
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v5
         with:
           name: 7zip-windows-clang-${{ matrix.platform }}
           path: ${{ steps.locate.outputs.path }}
@@ -156,32 +161,22 @@ jobs:
             runner: ubuntu-latest
             makefile: cmpl_gcc_x64.mak
             cross: ""
-            multilib: false
             asmc: true
             asm_name: ASMC
-          - target: x86
-            runner: ubuntu-latest
-            makefile: cmpl_gcc_x86.mak
-            cross: ""
-            multilib: true
-            asmc: false
-            asm_name: None (C fallback)
           - target: arm64
             runner: ubuntu-24.04-arm
             makefile: cmpl_gcc_arm64.mak
             cross: ""
-            multilib: false
             asmc: false
             asm_name: GNU as
           - target: arm
             runner: ubuntu-latest
             makefile: cmpl_gcc_arm.mak
             cross: "arm-linux-gnueabihf-"
-            multilib: false
             asmc: false
             asm_name: GNU as
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
 
       - name: Install toolchain
         run: |
@@ -190,9 +185,6 @@ jobs:
           sudo apt-get install -y build-essential
           if [ -n "${{ matrix.cross }}" ]; then
             sudo apt-get install -y gcc-arm-linux-gnueabihf g++-arm-linux-gnueabihf
-          fi
-          if [ "${{ matrix.multilib }}" = "true" ]; then
-            sudo apt-get install -y gcc-multilib g++-multilib
           fi
 
       - name: Try ASMC
@@ -228,7 +220,7 @@ jobs:
 
       - name: Upload build log
         if: always()
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v5
         with:
           name: log-linux-gcc-${{ matrix.target }}
           path: CPP/7zip/Bundles/Alone2/build.log
@@ -250,7 +242,7 @@ jobs:
           echo "path=$BIN" >> $GITHUB_OUTPUT
 
       - name: Upload artifact
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v5
         with:
           name: 7zip-linux-gcc-${{ matrix.target }}
           path: ${{ steps.locate.outputs.path }}
@@ -266,32 +258,21 @@ jobs:
           - target: x64
             runner: ubuntu-latest
             makefile: cmpl_clang_x64.mak
-            multilib: false
             asmc: true
             asm_name: ASMC
-          - target: x86
-            runner: ubuntu-latest
-            makefile: cmpl_clang_x86.mak
-            multilib: true
-            asmc: false
-            asm_name: None (C fallback)
           - target: arm64
             runner: ubuntu-24.04-arm
             makefile: cmpl_clang_arm64.mak
-            multilib: false
             asmc: false
             asm_name: GNU as
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
 
       - name: Install toolchain
         run: |
           set -x
           sudo apt-get update
           sudo apt-get install -y build-essential clang
-          if [ "${{ matrix.multilib }}" = "true" ]; then
-            sudo apt-get install -y gcc-multilib g++-multilib
-          fi
 
       - name: Try ASMC
         if: matrix.asmc
@@ -323,7 +304,7 @@ jobs:
 
       - name: Upload build log
         if: always()
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v5
         with:
           name: log-linux-clang-${{ matrix.target }}
           path: CPP/7zip/Bundles/Alone2/build.log
@@ -345,7 +326,7 @@ jobs:
           echo "path=$BIN" >> $GITHUB_OUTPUT
 
       - name: Upload artifact
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v5
         with:
           name: 7zip-linux-clang-${{ matrix.target }}
           path: ${{ steps.locate.outputs.path }}
@@ -369,7 +350,7 @@ jobs:
             asmc: false
             asm_name: Clang as
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
 
       - name: Try ASMC
         if: matrix.asmc
@@ -401,7 +382,7 @@ jobs:
 
       - name: Upload build log
         if: always()
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v5
         with:
           name: log-macos-clang-${{ matrix.target }}
           path: CPP/7zip/Bundles/Alone2/build.log
@@ -423,7 +404,7 @@ jobs:
           echo "path=$BIN" >> $GITHUB_OUTPUT
 
       - name: Upload artifact
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v5
         with:
           name: 7zip-macos-clang-${{ matrix.target }}
           path: ${{ steps.locate.outputs.path }}
