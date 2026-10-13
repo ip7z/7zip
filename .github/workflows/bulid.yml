@@ -14,8 +14,6 @@ concurrency:
   cancel-in-progress: true
 
 env:
-  # 让 make / nmake 尽可能使用 runner 的全部核心
-  MAKEFLAGS: -j
   # 禁用 Python/Node 等无用的 telemetry
   DOTNET_CLI_TELEMETRY_OPTOUT: 1
   DOTNET_NOLOGO: 1
