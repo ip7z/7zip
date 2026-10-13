@@ -1,0 +1,201 @@
+name: Build 7-Zip
+
+on:
+  pull_request:
+    branches:
+      - main
+  workflow_dispatch:
+
+jobs:
+  windows:
+    name: Windows ${{ matrix.platform }}
+    runs-on: ${{ matrix.runner }}
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - platform: x86
+            runner: windows-latest
+            arch: x86
+            asm: ml.exe
+          - platform: x64
+            runner: windows-latest
+            arch: x64
+            asm: ml64.exe
+          - platform: arm64
+            runner: windows-11-arm
+            arch: arm64
+            asm: armasm64.exe
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup MSVC
+        uses: ilammy/msvc-dev-cmd@v1
+        with:
+          arch: ${{ matrix.arch }}
+
+      - name: Verify assembler
+        shell: cmd
+        run: |
+          where ${{ matrix.asm }} || echo WARNING: ${{ matrix.asm }} not found, build may fall back to C
+
+      - name: Normalize line endings
+        shell: pwsh
+        run: |
+          Get-ChildItem -Recurse -Filter *.mak | ForEach-Object {
+            (Get-Content $_.FullName -Raw) -replace "`r`n", "`n" | Set-Content $_.FullName -NoNewline
+          }
+
+      - name: Build 7zz
+        shell: cmd
+        run: |
+          cd CPP\7zip\Bundles\Alone2
+          nmake PLATFORM=${{ matrix.platform }}
+
+      - name: Locate binary
+        id: locate
+        shell: pwsh
+        run: |
+          $bin = Get-ChildItem -Path CPP/7zip/Bundles/Alone2 -Recurse -Filter "7zz.exe" | Select-Object -First 1
+          if (-not $bin) { throw "7zz.exe not found" }
+          echo "path=$($bin.FullName)" >> $env:GITHUB_OUTPUT
+
+      - name: Upload artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: 7zip-windows-${{ matrix.platform }}
+          path: ${{ steps.locate.outputs.path }}
+          if-no-files-found: error
+
+  linux:
+    name: Linux ${{ matrix.target }}
+    runs-on: ${{ matrix.runner }}
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - target: linux-x64
+            runner: ubuntu-latest
+            makefile: cmpl_gcc_x64.mak
+            cross: ""
+            asm: "asmc"
+          - target: linux-x86
+            runner: ubuntu-latest
+            makefile: cmpl_gcc_x86.mak
+            cross: ""
+            asm: "asmc"
+          - target: linux-arm64
+            runner: ubuntu-24.04-arm
+            makefile: cmpl_gcc_arm64.mak
+            cross: ""
+            asm: ""
+          - target: linux-arm
+            runner: ubuntu-latest
+            makefile: cmpl_gcc_arm.mak
+            cross: arm-linux-gnueabihf
+            asm: ""
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install toolchain
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y build-essential
+          if [ -n "${{ matrix.cross }}" ]; then
+            sudo apt-get install -y gcc-${{ matrix.cross }} g++-${{ matrix.cross }}
+          fi
+
+      - name: Install Asmc assembler
+        if: matrix.asm == 'asmc'
+        run: |
+          git clone --depth 1 https://github.com/nidud/asmc /tmp/asmc
+          cd /tmp/asmc/source/asmc
+          make -j$(nproc)
+          sudo make install || sudo cp asmc /usr/local/bin/
+          asmc -? | head -5
+
+      - name: Normalize line endings
+        run: |
+          find . -name "*.mak" -exec sed -i 's/\r$//' {} \;
+
+      - name: Build 7zz
+        run: |
+          cd CPP/7zip/Bundles/Alone2
+          MAKE_ARGS="-j$(nproc) -f ../../${{ matrix.makefile }}"
+          if [ -n "${{ matrix.cross }}" ]; then
+            MAKE_ARGS="$MAKE_ARGS CC=${{ matrix.cross }}-gcc CXX=${{ matrix.cross }}-g++"
+          fi
+          if [ "${{ matrix.asm }}" = "asmc" ]; then
+            MAKE_ARGS="$MAKE_ARGS USE_ASM=1 MY_ASM=asmc"
+          fi
+          make $MAKE_ARGS
+
+      - name: Locate binary
+        id: locate
+        run: |
+          BIN=$(find CPP/7zip/Bundles/Alone2/b -name "7zz" -type f 2>/dev/null | head -1)
+          if [ -z "$BIN" ]; then echo "7zz not found"; exit 1; fi
+          echo "path=$BIN" >> $GITHUB_OUTPUT
+
+      - name: Upload artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: 7zip-${{ matrix.target }}
+          path: ${{ steps.locate.outputs.path }}
+          if-no-files-found: error
+
+  macos:
+    name: macOS ${{ matrix.target }}
+    runs-on: macos-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - target: macos-x64
+            makefile: cmpl_mac_x64.mak
+            asm: "asmc"
+          - target: macos-arm64
+            makefile: cmpl_mac_arm64.mak
+            asm: "asmc"
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Ensure Xcode CLI tools
+        run: |
+          xcode-select -p || xcode-select --install || true
+
+      - name: Install Asmc assembler
+        if: matrix.asm == 'asmc'
+        run: |
+          git clone --depth 1 https://github.com/nidud/asmc /tmp/asmc
+          cd /tmp/asmc/source/asmc
+          make -j$(sysctl -n hw.ncpu)
+          sudo make install || sudo cp asmc /usr/local/bin/
+          asmc -? | head -5
+
+      - name: Normalize line endings
+        run: |
+          find . -name "*.mak" -exec sed -i '' 's/\r$//' {} \;
+
+      - name: Build 7zz
+        run: |
+          cd CPP/7zip/Bundles/Alone2
+          MAKE_ARGS="-j$(sysctl -n hw.ncpu) -f ../../${{ matrix.makefile }}"
+          if [ "${{ matrix.asm }}" = "asmc" ]; then
+            MAKE_ARGS="$MAKE_ARGS USE_ASM=1 MY_ASM=asmc"
+          fi
+          make $MAKE_ARGS
+
+      - name: Locate binary
+        id: locate
+        run: |
+          BIN=$(find CPP/7zip/Bundles/Alone2/b -name "7zz" -type f 2>/dev/null | head -1)
+          if [ -z "$BIN" ]; then echo "7zz not found"; exit 1; fi
+          echo "path=$BIN" >> $GITHUB_OUTPUT
+
+      - name: Upload artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: 7zip-${{ matrix.target }}
+          path: ${{ steps.locate.outputs.path }}
+          if-no-files-found: error
