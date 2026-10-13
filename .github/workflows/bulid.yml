@@ -9,10 +9,22 @@ on:
       - main
   workflow_dispatch:
 
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  # 让 make / nmake 尽可能使用 runner 的全部核心
+  MAKEFLAGS: -j
+  # 禁用 Python/Node 等无用的 telemetry
+  DOTNET_CLI_TELEMETRY_OPTOUT: 1
+  DOTNET_NOLOGO: 1
+
 jobs:
   windows-msvc:
     name: Windows MSVC ${{ matrix.platform }} (${{ matrix.asm_name }})
     runs-on: ${{ matrix.runner }}
+    timeout-minutes: 90
     strategy:
       fail-fast: false
       matrix:
@@ -51,6 +63,7 @@ jobs:
           name: log-windows-msvc-${{ matrix.platform }}
           path: CPP/7zip/Bundles/Alone2/build.log
           if-no-files-found: warn
+          retention-days: 7
 
       - name: Locate binary
         id: locate
@@ -71,10 +84,13 @@ jobs:
           name: 7zip-windows-msvc-${{ matrix.platform }}
           path: ${{ steps.locate.outputs.path }}
           if-no-files-found: error
+          retention-days: 14
+          compression-level: 9
 
   windows-clang:
     name: Windows Clang ${{ matrix.platform }} (${{ matrix.asm_name }})
     runs-on: ${{ matrix.runner }}
+    timeout-minutes: 90
     strategy:
       fail-fast: false
       matrix:
@@ -99,11 +115,21 @@ jobs:
         with:
           arch: ${{ matrix.arch }}
 
+      - name: Cache LLVM
+        id: cache-llvm
+        uses: actions/cache@v4
+        with:
+          path: C:\Program Files\LLVM
+          key: llvm-windows-${{ runner.os }}-${{ runner.arch }}-v1
+
       - name: Install LLVM
+        if: steps.cache-llvm.outputs.cache-hit != 'true'
         shell: pwsh
-        run: |
-          choco install llvm -y
-          echo "C:\Program Files\LLVM\bin" | Out-File -FilePath $env:GITHUB_PATH -Append
+        run: choco install llvm -y
+
+      - name: Add LLVM to PATH
+        shell: pwsh
+        run: echo "C:\Program Files\LLVM\bin" | Out-File -FilePath $env:GITHUB_PATH -Append
 
       - name: Build
         shell: cmd
@@ -111,14 +137,6 @@ jobs:
           cd CPP\7zip\Bundles\Alone2
           clang-cl --version
           where link
-          if "${{ matrix.platform }}" == "arm64" (
-            set LINK=%VCINSTALLDIR%\bin\HostARM64\arm64\link.exe
-          ) else if "${{ matrix.platform }}" == "x64" (
-            set LINK=%VCINSTALLDIR%\bin\HostX64\x64\link.exe
-          ) else (
-            set LINK=%VCINSTALLDIR%\bin\HostX86\x86\link.exe
-          )
-          echo Using linker: %LINK%
           nmake PLATFORM=${{ matrix.platform }} CC=clang-cl > build.log 2>&1
           type build.log
 
@@ -129,6 +147,7 @@ jobs:
           name: log-windows-clang-${{ matrix.platform }}
           path: CPP/7zip/Bundles/Alone2/build.log
           if-no-files-found: warn
+          retention-days: 7
 
       - name: Locate binary
         id: locate
@@ -149,10 +168,13 @@ jobs:
           name: 7zip-windows-clang-${{ matrix.platform }}
           path: ${{ steps.locate.outputs.path }}
           if-no-files-found: error
+          retention-days: 14
+          compression-level: 9
 
   linux-gcc:
     name: Linux GCC ${{ matrix.target }} (${{ matrix.asm_name }})
     runs-on: ${{ matrix.runner }}
+    timeout-minutes: 90
     strategy:
       fail-fast: false
       matrix:
@@ -161,18 +183,28 @@ jobs:
             runner: ubuntu-latest
             makefile: cmpl_gcc_x64.mak
             cross: ""
+            multilib: false
             asmc: true
             asm_name: ASMC
+          - target: x86
+            runner: ubuntu-latest
+            makefile: cmpl_gcc_x86.mak
+            cross: ""
+            multilib: true
+            asmc: false
+            asm_name: None (C only)
           - target: arm64
             runner: ubuntu-24.04-arm
             makefile: cmpl_gcc_arm64.mak
             cross: ""
+            multilib: false
             asmc: false
             asm_name: GNU as
           - target: arm
             runner: ubuntu-latest
             makefile: cmpl_gcc_arm.mak
             cross: "arm-linux-gnueabihf-"
+            multilib: false
             asmc: false
             asm_name: GNU as
     steps:
@@ -180,43 +212,46 @@ jobs:
 
       - name: Install toolchain
         run: |
-          set -x
-          sudo apt-get update
-          sudo apt-get install -y build-essential
+          sudo apt-get update -qq
+          sudo apt-get install -y -qq build-essential
           if [ -n "${{ matrix.cross }}" ]; then
-            sudo apt-get install -y gcc-arm-linux-gnueabihf g++-arm-linux-gnueabihf
+            sudo apt-get install -y -qq gcc-arm-linux-gnueabihf g++-arm-linux-gnueabihf
+          fi
+          if [ "${{ matrix.multilib }}" = "true" ]; then
+            sudo apt-get install -y -qq gcc-multilib g++-multilib
           fi
 
-      - name: Try ASMC
+      - name: Cache ASMC
         if: matrix.asmc
-        continue-on-error: true
+        id: cache-asmc
+        uses: actions/cache@v4
+        with:
+          path: /usr/local/bin/asmc
+          key: asmc-linux-${{ runner.arch }}-v1
+
+      - name: Install ASMC
+        if: matrix.asmc && steps.cache-asmc.outputs.cache-hit != 'true'
         run: |
-          set -x
           git clone --depth 1 https://github.com/nidud/asmc_linux /tmp/asmc
           cd /tmp/asmc
           make -j$(nproc)
           sudo make install
-          which asmc
           asmc -? | head -3
 
       - name: Normalize line endings
-        run: |
-          set -x
-          find . -name "*.mak" -exec sed -i 's/\r$//' {} \;
+        run: find . -name "*.mak" -exec sed -i 's/\r$//' {} \;
 
       - name: Build
         run: |
-          set -x
-          set -o pipefail
           cd CPP/7zip/Bundles/Alone2
           ARGS="-j$(nproc) -f ../../${{ matrix.makefile }}"
           if [ -n "${{ matrix.cross }}" ]; then
             ARGS="$ARGS CROSS_COMPILE=${{ matrix.cross }}"
           fi
           if [ "${{ matrix.asmc }}" = "true" ] && command -v asmc >/dev/null 2>&1; then
-            ARGS="$ARGS USE_ASM=1 MY_ASM=asmc AFLAGS_ABI=-c"
+            ARGS="$ARGS USE_ASM=1 MY_ASM=asmc AFLAGS_ABI='-arch:AVX -c'"
           fi
-          make $ARGS 2>&1 | tee build.log
+          make $ARGS > build.log 2>&1 || { tail -100 build.log; exit 1; }
 
       - name: Upload build log
         if: always()
@@ -225,18 +260,17 @@ jobs:
           name: log-linux-gcc-${{ matrix.target }}
           path: CPP/7zip/Bundles/Alone2/build.log
           if-no-files-found: warn
+          retention-days: 7
 
       - name: Locate binary
         id: locate
         run: |
-          set -x
           BIN=$(find CPP/7zip/Bundles/Alone2 -type f -name 7zz -executable 2>/dev/null | head -1)
           if [ -z "$BIN" ]; then
             BIN=$(find CPP/7zip/Bundles/Alone2 -type f -name 7zz 2>/dev/null | head -1)
           fi
           if [ -z "$BIN" ]; then
-            echo "7zz not found; tail of build.log:"
-            tail -50 CPP/7zip/Bundles/Alone2/build.log 2>/dev/null || echo "(no build.log)"
+            tail -50 CPP/7zip/Bundles/Alone2/build.log
             exit 1
           fi
           echo "path=$BIN" >> $GITHUB_OUTPUT
@@ -247,10 +281,13 @@ jobs:
           name: 7zip-linux-gcc-${{ matrix.target }}
           path: ${{ steps.locate.outputs.path }}
           if-no-files-found: error
+          retention-days: 14
+          compression-level: 9
 
   linux-clang:
     name: Linux Clang ${{ matrix.target }} (${{ matrix.asm_name }})
     runs-on: ${{ matrix.runner }}
+    timeout-minutes: 90
     strategy:
       fail-fast: false
       matrix:
@@ -258,11 +295,19 @@ jobs:
           - target: x64
             runner: ubuntu-latest
             makefile: cmpl_clang_x64.mak
+            multilib: false
             asmc: true
             asm_name: ASMC
+          - target: x86
+            runner: ubuntu-latest
+            makefile: cmpl_clang_x86.mak
+            multilib: true
+            asmc: false
+            asm_name: None (C only)
           - target: arm64
             runner: ubuntu-24.04-arm
             makefile: cmpl_clang_arm64.mak
+            multilib: false
             asmc: false
             asm_name: GNU as
     steps:
@@ -270,37 +315,40 @@ jobs:
 
       - name: Install toolchain
         run: |
-          set -x
-          sudo apt-get update
-          sudo apt-get install -y build-essential clang
+          sudo apt-get update -qq
+          sudo apt-get install -y -qq build-essential clang
+          if [ "${{ matrix.multilib }}" = "true" ]; then
+            sudo apt-get install -y -qq gcc-multilib g++-multilib
+          fi
 
-      - name: Try ASMC
+      - name: Cache ASMC
         if: matrix.asmc
-        continue-on-error: true
+        id: cache-asmc
+        uses: actions/cache@v4
+        with:
+          path: /usr/local/bin/asmc
+          key: asmc-linux-${{ runner.arch }}-v1
+
+      - name: Install ASMC
+        if: matrix.asmc && steps.cache-asmc.outputs.cache-hit != 'true'
         run: |
-          set -x
           git clone --depth 1 https://github.com/nidud/asmc_linux /tmp/asmc
           cd /tmp/asmc
           make -j$(nproc)
           sudo make install
-          which asmc
           asmc -? | head -3
 
       - name: Normalize line endings
-        run: |
-          set -x
-          find . -name "*.mak" -exec sed -i 's/\r$//' {} \;
+        run: find . -name "*.mak" -exec sed -i 's/\r$//' {} \;
 
       - name: Build
         run: |
-          set -x
-          set -o pipefail
           cd CPP/7zip/Bundles/Alone2
           ARGS="-j$(nproc) -f ../../${{ matrix.makefile }}"
           if [ "${{ matrix.asmc }}" = "true" ] && command -v asmc >/dev/null 2>&1; then
-            ARGS="$ARGS USE_ASM=1 MY_ASM=asmc AFLAGS_ABI=-c"
+            ARGS="$ARGS USE_ASM=1 MY_ASM=asmc AFLAGS_ABI='-arch:AVX -c'"
           fi
-          make $ARGS 2>&1 | tee build.log
+          make $ARGS > build.log 2>&1 || { tail -100 build.log; exit 1; }
 
       - name: Upload build log
         if: always()
@@ -309,18 +357,17 @@ jobs:
           name: log-linux-clang-${{ matrix.target }}
           path: CPP/7zip/Bundles/Alone2/build.log
           if-no-files-found: warn
+          retention-days: 7
 
       - name: Locate binary
         id: locate
         run: |
-          set -x
           BIN=$(find CPP/7zip/Bundles/Alone2 -type f -name 7zz -executable 2>/dev/null | head -1)
           if [ -z "$BIN" ]; then
             BIN=$(find CPP/7zip/Bundles/Alone2 -type f -name 7zz 2>/dev/null | head -1)
           fi
           if [ -z "$BIN" ]; then
-            echo "7zz not found; tail of build.log:"
-            tail -50 CPP/7zip/Bundles/Alone2/build.log 2>/dev/null || echo "(no build.log)"
+            tail -50 CPP/7zip/Bundles/Alone2/build.log
             exit 1
           fi
           echo "path=$BIN" >> $GITHUB_OUTPUT
@@ -331,10 +378,13 @@ jobs:
           name: 7zip-linux-clang-${{ matrix.target }}
           path: ${{ steps.locate.outputs.path }}
           if-no-files-found: error
+          retention-days: 14
+          compression-level: 9
 
   macos-clang:
     name: macOS Clang ${{ matrix.target }} (${{ matrix.asm_name }})
     runs-on: ${{ matrix.runner }}
+    timeout-minutes: 90
     strategy:
       fail-fast: false
       matrix:
@@ -352,33 +402,34 @@ jobs:
     steps:
       - uses: actions/checkout@v5
 
-      - name: Try ASMC
+      - name: Cache ASMC
         if: matrix.asmc
-        continue-on-error: true
+        id: cache-asmc
+        uses: actions/cache@v4
+        with:
+          path: /usr/local/bin/asmc
+          key: asmc-macos-${{ runner.arch }}-v1
+
+      - name: Install ASMC
+        if: matrix.asmc && steps.cache-asmc.outputs.cache-hit != 'true'
         run: |
-          set -x
           git clone --depth 1 https://github.com/nidud/asmc /tmp/asmc
           cd /tmp/asmc/source/asmc
           make -j$(sysctl -n hw.ncpu)
           sudo make install
-          which asmc
           asmc -? | head -3
 
       - name: Normalize line endings
-        run: |
-          set -x
-          find . -name "*.mak" -exec sed -i '' 's/\r$//' {} \;
+        run: find . -name "*.mak" -exec sed -i '' 's/\r$//' {} \;
 
       - name: Build
         run: |
-          set -x
-          set -o pipefail
           cd CPP/7zip/Bundles/Alone2
           ARGS="-j$(sysctl -n hw.ncpu) -f ../../${{ matrix.makefile }}"
           if [ "${{ matrix.asmc }}" = "true" ] && command -v asmc >/dev/null 2>&1; then
-            ARGS="$ARGS USE_ASM=1 MY_ASM=asmc AFLAGS_ABI=-c"
+            ARGS="$ARGS USE_ASM=1 MY_ASM=asmc AFLAGS_ABI='-arch:AVX -c'"
           fi
-          make $ARGS 2>&1 | tee build.log
+          make $ARGS > build.log 2>&1 || { tail -100 build.log; exit 1; }
 
       - name: Upload build log
         if: always()
@@ -387,18 +438,17 @@ jobs:
           name: log-macos-clang-${{ matrix.target }}
           path: CPP/7zip/Bundles/Alone2/build.log
           if-no-files-found: warn
+          retention-days: 7
 
       - name: Locate binary
         id: locate
         run: |
-          set -x
           BIN=$(find CPP/7zip/Bundles/Alone2 -type f -name 7zz -executable 2>/dev/null | head -1)
           if [ -z "$BIN" ]; then
             BIN=$(find CPP/7zip/Bundles/Alone2 -type f -name 7zz 2>/dev/null | head -1)
           fi
           if [ -z "$BIN" ]; then
-            echo "7zz not found; tail of build.log:"
-            tail -50 CPP/7zip/Bundles/Alone2/build.log 2>/dev/null || echo "(no build.log)"
+            tail -50 CPP/7zip/Bundles/Alone2/build.log
             exit 1
           fi
           echo "path=$BIN" >> $GITHUB_OUTPUT
@@ -409,3 +459,5 @@ jobs:
           name: 7zip-macos-clang-${{ matrix.target }}
           path: ${{ steps.locate.outputs.path }}
           if-no-files-found: error
+          retention-days: 14
+          compression-level: 9
