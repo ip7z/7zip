@@ -10,8 +10,8 @@ on:
   workflow_dispatch:
 
 jobs:
-  windows:
-    name: Windows ${{ matrix.platform }}
+  windows-msvc:
+    name: Windows MSVC ${{ matrix.platform }} (${{ matrix.asm_name }})
     runs-on: ${{ matrix.runner }}
     strategy:
       fail-fast: false
@@ -20,12 +20,15 @@ jobs:
           - platform: x86
             runner: windows-latest
             arch: x86
+            asm_name: MASM
           - platform: x64
             runner: windows-latest
             arch: x64
+            asm_name: MASM
           - platform: arm64
             runner: windows-11-arm
             arch: arm64
+            asm_name: armasm64
     steps:
       - uses: actions/checkout@v4
 
@@ -45,7 +48,7 @@ jobs:
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: log-windows-${{ matrix.platform }}
+          name: log-windows-msvc-${{ matrix.platform }}
           path: CPP/7zip/Bundles/Alone2/build.log
           if-no-files-found: warn
 
@@ -60,37 +63,109 @@ jobs:
       - name: Upload artifact
         uses: actions/upload-artifact@v4
         with:
-          name: 7zip-windows-${{ matrix.platform }}
+          name: 7zip-windows-msvc-${{ matrix.platform }}
           path: ${{ steps.locate.outputs.path }}
           if-no-files-found: error
 
-  linux:
-    name: Linux ${{ matrix.target }}
+  windows-clang:
+    name: Windows Clang ${{ matrix.platform }} (${{ matrix.asm_name }})
     runs-on: ${{ matrix.runner }}
     strategy:
       fail-fast: false
       matrix:
         include:
-          - target: linux-x64
+          - platform: x86
+            runner: windows-latest
+            arch: x86
+            asm_name: MASM
+          - platform: x64
+            runner: windows-latest
+            arch: x64
+            asm_name: MASM
+          - platform: arm64
+            runner: windows-11-arm
+            arch: arm64
+            asm_name: armasm64
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup MSVC
+        uses: ilammy/msvc-dev-cmd@v1
+        with:
+          arch: ${{ matrix.arch }}
+
+      - name: Install LLVM
+        shell: pwsh
+        run: |
+          choco install llvm -y
+          echo "C:\Program Files\LLVM\bin" | Out-File -FilePath $env:GITHUB_PATH -Append
+
+      - name: Build
+        shell: cmd
+        run: |
+          cd CPP\7zip\Bundles\Alone2
+          clang-cl --version
+          nmake PLATFORM=${{ matrix.platform }} CC=clang-cl > build.log 2>&1
+          type build.log
+
+      - name: Upload build log
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: log-windows-clang-${{ matrix.platform }}
+          path: CPP/7zip/Bundles/Alone2/build.log
+          if-no-files-found: warn
+
+      - name: Locate binary
+        id: locate
+        shell: pwsh
+        run: |
+          $bin = Get-ChildItem -Path CPP/7zip/Bundles/Alone2 -Recurse -Filter "7zz.exe" | Select-Object -First 1
+          if (-not $bin) { throw "7zz.exe not found" }
+          echo "path=$($bin.FullName)" >> $env:GITHUB_OUTPUT
+
+      - name: Upload artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: 7zip-windows-clang-${{ matrix.platform }}
+          path: ${{ steps.locate.outputs.path }}
+          if-no-files-found: error
+
+  linux-gcc:
+    name: Linux GCC ${{ matrix.target }} (${{ matrix.asm_name }})
+    runs-on: ${{ matrix.runner }}
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - target: x64
             runner: ubuntu-latest
             makefile: cmpl_gcc_x64.mak
             cross: ""
+            multilib: false
             asmc: true
-          - target: linux-x86
+            asm_name: ASMC
+          - target: x86
             runner: ubuntu-latest
             makefile: cmpl_gcc_x86.mak
             cross: ""
+            multilib: true
             asmc: true
-          - target: linux-arm64
+            asm_name: ASMC
+          - target: arm64
             runner: ubuntu-24.04-arm
             makefile: cmpl_gcc_arm64.mak
             cross: ""
+            multilib: false
             asmc: false
-          - target: linux-arm
+            asm_name: GNU as
+          - target: arm
             runner: ubuntu-latest
             makefile: cmpl_gcc_arm.mak
             cross: "arm-linux-gnueabihf-"
+            multilib: false
             asmc: false
+            asm_name: GNU as
     steps:
       - uses: actions/checkout@v4
 
@@ -101,6 +176,9 @@ jobs:
           sudo apt-get install -y build-essential
           if [ -n "${{ matrix.cross }}" ]; then
             sudo apt-get install -y gcc-arm-linux-gnueabihf g++-arm-linux-gnueabihf
+          fi
+          if [ "${{ matrix.multilib }}" = "true" ]; then
+            sudo apt-get install -y gcc-multilib g++-multilib
           fi
 
       - name: Try ASMC
@@ -137,7 +215,7 @@ jobs:
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: log-${{ matrix.target }}
+          name: log-linux-gcc-${{ matrix.target }}
           path: CPP/7zip/Bundles/Alone2/build.log
           if-no-files-found: warn
 
@@ -159,27 +237,123 @@ jobs:
       - name: Upload artifact
         uses: actions/upload-artifact@v4
         with:
-          name: 7zip-${{ matrix.target }}
+          name: 7zip-linux-gcc-${{ matrix.target }}
           path: ${{ steps.locate.outputs.path }}
           if-no-files-found: error
 
-  macos:
-    name: macOS ${{ matrix.target }}
+  linux-clang:
+    name: Linux Clang ${{ matrix.target }} (${{ matrix.asm_name }})
     runs-on: ${{ matrix.runner }}
     strategy:
       fail-fast: false
       matrix:
         include:
-          - target: macos-x64
+          - target: x64
+            runner: ubuntu-latest
+            makefile: cmpl_clang_x64.mak
+            multilib: false
+            asmc: true
+            asm_name: ASMC
+          - target: x86
+            runner: ubuntu-latest
+            makefile: cmpl_clang_x86.mak
+            multilib: true
+            asmc: true
+            asm_name: ASMC
+          - target: arm64
+            runner: ubuntu-24.04-arm
+            makefile: cmpl_clang_arm64.mak
+            multilib: false
+            asmc: false
+            asm_name: GNU as
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install toolchain
+        run: |
+          set -x
+          sudo apt-get update
+          sudo apt-get install -y build-essential clang
+          if [ "${{ matrix.multilib }}" = "true" ]; then
+            sudo apt-get install -y gcc-multilib g++-multilib
+          fi
+
+      - name: Try ASMC
+        if: matrix.asmc
+        continue-on-error: true
+        run: |
+          set -x
+          git clone --depth 1 https://github.com/nidud/asmc_linux /tmp/asmc
+          cd /tmp/asmc
+          make -j$(nproc)
+          sudo make install
+          asmc -? | head -3
+
+      - name: Normalize line endings
+        run: |
+          set -x
+          find . -name "*.mak" -exec sed -i 's/\r$//' {} \;
+
+      - name: Build
+        run: |
+          set -x
+          set -o pipefail
+          cd CPP/7zip/Bundles/Alone2
+          ARGS="-j$(nproc) -f ../../${{ matrix.makefile }}"
+          if command -v asmc >/dev/null 2>&1; then
+            ARGS="$ARGS USE_ASM=1 MY_ASM=asmc"
+          fi
+          make $ARGS 2>&1 | tee build.log
+
+      - name: Upload build log
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: log-linux-clang-${{ matrix.target }}
+          path: CPP/7zip/Bundles/Alone2/build.log
+          if-no-files-found: warn
+
+      - name: Locate binary
+        id: locate
+        run: |
+          set -x
+          BIN=$(find CPP/7zip/Bundles/Alone2 -type f -name 7zz -executable 2>/dev/null | head -1)
+          if [ -z "$BIN" ]; then
+            BIN=$(find CPP/7zip/Bundles/Alone2 -type f -name 7zz 2>/dev/null | head -1)
+          fi
+          if [ -z "$BIN" ]; then
+            echo "7zz not found; tail of build.log:"
+            tail -50 CPP/7zip/Bundles/Alone2/build.log 2>/dev/null || echo "(no build.log)"
+            exit 1
+          fi
+          echo "path=$BIN" >> $GITHUB_OUTPUT
+
+      - name: Upload artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: 7zip-linux-clang-${{ matrix.target }}
+          path: ${{ steps.locate.outputs.path }}
+          if-no-files-found: error
+
+  macos-clang:
+    name: macOS Clang ${{ matrix.target }} (${{ matrix.asm_name }})
+    runs-on: ${{ matrix.runner }}
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - target: x64
             runner: macos-13
             makefile: cmpl_mac_x64.mak
             var: var_mac_x64.mak
             asmc: true
-          - target: macos-arm64
+            asm_name: ASMC
+          - target: arm64
             runner: macos-latest
             makefile: cmpl_mac_arm64.mak
             var: var_mac_arm64.mak
             asmc: false
+            asm_name: Clang as
     steps:
       - uses: actions/checkout@v4
 
@@ -214,7 +388,7 @@ jobs:
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: log-${{ matrix.target }}
+          name: log-macos-clang-${{ matrix.target }}
           path: CPP/7zip/Bundles/Alone2/build.log
           if-no-files-found: warn
 
@@ -236,6 +410,6 @@ jobs:
       - name: Upload artifact
         uses: actions/upload-artifact@v4
         with:
-          name: 7zip-${{ matrix.target }}
+          name: 7zip-macos-clang-${{ matrix.target }}
           path: ${{ steps.locate.outputs.path }}
           if-no-files-found: error
