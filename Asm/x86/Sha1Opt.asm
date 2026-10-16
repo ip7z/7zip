@@ -1,263 +1,196 @@
 ; Sha1Opt.asm -- SHA-1 optimized code for SHA-1 x86 hardware instructions
 ; 2024-06-16 : Igor Pavlov : Public domain
 
-include 7zAsm.asm
+%include "7zAsm.inc"
 
 MY_ASM_START
 
 
+%if XBITS == 64
+        %define rNum        REG_ABI_PARAM_2
+  %if ABI == WINDOWS
+        %define LOCAL_SIZE  (16 * 2)
+  %endif
+%else
+        %define rNum        r0
+        %define LOCAL_SIZE  (16 * 1)
+%endif
+
+%define rState REG_ABI_PARAM_0
+%define rData  REG_ABI_PARAM_1
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-CONST   SEGMENT READONLY
-
-align 16
-Reverse_Endian_Mask db 15,14,13,12, 11,10,9,8, 7,6,5,4, 3,2,1,0
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-CONST   ENDS
-
-; _TEXT$SHA1OPT SEGMENT 'CODE'
-
-ifndef x64
-    .686
-    .xmm
-endif
-
-ifdef x64
-        rNum    equ REG_ABI_PARAM_2
-    if (IS_LINUX eq 0)
-        LOCAL_SIZE equ (16 * 2)
-    endif
-else
-        rNum    equ r0
-        LOCAL_SIZE equ (16 * 1)
-endif
-
-rState equ REG_ABI_PARAM_0
-rData  equ REG_ABI_PARAM_1
-
-
-MY_sha1rnds4 macro a1, a2, imm
-        db 0fH, 03aH, 0ccH, (0c0H + a1 * 8 + a2), imm
-endm
-
-MY_SHA_INSTR macro cmd, a1, a2
-        db 0fH, 038H, cmd, (0c0H + a1 * 8 + a2)
-endm
-
-cmd_sha1nexte   equ 0c8H
-cmd_sha1msg1    equ 0c9H
-cmd_sha1msg2    equ 0caH
-
-MY_sha1nexte macro a1, a2
-        MY_SHA_INSTR  cmd_sha1nexte, a1, a2
-endm
-
-MY_sha1msg1 macro a1, a2
-        MY_SHA_INSTR  cmd_sha1msg1, a1, a2
-endm
-
-MY_sha1msg2 macro a1, a2
-        MY_SHA_INSTR  cmd_sha1msg2, a1, a2
-endm
-
-MY_PROLOG macro
-    ifdef x64
-      if (IS_LINUX eq 0)
+%macro MY_PROLOG 0
+    %if XBITS == 64
+      %if ABI == WINDOWS
         movdqa  [r4 + 8], xmm6
         movdqa  [r4 + 8 + 16], xmm7
         sub     r4, LOCAL_SIZE + 8
         movdqa  [r4     ], xmm8
         movdqa  [r4 + 16], xmm9
-      endif
-    else ; x86
-      if (IS_CDECL gt 0)
+      %endif
+    %else ; x86
+      %if IS_CDECL == 1
         mov     rState, [r4 + REG_SIZE * 1]
         mov     rData,  [r4 + REG_SIZE * 2]
         mov     rNum,   [r4 + REG_SIZE * 3]
-      else ; fastcall
+      %else ; fastcall
         mov     rNum,   [r4 + REG_SIZE * 1]
-      endif
+      %endif
         push    r5
         mov     r5, r4
         and     r4, -16
         sub     r4, LOCAL_SIZE
-    endif
-endm
+    %endif
+%endmacro
 
-MY_EPILOG macro
-    ifdef x64
-      if (IS_LINUX eq 0)
+%macro MY_EPILOG 0
+    %if XBITS == 64
+      %if ABI == WINDOWS
         movdqa  xmm8, [r4]
         movdqa  xmm9, [r4 + 16]
         add     r4, LOCAL_SIZE + 8
         movdqa  xmm6, [r4 + 8]
         movdqa  xmm7, [r4 + 8 + 16]
-      endif
-    else ; x86
+      %endif
+    %else ; x86
         mov     r4, r5
         pop     r5
-    endif
-    MY_ENDP
-endm
+    %endif
+        MY_ENDP
+%endmacro
 
 
-e0_N       equ 0
-e1_N       equ 1
-abcd_N     equ 2
-e0_save_N  equ 3
-w_regs     equ 4
+%define e0_N        0
+%define e1_N        1
+%define abcd_N      2
+%define e0_save_N   3
+%define w_regs      4
 
-e0      equ @CatStr(xmm, %e0_N)
-e1      equ @CatStr(xmm, %e1_N)
-abcd    equ @CatStr(xmm, %abcd_N)
-e0_save equ @CatStr(xmm, %e0_save_N)
+%define e0          XMM_REG(e0_N)
+%define e1          XMM_REG(e1_N)
+%define abcd        XMM_REG(abcd_N)
+%define e0_save     XMM_REG(e0_save_N)
 
 
-ifdef x64
-        abcd_save    equ  xmm8
-        mask2        equ  xmm9
-else
-        abcd_save    equ  [r4]
-        mask2        equ  e1
-endif
+%if XBITS == 64
+  %define abcd_save   xmm8
+  %define mask2       xmm9
+%else
+  %define abcd_save   [r4]
+  %define mask2       e1
+%endif
 
-LOAD_MASK macro
-        movdqa  mask2, XMMWORD PTR Reverse_Endian_Mask
-endm
+%macro LOAD_MASK 0
+        movdqa  mask2, [.Reverse_Endian_Mask]
+%endmacro
 
-LOAD_W macro k:req
-        movdqu  @CatStr(xmm, %(w_regs + k)), [rData + (16 * (k))]
-        pshufb  @CatStr(xmm, %(w_regs + k)), mask2
-endm
+%macro LOAD_W 1
+        movdqu  XMM_REG(w_regs + %1), [rData + 16 * %1]
+        pshufb  XMM_REG(w_regs + %1), mask2
+%endmacro
 
 
 ; pre2 can be 2 or 3 (recommended)
-pre2 equ 3
-pre1 equ (pre2 + 1)
+%define pre2 3
+%define pre1 (pre2 + 1)
 
-NUM_ROUNDS4 equ 20
-   
-RND4 macro k
-        movdqa  @CatStr(xmm, %(e0_N + ((k + 1) mod 2))), abcd
-        MY_sha1rnds4 abcd_N, (e0_N + (k mod 2)), k / 5
-
-        nextM = (w_regs + ((k + 1) mod 4))
-
-    if (k EQ NUM_ROUNDS4 - 1)
-        nextM = e0_save_N
-    endif
-        
-        MY_sha1nexte (e0_N + ((k + 1) mod 2)), nextM
-        
-    if (k GE (4 - pre2)) AND (k LT (NUM_ROUNDS4 - pre2))
-        pxor @CatStr(xmm, %(w_regs + ((k + pre2) mod 4))), @CatStr(xmm, %(w_regs + ((k + pre2 - 2) mod 4)))
-    endif
-
-    if (k GE (4 - pre1)) AND (k LT (NUM_ROUNDS4 - pre1))
-        MY_sha1msg1 (w_regs + ((k + pre1) mod 4)), (w_regs + ((k + pre1 - 3) mod 4))
-    endif
-    
-    if (k GE (4 - pre2)) AND (k LT (NUM_ROUNDS4 - pre2))
-        MY_sha1msg2 (w_regs + ((k + pre2) mod 4)), (w_regs + ((k + pre2 - 1) mod 4))
-    endif
-endm
+%define NUM_ROUNDS4 20
 
 
-REVERSE_STATE macro
-                               ; abcd   ; dcba
-                               ; e0     ; 000e
-        pshufd  abcd, abcd, 01bH        ; abcd
-        pshufd    e0,   e0, 01bH        ; e000
-endm
+%macro RND4 1
+        XMMOP  movdqa, (e0_N + ((%1 + 1) mod 2)), abcd_N
+        XMMOP  sha1rnds4, abcd_N, (e0_N + (%1 mod 2)), %1 / 5
 
+        %assign nextM w_regs + ((%1 + 1) mod 4)
+
+    %if (%1 == NUM_ROUNDS4 - 1)
+        %assign nextM e0_save_N
+    %endif
+
+        XMMOP  sha1nexte, (e0_N + ((%1 + 1) mod 2)), nextM
+
+    %if (%1 >= (4 - pre2)) && (%1 < (NUM_ROUNDS4 - pre2))
+        XMMOP  pxor, (w_regs + ((%1 + pre2) mod 4)), (w_regs + ((%1 + pre2 - 2) mod 4))
+    %endif
+
+    %if (%1 >= (4 - pre1)) && (%1 < (NUM_ROUNDS4 - pre1))
+        XMMOP  sha1msg1, (w_regs + ((%1 + pre1) mod 4)), (w_regs + ((%1 + pre1 - 3) mod 4))
+    %endif
+
+    %if (%1 >= (4 - pre2)) && (%1 < (NUM_ROUNDS4 - pre2))
+        XMMOP  sha1msg2, (w_regs + ((%1 + pre2) mod 4)), (w_regs + ((%1 + pre2 - 1) mod 4))
+    %endif
+%endmacro
+
+
+%macro REVERSE_STATE 0
+                              ; abcd   ; dcba
+                              ; e0     ; 000e
+        pshufd  abcd, abcd, 1BH        ; abcd
+        pshufd    e0, e0,   1BH        ; e000
+%endmacro
 
 
 
 
 MY_PROC Sha1_UpdateBlocks_HW, 3
-    MY_PROLOG
+        MY_PROLOG
 
         cmp     rNum, 0
-        je      end_c
+        je      .end_c
 
-        movdqu   abcd, [rState]               ; dcba
-        movd     e0, dword ptr [rState + 16]  ; 000e
+        movdqu  abcd, [rState]           ; dcba
+        movd    e0, dword [rState + 16]  ; 000e
 
         REVERSE_STATE
-       
-        ifdef x64
-        LOAD_MASK
-        endif
 
-    align 16
-    nextBlock:
+        %if XBITS == 64
+        LOAD_MASK
+        %endif
+
+
+    ALIGN   16
+    .nextBlock:
         movdqa  abcd_save, abcd
         movdqa  e0_save, e0
-        
-        ifndef x64
+
+        %if XBITS == 32
         LOAD_MASK
-        endif
-        
+        %endif
+
         LOAD_W 0
         LOAD_W 1
         LOAD_W 2
         LOAD_W 3
 
-        paddd   e0, @CatStr(xmm, %(w_regs))
-        k = 0
-        rept NUM_ROUNDS4
+        paddd   e0, XMM_REG(w_regs)
+
+        %assign k 0
+        %rep NUM_ROUNDS4
           RND4 k
-          k = k + 1
-        endm
+          %assign k k+1
+        %endrep
 
         paddd   abcd, abcd_save
 
-
         add     rData, 64
         sub     rNum, 1
-        jnz     nextBlock
-        
+        jnz     .nextBlock
+
         REVERSE_STATE
 
         movdqu  [rState], abcd
-        movd    dword ptr [rState + 16], e0
-       
-  end_c:
-MY_EPILOG
+        movd    dword [rState + 16], e0
 
-; _TEXT$SHA1OPT ENDS
+    .end_c:
+        MY_EPILOG
 
-end
+
+
+
+[section READONLY]
+
+ALIGN 16
+.Reverse_Endian_Mask db 15,14,13,12, 11,10,9,8, 7,6,5,4, 3,2,1,0
+
