@@ -46,7 +46,7 @@ jobs:
         id: version
         shell: bash
         run: |
-          VERSION=$(grep -oP '#define MY_VERSION\s+"\K[^"]+' C/7zipVersion.h)
+          VERSION=$(grep -oP '#define MY_VERSION_NUMBERS\s+"\K[^"]+' C/7zVersion.h)
           VERSION=${VERSION//./}
           echo "version=$VERSION" >> $GITHUB_OUTPUT
 
@@ -137,7 +137,7 @@ jobs:
         id: version
         shell: bash
         run: |
-          VERSION=$(grep -oP '#define MY_VERSION\s+"\K[^"]+' C/7zipVersion.h)
+          VERSION=$(grep -oP '#define MY_VERSION_NUMBERS\s+"\K[^"]+' C/7zVersion.h)
           MAJOR=${VERSION%.*}
           MINOR=${VERSION#*.}
           echo "full=$VERSION" >> $GITHUB_OUTPUT
@@ -272,7 +272,7 @@ jobs:
         id: version
         shell: bash
         run: |
-          VERSION=$(grep -oP '#define MY_VERSION\s+"\K[^"]+' C/7zipVersion.h)
+          VERSION=$(grep -oP '#define MY_VERSION_NUMBERS\s+"\K[^"]+' C/7zVersion.h)
           VERSION=${VERSION//./}
           echo "version=$VERSION" >> $GITHUB_OUTPUT
 
@@ -405,7 +405,7 @@ jobs:
         id: version
         shell: bash
         run: |
-          VERSION=$(grep -oP '#define MY_VERSION\s+"\K[^"]+' C/7zipVersion.h)
+          VERSION=$(grep -oP '#define MY_VERSION_NUMBERS\s+"\K[^"]+' C/7zVersion.h)
           VERSION=${VERSION//./}
           echo "version=$VERSION" >> $GITHUB_OUTPUT
 
@@ -559,7 +559,7 @@ jobs:
         id: version
         shell: bash
         run: |
-          VERSION=$(grep -oP '#define MY_VERSION\s+"\K[^"]+' C/7zipVersion.h)
+          VERSION=$(grep -oP '#define MY_VERSION_NUMBERS\s+"\K[^"]+' C/7zVersion.h)
           VERSION=${VERSION//./}
           echo "version=$VERSION" >> $GITHUB_OUTPUT
 
@@ -690,7 +690,7 @@ jobs:
         id: version
         shell: bash
         run: |
-          VERSION=$(grep -oP '#define MY_VERSION\s+"\K[^"]+' C/7zipVersion.h)
+          VERSION=$(grep -oP '#define MY_VERSION_NUMBERS\s+"\K[^"]+' C/7zVersion.h)
           VERSION=${VERSION//./}
           echo "version=$VERSION" >> $GITHUB_OUTPUT
 
