@@ -46,7 +46,7 @@ jobs:
         id: version
         shell: bash
         run: |
-          VERSION=$(grep -oP '#define MY_VERSION_NUMBERS\s+"\K[^"]+' C/7zVersion.h)
+          VERSION=$(sed -n 's/.*#define MY_VERSION_NUMBERS[[:space:]]*"\([^"]*\)".*/\1/p' C/7zVersion.h | head -1)
           VERSION=${VERSION//./}
           echo "version=$VERSION" >> $GITHUB_OUTPUT
 
@@ -77,7 +77,7 @@ jobs:
           )
           type build.log
 
-      - name: Upload build log
+      - name: Upload build log (on failure)
         if: failure()
         uses: actions/upload-artifact@v4
         with:
@@ -119,254 +119,6 @@ jobs:
           retention-days: 14
           compression-level: 9
 
-  # ==================== Windows MSVC MSI (x86/x64) ====================
-  win-msvc-msi:
-    name: Windows MSVC MSI ${{ matrix.platform }}
-    runs-on: windows-latest
-    timeout-minutes: 90
-    strategy:
-      fail-fast: false
-      matrix:
-        include:
-          - platform: x86
-            arch: x86
-          - platform: x64
-            arch: x64
-    steps:
-      - uses: actions/checkout@v4
-
-      - name: Get 7-Zip Version
-        id: version
-        shell: bash
-        run: |
-          VERSION=$(grep -oP '#define MY_VERSION_NUMBERS\s+"\K[^"]+' C/7zVersion.h)
-          MAJOR=${VERSION%.*}
-          MINOR=${VERSION#*.}
-          echo "full=$VERSION" >> $GITHUB_OUTPUT
-          echo "major=$MAJOR" >> $GITHUB_OUTPUT
-          echo "minor=$MINOR" >> $GITHUB_OUTPUT
-          echo "build=00" >> $GITHUB_OUTPUT
-
-      - name: Setup MSVC
-        uses: ilammy/msvc-dev-cmd@v1
-        with:
-          arch: ${{ matrix.arch }}
-
-      - name: Set Build Environment Variables
-        shell: cmd
-        run: |
-          echo NEW_COMPILER=1>> %GITHUB_ENV%
-          echo MY_STATIC_LINK=1>> %GITHUB_ENV%
-
-      - name: Create Output Directories
-        shell: cmd
-        run: |
-          if not exist "CPP\7zip\${{ matrix.platform }}" mkdir "CPP\7zip\${{ matrix.platform }}"
-
-      - name: Build 7-Zip (full)
-        shell: cmd
-        run: |
-          cd CPP\7zip
-          nmake PLATFORM=${{ matrix.platform }} > build.log 2>&1
-          if errorlevel 1 (
-            type build.log
-            exit /b 1
-          )
-          type build.log
-
-      - name: Upload build log
-        if: failure()
-        uses: actions/upload-artifact@v4
-        with:
-          name: log-win-msvc-msi-${{ matrix.platform }}
-          path: CPP/7zip/build.log
-          if-no-files-found: warn
-          retention-days: 7
-
-      - name: Prepare MSI files
-        shell: pwsh
-        run: |
-          $platform = "${{ matrix.platform }}"
-          $srcDir = "CPP\7zip\$platform"
-          $msiDir = "msi_build"
-          New-Item -ItemType Directory -Force -Path $msiDir | Out-Null
-          New-Item -ItemType Directory -Force -Path "$msiDir\Lang" | Out-Null
-
-          Copy-Item "$srcDir\*.exe" $msiDir -Force
-          Copy-Item "$srcDir\*.dll" $msiDir -Force
-          Copy-Item "$srcDir\*.sfx" $msiDir -Force
-
-          Copy-Item "DOC\History.txt"   $msiDir -Force -ErrorAction SilentlyContinue
-          Copy-Item "DOC\License.txt"   $msiDir -Force -ErrorAction SilentlyContinue
-          Copy-Item "DOC\readme.txt"    $msiDir -Force -ErrorAction SilentlyContinue
-          Copy-Item "DOC\descript.ion"  $msiDir -Force -ErrorAction SilentlyContinue
-          Copy-Item "DOC\7-zip.chm"     $msiDir -Force -ErrorAction SilentlyContinue
-
-          if (Test-Path "Lang") {
-            Copy-Item "Lang\*.txt" "$msiDir\Lang" -Force
-          }
-          Get-ChildItem $msiDir | Select-Object Name
-          "Lang files: " + (Get-ChildItem "$msiDir\Lang" -ErrorAction SilentlyContinue).Count
-
-      - name: Install WiX Toolset
-        shell: pwsh
-        run: |
-          if (-not (Get-Command candle.exe -ErrorAction SilentlyContinue)) {
-            choco install wixtoolset -y
-          }
-          candle.exe -?
-          light.exe -?
-
-      - name: Compile MSI (candle)
-        shell: cmd
-        run: |
-          cd msi_build
-          set MYCPU=${{ matrix.platform }}
-          if "%MYCPU%"=="x86" set MYCPU=Intel
-          candle.exe -nologo -dMyCPU=%MYCPU% ^
-            -dVerMajor=${{ steps.version.outputs.major }} ^
-            -dVerMinor=${{ steps.version.outputs.minor }} ^
-            -dVerBuild=${{ steps.version.outputs.build }} ^
-            -out 7zip.wixobj ..\DOC\7zip.wxs
-          if errorlevel 1 exit /b 1
-
-      - name: Link MSI (light)
-        shell: cmd
-        run: |
-          cd msi_build
-          light.exe -nologo -ext WixUIExtension ^
-            -out ..\7z${{ steps.version.outputs.major }}${{ steps.version.outputs.minor }}-${{ matrix.platform }}.msi ^
-            7zip.wixobj
-          if errorlevel 1 exit /b 1
-
-      - name: Upload MSI
-        uses: actions/upload-artifact@v4
-        with:
-          name: 7z${{ steps.version.outputs.major }}${{ steps.version.outputs.minor }}-${{ matrix.platform }}-msi
-          path: 7z${{ steps.version.outputs.major }}${{ steps.version.outputs.minor }}-${{ matrix.platform }}.msi
-          if-no-files-found: error
-          retention-days: 14
-          compression-level: 9
-
-  # ==================== Windows Clang ====================
-  windows-clang:
-    name: Windows Clang ${{ matrix.platform }} (${{ matrix.asm_name }})
-    runs-on: ${{ matrix.runner }}
-    timeout-minutes: 90
-    strategy:
-      fail-fast: false
-      matrix:
-        include:
-          - platform: x86
-            runner: windows-latest
-            arch: x86
-            asm_name: MASM
-          - platform: x64
-            runner: windows-latest
-            arch: x64
-            asm_name: MASM
-          - platform: arm64
-            runner: windows-11-arm
-            arch: arm64
-            asm_name: armasm64
-    steps:
-      - uses: actions/checkout@v4
-
-      - name: Get 7-Zip Version
-        id: version
-        shell: bash
-        run: |
-          VERSION=$(grep -oP '#define MY_VERSION_NUMBERS\s+"\K[^"]+' C/7zVersion.h)
-          VERSION=${VERSION//./}
-          echo "version=$VERSION" >> $GITHUB_OUTPUT
-
-      - name: Setup MSVC
-        uses: ilammy/msvc-dev-cmd@v1
-        with:
-          arch: ${{ matrix.arch }}
-
-      - name: Cache LLVM
-        id: cache-llvm
-        uses: actions/cache@v4
-        with:
-          path: C:\Program Files\LLVM
-          key: llvm-windows-${{ runner.os }}-${{ runner.arch }}-v1
-
-      - name: Install LLVM
-        if: steps.cache-llvm.outputs.cache-hit != 'true'
-        shell: pwsh
-        run: choco install llvm -y
-
-      - name: Add LLVM to PATH
-        shell: pwsh
-        run: echo "C:\Program Files\LLVM\bin" | Out-File -FilePath $env:GITHUB_PATH -Append
-
-      - name: Set Build Environment Variables
-        shell: cmd
-        run: |
-          echo NEW_COMPILER=1>> %GITHUB_ENV%
-          echo MY_STATIC_LINK=1>> %GITHUB_ENV%
-
-      - name: Create Output Directories
-        shell: cmd
-        run: |
-          if not exist "CPP\7zip\${{ matrix.platform }}" mkdir "CPP\7zip\${{ matrix.platform }}"
-
-      - name: Build 7-Zip with Clang
-        shell: cmd
-        run: |
-          clang-cl --version
-          where link
-          cd CPP\7zip
-          nmake PLATFORM=${{ matrix.platform }} CC=clang-cl > build.log 2>&1
-          if errorlevel 1 (
-            type build.log
-            exit /b 1
-          )
-          type build.log
-
-      - name: Upload build log
-        if: failure()
-        uses: actions/upload-artifact@v4
-        with:
-          name: log-windows-clang-${{ matrix.platform }}
-          path: CPP/7zip/build.log
-          if-no-files-found: warn
-          retention-days: 7
-
-      - name: Locate 7zz binary
-        id: locate
-        shell: pwsh
-        run: |
-          $bin = Get-ChildItem -Path CPP/7zip -Recurse -Filter "7zz.exe" -ErrorAction SilentlyContinue |
-                 Select-Object -First 1
-          if (-not $bin) {
-            Get-ChildItem -Path CPP/7zip -Recurse -Filter *.exe |
-              Select-Object FullName | Format-Table -AutoSize
-            throw "7zz.exe not found"
-          }
-          echo "path=$($bin.FullName)" >> $env:GITHUB_OUTPUT
-
-      - name: Rename binary
-        id: rename
-        shell: pwsh
-        run: |
-          $version = "${{ steps.version.outputs.version }}"
-          $src = "${{ steps.locate.outputs.path }}"
-          $ext = [System.IO.Path]::GetExtension($src)
-          $dest = "7z${version}-${{ matrix.platform }}-clang${ext}"
-          Copy-Item -Path $src -Destination $dest
-          echo "renamed=$dest" >> $env:GITHUB_OUTPUT
-
-      - name: Upload artifact
-        uses: actions/upload-artifact@v4
-        with:
-          name: 7z${{ steps.version.outputs.version }}-${{ matrix.platform }}-clang
-          path: ${{ steps.rename.outputs.renamed }}
-          if-no-files-found: error
-          retention-days: 14
-          compression-level: 9
-
   # ==================== Linux GCC ====================
   linux-gcc:
     name: Linux GCC ${{ matrix.target }} (${{ matrix.asm_name }})
@@ -401,7 +153,7 @@ jobs:
         id: version
         shell: bash
         run: |
-          VERSION=$(grep -oP '#define MY_VERSION_NUMBERS\s+"\K[^"]+' C/7zVersion.h)
+          VERSION=$(sed -n 's/.*#define MY_VERSION_NUMBERS[[:space:]]*"\([^"]*\)".*/\1/p' C/7zVersion.h | head -1)
           VERSION=${VERSION//./}
           echo "version=$VERSION" >> $GITHUB_OUTPUT
 
@@ -445,7 +197,7 @@ jobs:
           fi
           make "${make_args[@]}" > build.log 2>&1 || { tail -100 build.log; exit 1; }
 
-      - name: Upload build log
+      - name: Upload build log (on failure)
         if: failure()
         uses: actions/upload-artifact@v4
         with:
@@ -515,7 +267,7 @@ jobs:
         id: version
         shell: bash
         run: |
-          VERSION=$(grep -oP '#define MY_VERSION_NUMBERS\s+"\K[^"]+' C/7zVersion.h)
+          VERSION=$(sed -n 's/.*#define MY_VERSION_NUMBERS[[:space:]]*"\([^"]*\)".*/\1/p' C/7zVersion.h | head -1)
           VERSION=${VERSION//./}
           echo "version=$VERSION" >> $GITHUB_OUTPUT
 
@@ -553,7 +305,7 @@ jobs:
           fi
           make "${make_args[@]}" > build.log 2>&1 || { tail -100 build.log; exit 1; }
 
-      - name: Upload build log
+      - name: Upload build log (on failure)
         if: failure()
         uses: actions/upload-artifact@v4
         with:
@@ -617,7 +369,7 @@ jobs:
         id: version
         shell: bash
         run: |
-          VERSION=$(grep -oP '#define MY_VERSION_NUMBERS\s+"\K[^"]+' C/7zVersion.h)
+          VERSION=$(sed -n 's/.*#define MY_VERSION_NUMBERS[[:space:]]*"\([^"]*\)".*/\1/p' C/7zVersion.h | head -1)
           VERSION=${VERSION//./}
           echo "version=$VERSION" >> $GITHUB_OUTPUT
 
@@ -630,7 +382,7 @@ jobs:
           make_args=(-j$(sysctl -n hw.ncpu) -f ../../${{ matrix.makefile }})
           make "${make_args[@]}" > build.log 2>&1 || { tail -100 build.log; exit 1; }
 
-      - name: Upload build log
+      - name: Upload build log (on failure)
         if: failure()
         uses: actions/upload-artifact@v4
         with:
@@ -652,21 +404,22 @@ jobs:
           fi
           echo "path=$BIN" >> $GITHUB_OUTPUT
 
-      - name: Rename binary
-        id: rename
+      - name: Package binary
+        id: package
         run: |
           VERSION="${{ steps.version.outputs.version }}"
-          SRC="${{ steps.locate.outputs.path }}"
-          DEST="7z${VERSION}-macos-${{ matrix.target }}"
-          cp "$SRC" "$DEST"
-          chmod +x "$DEST"
-          echo "renamed=$DEST" >> $GITHUB_OUTPUT
+          PKG_NAME="7z${VERSION}-mac"
+          mkdir -p package
+          cp "${{ steps.locate.outputs.path }}" package/7zz
+          chmod +x package/7zz
+          tar -cJf "${PKG_NAME}.tar.xz" -C package 7zz
+          echo "package=${PKG_NAME}.tar.xz" >> $GITHUB_OUTPUT
 
       - name: Upload artifact
         uses: actions/upload-artifact@v4
         with:
-          name: 7z${{ steps.version.outputs.version }}-macos-${{ matrix.target }}
-          path: ${{ steps.rename.outputs.renamed }}
+          name: 7z${{ steps.version.outputs.version }}-mac
+          path: ${{ steps.package.outputs.package }}
           if-no-files-found: error
           retention-days: 14
           compression-level: 9
