@@ -46,7 +46,7 @@ jobs:
         id: version
         shell: bash
         run: |
-          VERSION=$(grep -oP '#define MY_VERSION_NUMBERS\s+"\K[^"]+' C/7zVersion.h)
+          VERSION=$(grep -oP '#define MY_VERSION\s+"\K[^"]+' CPP/7zip/7zipVersion.h)
           VERSION=${VERSION//./}
           echo "version=$VERSION" >> $GITHUB_OUTPUT
 
@@ -71,12 +71,14 @@ jobs:
         run: |
           cd CPP\7zip
           nmake PLATFORM=${{ matrix.platform }} > build.log 2>&1
-          set NMAKE_EXIT=%ERRORLEVEL%
+          if errorlevel 1 (
+            type build.log
+            exit /b 1
+          )
           type build.log
-          if %NMAKE_EXIT% NEQ 0 exit /b %NMAKE_EXIT%
 
-      - name: Upload build log (on failure)
-        if: failure()
+      - name: Upload build log
+        if: always()
         uses: actions/upload-artifact@v4
         with:
           name: log-windows-msvc-${{ matrix.platform }}
@@ -137,7 +139,7 @@ jobs:
         id: version
         shell: bash
         run: |
-          VERSION=$(grep -oP '#define MY_VERSION_NUMBERS\s+"\K[^"]+' C/7zVersion.h)
+          VERSION=$(grep -oP '#define MY_VERSION\s+"\K[^"]+' CPP/7zip/7zipVersion.h)
           MAJOR=${VERSION%.*}
           MINOR=${VERSION#*.}
           echo "full=$VERSION" >> $GITHUB_OUTPUT
@@ -166,12 +168,14 @@ jobs:
         run: |
           cd CPP\7zip
           nmake PLATFORM=${{ matrix.platform }} > build.log 2>&1
-          set NMAKE_EXIT=%ERRORLEVEL%
+          if errorlevel 1 (
+            type build.log
+            exit /b 1
+          )
           type build.log
-          if %NMAKE_EXIT% NEQ 0 exit /b %NMAKE_EXIT%
 
-      - name: Upload build log (on failure)
-        if: failure()
+      - name: Upload build log
+        if: always()
         uses: actions/upload-artifact@v4
         with:
           name: log-win-msvc-msi-${{ matrix.platform }}
@@ -272,7 +276,7 @@ jobs:
         id: version
         shell: bash
         run: |
-          VERSION=$(grep -oP '#define MY_VERSION_NUMBERS\s+"\K[^"]+' C/7zVersion.h)
+          VERSION=$(grep -oP '#define MY_VERSION\s+"\K[^"]+' CPP/7zip/7zipVersion.h)
           VERSION=${VERSION//./}
           echo "version=$VERSION" >> $GITHUB_OUTPUT
 
@@ -315,12 +319,14 @@ jobs:
           where link
           cd CPP\7zip
           nmake PLATFORM=${{ matrix.platform }} CC=clang-cl > build.log 2>&1
-          set NMAKE_EXIT=%ERRORLEVEL%
+          if errorlevel 1 (
+            type build.log
+            exit /b 1
+          )
           type build.log
-          if %NMAKE_EXIT% NEQ 0 exit /b %NMAKE_EXIT%
 
-      - name: Upload build log (on failure)
-        if: failure()
+      - name: Upload build log
+        if: always()
         uses: actions/upload-artifact@v4
         with:
           name: log-windows-clang-${{ matrix.platform }}
@@ -405,7 +411,7 @@ jobs:
         id: version
         shell: bash
         run: |
-          VERSION=$(grep -oP '#define MY_VERSION_NUMBERS\s+"\K[^"]+' C/7zVersion.h)
+          VERSION=$(grep -oP '#define MY_VERSION\s+"\K[^"]+' CPP/7zip/7zipVersion.h)
           VERSION=${VERSION//./}
           echo "version=$VERSION" >> $GITHUB_OUTPUT
 
@@ -450,10 +456,7 @@ jobs:
           if [ "${{ matrix.asmc }}" = "true" ] && command -v asmc >/dev/null 2>&1; then
             make_args+=(USE_ASM=1 MY_ASM="asmc -c" "AFLAGS_ABI=-c -elf64 -DABI_LINUX")
           fi
-          make "${make_args[@]}" > build.log 2>&1
-          MAKE_EXIT=$?
-          cat build.log
-          [ $MAKE_EXIT -ne 0 ] && exit $MAKE_EXIT
+          make "${make_args[@]}" > build.log 2>&1 || { tail -100 build.log; exit 1; }
 
       - name: Build 7zzs (Alone, static)
         run: |
@@ -465,13 +468,10 @@ jobs:
           if [ "${{ matrix.asmc }}" = "true" ] && command -v asmc >/dev/null 2>&1; then
             make_args+=(USE_ASM=1 MY_ASM="asmc -c" "AFLAGS_ABI=-c -elf64 -DABI_LINUX")
           fi
-          make "${make_args[@]}" > build.log 2>&1
-          MAKE_EXIT=$?
-          cat build.log
-          [ $MAKE_EXIT -ne 0 ] && exit $MAKE_EXIT
+          make "${make_args[@]}" > build.log 2>&1 || { tail -100 build.log; exit 1; }
 
-      - name: Upload build logs (on failure)
-        if: failure()
+      - name: Upload build log
+        if: always()
         uses: actions/upload-artifact@v4
         with:
           name: log-linux-gcc-${{ matrix.target }}
@@ -559,7 +559,7 @@ jobs:
         id: version
         shell: bash
         run: |
-          VERSION=$(grep -oP '#define MY_VERSION_NUMBERS\s+"\K[^"]+' C/7zVersion.h)
+          VERSION=$(grep -oP '#define MY_VERSION\s+"\K[^"]+' CPP/7zip/7zipVersion.h)
           VERSION=${VERSION//./}
           echo "version=$VERSION" >> $GITHUB_OUTPUT
 
@@ -598,10 +598,7 @@ jobs:
           if [ "${{ matrix.asmc }}" = "true" ] && command -v asmc >/dev/null 2>&1; then
             make_args+=(USE_ASM=1 MY_ASM="asmc -c" "AFLAGS_ABI=-c -elf64 -DABI_LINUX")
           fi
-          make "${make_args[@]}" > build.log 2>&1
-          MAKE_EXIT=$?
-          cat build.log
-          [ $MAKE_EXIT -ne 0 ] && exit $MAKE_EXIT
+          make "${make_args[@]}" > build.log 2>&1 || { tail -100 build.log; exit 1; }
 
       - name: Build 7zzs (Alone, static)
         run: |
@@ -610,13 +607,10 @@ jobs:
           if [ "${{ matrix.asmc }}" = "true" ] && command -v asmc >/dev/null 2>&1; then
             make_args+=(USE_ASM=1 MY_ASM="asmc -c" "AFLAGS_ABI=-c -elf64 -DABI_LINUX")
           fi
-          make "${make_args[@]}" > build.log 2>&1
-          MAKE_EXIT=$?
-          cat build.log
-          [ $MAKE_EXIT -ne 0 ] && exit $MAKE_EXIT
+          make "${make_args[@]}" > build.log 2>&1 || { tail -100 build.log; exit 1; }
 
-      - name: Upload build logs (on failure)
-        if: failure()
+      - name: Upload build log
+        if: always()
         uses: actions/upload-artifact@v4
         with:
           name: log-linux-clang-${{ matrix.target }}
@@ -690,7 +684,7 @@ jobs:
         id: version
         shell: bash
         run: |
-          VERSION=$(grep -oP '#define MY_VERSION_NUMBERS\s+"\K[^"]+' C/7zVersion.h)
+          VERSION=$(grep -oP '#define MY_VERSION\s+"\K[^"]+' CPP/7zip/7zipVersion.h)
           VERSION=${VERSION//./}
           echo "version=$VERSION" >> $GITHUB_OUTPUT
 
@@ -701,22 +695,16 @@ jobs:
         run: |
           cd CPP/7zip/Bundles/Alone2
           make_args=(-j$(sysctl -n hw.ncpu) -f ../../${{ matrix.makefile }})
-          make "${make_args[@]}" > build.log 2>&1
-          MAKE_EXIT=$?
-          cat build.log
-          [ $MAKE_EXIT -ne 0 ] && exit $MAKE_EXIT
+          make "${make_args[@]}" > build.log 2>&1 || { tail -100 build.log; exit 1; }
 
       - name: Build 7zzs (Alone, static)
         run: |
           cd CPP/7zip/Bundles/Alone
           make_args=(-j$(sysctl -n hw.ncpu) -f ../../${{ matrix.makefile }})
-          make "${make_args[@]}" > build.log 2>&1
-          MAKE_EXIT=$?
-          cat build.log
-          [ $MAKE_EXIT -ne 0 ] && exit $MAKE_EXIT
+          make "${make_args[@]}" > build.log 2>&1 || { tail -100 build.log; exit 1; }
 
-      - name: Upload build logs (on failure)
-        if: failure()
+      - name: Upload build log
+        if: always()
         uses: actions/upload-artifact@v4
         with:
           name: log-macos-clang-${{ matrix.target }}
