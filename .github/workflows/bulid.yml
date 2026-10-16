@@ -46,7 +46,7 @@ jobs:
         id: version
         shell: bash
         run: |
-          VERSION=$(grep -oP '#define MY_VERSION\s+"\K[^"]+' CPP/7zip/7zipVersion.h)
+          VERSION=$(grep -oP '#define MY_VERSION_NUMBERS\s+"\K[^"]+' C/7zVersion.h)
           VERSION=${VERSION//./}
           echo "version=$VERSION" >> $GITHUB_OUTPUT
 
@@ -78,7 +78,7 @@ jobs:
           type build.log
 
       - name: Upload build log
-        if: always()
+        if: failure()
         uses: actions/upload-artifact@v4
         with:
           name: log-windows-msvc-${{ matrix.platform }}
@@ -139,7 +139,7 @@ jobs:
         id: version
         shell: bash
         run: |
-          VERSION=$(grep -oP '#define MY_VERSION\s+"\K[^"]+' CPP/7zip/7zipVersion.h)
+          VERSION=$(grep -oP '#define MY_VERSION_NUMBERS\s+"\K[^"]+' C/7zVersion.h)
           MAJOR=${VERSION%.*}
           MINOR=${VERSION#*.}
           echo "full=$VERSION" >> $GITHUB_OUTPUT
@@ -175,7 +175,7 @@ jobs:
           type build.log
 
       - name: Upload build log
-        if: always()
+        if: failure()
         uses: actions/upload-artifact@v4
         with:
           name: log-win-msvc-msi-${{ matrix.platform }}
@@ -192,19 +192,16 @@ jobs:
           New-Item -ItemType Directory -Force -Path $msiDir | Out-Null
           New-Item -ItemType Directory -Force -Path "$msiDir\Lang" | Out-Null
 
-          # 二进制
           Copy-Item "$srcDir\*.exe" $msiDir -Force
           Copy-Item "$srcDir\*.dll" $msiDir -Force
           Copy-Item "$srcDir\*.sfx" $msiDir -Force
 
-          # 文档
           Copy-Item "DOC\History.txt"   $msiDir -Force -ErrorAction SilentlyContinue
           Copy-Item "DOC\License.txt"   $msiDir -Force -ErrorAction SilentlyContinue
           Copy-Item "DOC\readme.txt"    $msiDir -Force -ErrorAction SilentlyContinue
           Copy-Item "DOC\descript.ion"  $msiDir -Force -ErrorAction SilentlyContinue
           Copy-Item "DOC\7-zip.chm"     $msiDir -Force -ErrorAction SilentlyContinue
 
-          # 语言文件
           if (Test-Path "Lang") {
             Copy-Item "Lang\*.txt" "$msiDir\Lang" -Force
           }
@@ -279,7 +276,7 @@ jobs:
         id: version
         shell: bash
         run: |
-          VERSION=$(grep -oP '#define MY_VERSION\s+"\K[^"]+' CPP/7zip/7zipVersion.h)
+          VERSION=$(grep -oP '#define MY_VERSION_NUMBERS\s+"\K[^"]+' C/7zVersion.h)
           VERSION=${VERSION//./}
           echo "version=$VERSION" >> $GITHUB_OUTPUT
 
@@ -329,7 +326,7 @@ jobs:
           type build.log
 
       - name: Upload build log
-        if: always()
+        if: failure()
         uses: actions/upload-artifact@v4
         with:
           name: log-windows-clang-${{ matrix.platform }}
@@ -404,7 +401,7 @@ jobs:
         id: version
         shell: bash
         run: |
-          VERSION=$(grep -oP '#define MY_VERSION\s+"\K[^"]+' CPP/7zip/7zipVersion.h)
+          VERSION=$(grep -oP '#define MY_VERSION_NUMBERS\s+"\K[^"]+' C/7zVersion.h)
           VERSION=${VERSION//./}
           echo "version=$VERSION" >> $GITHUB_OUTPUT
 
@@ -449,7 +446,7 @@ jobs:
           make "${make_args[@]}" > build.log 2>&1 || { tail -100 build.log; exit 1; }
 
       - name: Upload build log
-        if: always()
+        if: failure()
         uses: actions/upload-artifact@v4
         with:
           name: log-linux-gcc-${{ matrix.target }}
@@ -518,7 +515,7 @@ jobs:
         id: version
         shell: bash
         run: |
-          VERSION=$(grep -oP '#define MY_VERSION\s+"\K[^"]+' CPP/7zip/7zipVersion.h)
+          VERSION=$(grep -oP '#define MY_VERSION_NUMBERS\s+"\K[^"]+' C/7zVersion.h)
           VERSION=${VERSION//./}
           echo "version=$VERSION" >> $GITHUB_OUTPUT
 
@@ -557,7 +554,7 @@ jobs:
           make "${make_args[@]}" > build.log 2>&1 || { tail -100 build.log; exit 1; }
 
       - name: Upload build log
-        if: always()
+        if: failure()
         uses: actions/upload-artifact@v4
         with:
           name: log-linux-clang-${{ matrix.target }}
@@ -620,7 +617,7 @@ jobs:
         id: version
         shell: bash
         run: |
-          VERSION=$(grep -oP '#define MY_VERSION\s+"\K[^"]+' CPP/7zip/7zipVersion.h)
+          VERSION=$(grep -oP '#define MY_VERSION_NUMBERS\s+"\K[^"]+' C/7zVersion.h)
           VERSION=${VERSION//./}
           echo "version=$VERSION" >> $GITHUB_OUTPUT
 
@@ -634,7 +631,7 @@ jobs:
           make "${make_args[@]}" > build.log 2>&1 || { tail -100 build.log; exit 1; }
 
       - name: Upload build log
-        if: always()
+        if: failure()
         uses: actions/upload-artifact@v4
         with:
           name: log-macos-clang-${{ matrix.target }}
