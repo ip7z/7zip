@@ -46,12 +46,7 @@ jobs:
         id: version
         shell: bash
         run: |
-          VER_FILE=$(find . -name "7zipVersion.h" -not -path "*/node_modules/*" 2>/dev/null | head -1)
-          if [ -z "$VER_FILE" ]; then
-            echo "7zipVersion.h not found"; exit 1
-          fi
-          echo "Found version file: $VER_FILE"
-          VERSION=$(grep -oP '#define MY_VERSION\s+"\K[^"]+' "$VER_FILE")
+          VERSION=$(grep -oP '#define MY_VERSION\s+"\K[^"]+' C/7zipVersion.h)
           VERSION=${VERSION//./}
           echo "version=$VERSION" >> $GITHUB_OUTPUT
 
@@ -142,12 +137,7 @@ jobs:
         id: version
         shell: bash
         run: |
-          VER_FILE=$(find . -name "7zipVersion.h" -not -path "*/node_modules/*" 2>/dev/null | head -1)
-          if [ -z "$VER_FILE" ]; then
-            echo "7zipVersion.h not found"; exit 1
-          fi
-          echo "Found version file: $VER_FILE"
-          VERSION=$(grep -oP '#define MY_VERSION\s+"\K[^"]+' "$VER_FILE")
+          VERSION=$(grep -oP '#define MY_VERSION\s+"\K[^"]+' C/7zipVersion.h)
           MAJOR=${VERSION%.*}
           MINOR=${VERSION#*.}
           echo "full=$VERSION" >> $GITHUB_OUTPUT
@@ -282,12 +272,7 @@ jobs:
         id: version
         shell: bash
         run: |
-          VER_FILE=$(find . -name "7zipVersion.h" -not -path "*/node_modules/*" 2>/dev/null | head -1)
-          if [ -z "$VER_FILE" ]; then
-            echo "7zipVersion.h not found"; exit 1
-          fi
-          echo "Found version file: $VER_FILE"
-          VERSION=$(grep -oP '#define MY_VERSION\s+"\K[^"]+' "$VER_FILE")
+          VERSION=$(grep -oP '#define MY_VERSION\s+"\K[^"]+' C/7zipVersion.h)
           VERSION=${VERSION//./}
           echo "version=$VERSION" >> $GITHUB_OUTPUT
 
@@ -420,12 +405,7 @@ jobs:
         id: version
         shell: bash
         run: |
-          VER_FILE=$(find . -name "7zipVersion.h" -not -path "*/node_modules/*" 2>/dev/null | head -1)
-          if [ -z "$VER_FILE" ]; then
-            echo "7zipVersion.h not found"; exit 1
-          fi
-          echo "Found version file: $VER_FILE"
-          VERSION=$(grep -oP '#define MY_VERSION\s+"\K[^"]+' "$VER_FILE")
+          VERSION=$(grep -oP '#define MY_VERSION\s+"\K[^"]+' C/7zipVersion.h)
           VERSION=${VERSION//./}
           echo "version=$VERSION" >> $GITHUB_OUTPUT
 
@@ -579,12 +559,7 @@ jobs:
         id: version
         shell: bash
         run: |
-          VER_FILE=$(find . -name "7zipVersion.h" -not -path "*/node_modules/*" 2>/dev/null | head -1)
-          if [ -z "$VER_FILE" ]; then
-            echo "7zipVersion.h not found"; exit 1
-          fi
-          echo "Found version file: $VER_FILE"
-          VERSION=$(grep -oP '#define MY_VERSION\s+"\K[^"]+' "$VER_FILE")
+          VERSION=$(grep -oP '#define MY_VERSION\s+"\K[^"]+' C/7zipVersion.h)
           VERSION=${VERSION//./}
           echo "version=$VERSION" >> $GITHUB_OUTPUT
 
@@ -715,12 +690,7 @@ jobs:
         id: version
         shell: bash
         run: |
-          VER_FILE=$(find . -name "7zipVersion.h" -not -path "*/node_modules/*" 2>/dev/null | head -1)
-          if [ -z "$VER_FILE" ]; then
-            echo "7zipVersion.h not found"; exit 1
-          fi
-          echo "Found version file: $VER_FILE"
-          VERSION=$(grep -oP '#define MY_VERSION\s+"\K[^"]+' "$VER_FILE")
+          VERSION=$(grep -oP '#define MY_VERSION\s+"\K[^"]+' C/7zipVersion.h)
           VERSION=${VERSION//./}
           echo "version=$VERSION" >> $GITHUB_OUTPUT
 
