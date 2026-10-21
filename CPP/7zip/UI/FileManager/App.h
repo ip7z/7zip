@@ -211,6 +211,17 @@ public:
     RedrawListItems_InPanels();
   }
 
+  int GetSizeDisplayMode() const { return Panels[LastFocusedPanel]._sizeDisplayMode; }
+  void SetSizeDisplayMode(int mode)
+  {
+    for (unsigned i = 0; i < kNumPanelsMax; i++)
+    {
+      CPanel &panel = Panels[i];
+      panel._sizeDisplayMode = mode;
+    }
+    RedrawListItems_InPanels();
+  }
+
   void RedrawListItems_InPanels()
   {
     for (unsigned i = 0; i < kNumPanelsMax; i++)

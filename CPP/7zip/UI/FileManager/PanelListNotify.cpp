@@ -92,6 +92,48 @@ UString ConvertSizeToString(UInt64 value)
   return s;
 }
 
+static void ConvertSizeToString_Auto(UInt64 val, wchar_t *s) throw()
+{
+  if (val < ((UInt64)1 << 10))
+  {
+    ConvertSizeToString(val, s);
+    return;
+  }
+
+  static const wchar_t *const k_Units[5] = { L"", L"KB", L"MB", L"GB", L"TB" };
+
+  unsigned unit = 0;
+  UInt64 whole = val;
+
+  while (unit < 4 && whole >= ((UInt64)1 << 10))
+  {
+    whole >>= 10;
+    unit++;
+  }
+
+  const unsigned shiftBits = 10 * unit;
+  const UInt64 rem = val & ((((UInt64)1) << shiftBits) - 1);
+  const unsigned hundredths = (unsigned)((rem * 100) >> shiftBits);
+
+  wchar_t buf[32];
+  ConvertUInt64ToString(whole, buf);
+
+  wchar_t *d = s;
+  const wchar_t *src;
+
+  for (src = buf; *src != 0; src++)
+    *d++ = *src;
+
+  *d++ = '.';
+  *d++ = (wchar_t)('0' + hundredths / 10);
+  *d++ = (wchar_t)('0' + hundredths % 10);
+  *d++ = ' ';
+
+  for (src = k_Units[unit]; *src != 0; src++)
+    *d++ = *src;
+  *d = 0;
+}
+
 bool IsSizeProp(UINT propID) throw();
 bool IsSizeProp(UINT propID) throw()
 {
@@ -113,6 +155,29 @@ bool IsSizeProp(UINT propID) throw()
     case kpidNumErrors:
     case kpidNumStreams:
     case kpidNumAltStreams:
+    case kpidAltStreamsSize:
+    case kpidVirtualSize:
+    case kpidUnpackSize:
+    case kpidTotalPhySize:
+    case kpidTailSize:
+    case kpidEmbeddedStubSize:
+      return true;
+  }
+  return false;
+}
+
+static bool IsByteSizeProp(UINT propID) throw()
+{
+  switch (propID)
+  {
+    case kpidSize:
+    case kpidPackSize:
+    case kpidOffset:
+    case kpidPhySize:
+    case kpidHeadersSize:
+    case kpidTotalSize:
+    case kpidFreeSpace:
+    case kpidClusterSize:
     case kpidAltStreamsSize:
     case kpidVirtualSize:
     case kpidUnpackSize:
@@ -485,7 +550,10 @@ LRESULT CPanel::SetItemText(LVITEMW &item)
   {
     UInt64 v = 0;
     ConvertPropVariantToUInt64(prop, v);
-    ConvertSizeToString(v, text);
+    if (_sizeDisplayMode == k_SizeDisplayMode_Auto && IsByteSizeProp(propID))
+      ConvertSizeToString_Auto(v, text);
+    else
+      ConvertSizeToString(v, text);
   }
   else if (prop.vt == VT_BSTR)
   {
