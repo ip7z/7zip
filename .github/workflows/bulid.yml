@@ -1,0 +1,423 @@
+name: Build 7-Zip
+
+on:
+  push:
+    branches:
+      - main
+  pull_request:
+  workflow_dispatch:
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  DOTNET_CLI_TELEMETRY_OPTOUT: 1
+  DOTNET_NOLOGO: 1
+
+jobs:
+  # ==================== Windows MSVC (7zz only) ====================
+  windows-msvc:
+    name: Windows MSVC ${{ matrix.platform }} (${{ matrix.asm_name }})
+    runs-on: ${{ matrix.runner }}
+    timeout-minutes: 90
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - platform: x86
+            runner: windows-latest
+            arch: x86
+            asm_name: MASM
+          - platform: x64
+            runner: windows-latest
+            arch: x64
+            asm_name: MASM
+          - platform: arm64
+            runner: windows-11-arm
+            arch: arm64
+            asm_name: armasm64
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Get 7-Zip Version
+        id: version
+        shell: bash
+        run: |
+          VERSION=$(sed -n 's/.*#define MY_VERSION_NUMBERS[[:space:]]*"\([^"]*\)".*/\1/p' C/7zVersion.h | head -1)
+          VERSION=${VERSION//./}
+          echo "version=$VERSION" >> $GITHUB_OUTPUT
+
+      - name: Setup MSVC
+        uses: ilammy/msvc-dev-cmd@v1
+        with:
+          arch: ${{ matrix.arch }}
+
+      - name: Set Build Environment Variables
+        shell: cmd
+        run: |
+          echo NEW_COMPILER=1>> %GITHUB_ENV%
+          echo MY_STATIC_LINK=1>> %GITHUB_ENV%
+
+      - name: Create Output Directories
+        shell: cmd
+        run: |
+          if not exist "CPP\7zip\${{ matrix.platform }}" mkdir "CPP\7zip\${{ matrix.platform }}"
+
+      - name: Build 7-Zip
+        shell: cmd
+        run: |
+          cd CPP\7zip
+          nmake PLATFORM=${{ matrix.platform }} > build.log 2>&1
+          if errorlevel 1 (
+            type build.log
+            exit /b 1
+          )
+          type build.log
+
+      - name: Upload build log (on failure)
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: log-windows-msvc-${{ matrix.platform }}
+          path: CPP/7zip/build.log
+          if-no-files-found: warn
+          retention-days: 7
+
+      - name: Locate 7zz binary
+        id: locate
+        shell: pwsh
+        run: |
+          $bin = Get-ChildItem -Path CPP/7zip -Recurse -Filter "7zz.exe" -ErrorAction SilentlyContinue |
+                 Select-Object -First 1
+          if (-not $bin) {
+            Get-ChildItem -Path CPP/7zip -Recurse -Filter *.exe |
+              Select-Object FullName | Format-Table -AutoSize
+            throw "7zz.exe not found"
+          }
+          echo "path=$($bin.FullName)" >> $env:GITHUB_OUTPUT
+
+      - name: Rename binary
+        id: rename
+        shell: pwsh
+        run: |
+          $version = "${{ steps.version.outputs.version }}"
+          $src = "${{ steps.locate.outputs.path }}"
+          $ext = [System.IO.Path]::GetExtension($src)
+          $dest = "7z${version}-${{ matrix.platform }}-msvc${ext}"
+          Copy-Item -Path $src -Destination $dest
+          echo "renamed=$dest" >> $env:GITHUB_OUTPUT
+
+      - name: Upload artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: 7z${{ steps.version.outputs.version }}-${{ matrix.platform }}-msvc
+          path: ${{ steps.rename.outputs.renamed }}
+          if-no-files-found: error
+          retention-days: 14
+          compression-level: 9
+
+  # ==================== Linux GCC ====================
+  linux-gcc:
+    name: Linux GCC ${{ matrix.target }} (${{ matrix.asm_name }})
+    runs-on: ${{ matrix.runner }}
+    timeout-minutes: 90
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - target: x64
+            runner: ubuntu-latest
+            makefile: cmpl_gcc_x64.mak
+            cross: ""
+            asmc: true
+            asm_name: ASMC
+          - target: arm64
+            runner: ubuntu-24.04-arm
+            makefile: cmpl_gcc_arm64.mak
+            cross: ""
+            asmc: false
+            asm_name: GNU as
+          - target: arm
+            runner: ubuntu-latest
+            makefile: cmpl_gcc_arm.mak
+            cross: "arm-linux-gnueabihf-"
+            asmc: false
+            asm_name: GNU as
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Get 7-Zip Version
+        id: version
+        shell: bash
+        run: |
+          VERSION=$(sed -n 's/.*#define MY_VERSION_NUMBERS[[:space:]]*"\([^"]*\)".*/\1/p' C/7zVersion.h | head -1)
+          VERSION=${VERSION//./}
+          echo "version=$VERSION" >> $GITHUB_OUTPUT
+
+      - name: Install toolchain
+        run: |
+          sudo apt-get update -qq
+          sudo apt-get install -y -qq build-essential
+          if [ -n "${{ matrix.cross }}" ]; then
+            sudo apt-get install -y -qq gcc-arm-linux-gnueabihf g++-arm-linux-gnueabihf
+          fi
+
+      - name: Cache ASMC
+        if: matrix.asmc
+        id: cache-asmc
+        uses: actions/cache@v4
+        with:
+          path: /usr/local/bin/asmc
+          key: asmc-linux-${{ runner.arch }}-v2
+
+      - name: Install ASMC
+        if: matrix.asmc && steps.cache-asmc.outputs.cache-hit != 'true'
+        run: |
+          git clone --depth 1 https://github.com/nidud/asmc_linux /tmp/asmc
+          cd /tmp/asmc
+          make -j$(nproc)
+          sudo make install
+          asmc -? | head -3
+
+      - name: Normalize line endings
+        run: find . -name "*.mak" -exec sed -i 's/\r$//' {} \;
+
+      - name: Build
+        run: |
+          cd CPP/7zip/Bundles/Alone2
+          make_args=(-j$(nproc) -f ../../${{ matrix.makefile }})
+          if [ -n "${{ matrix.cross }}" ]; then
+            make_args+=("CROSS_COMPILE=${{ matrix.cross }}")
+          fi
+          if [ "${{ matrix.asmc }}" = "true" ] && command -v asmc >/dev/null 2>&1; then
+            make_args+=(USE_ASM=1 MY_ASM="asmc -c" "AFLAGS_ABI=-c -elf64 -DABI_LINUX")
+          fi
+          make "${make_args[@]}" > build.log 2>&1 || { tail -100 build.log; exit 1; }
+
+      - name: Upload build log (on failure)
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: log-linux-gcc-${{ matrix.target }}
+          path: CPP/7zip/Bundles/Alone2/build.log
+          if-no-files-found: warn
+          retention-days: 7
+
+      - name: Locate binary
+        id: locate
+        run: |
+          BIN=$(find CPP/7zip/Bundles/Alone2 -type f -name 7zz -executable 2>/dev/null | head -1)
+          if [ -z "$BIN" ]; then
+            BIN=$(find CPP/7zip/Bundles/Alone2 -type f -name 7zz 2>/dev/null | head -1)
+          fi
+          if [ -z "$BIN" ]; then
+            tail -50 CPP/7zip/Bundles/Alone2/build.log
+            exit 1
+          fi
+          echo "path=$BIN" >> $GITHUB_OUTPUT
+
+      - name: Package binary
+        id: package
+        run: |
+          VERSION="${{ steps.version.outputs.version }}"
+          TARGET="${{ matrix.target }}"
+          BIN="${{ steps.locate.outputs.path }}"
+          PKG_NAME="7z${VERSION}-linux-${TARGET}-gcc"
+          mkdir -p package
+          cp "$BIN" package/7zz
+          chmod +x package/7zz
+          tar -cJf "${PKG_NAME}.tar.xz" -C package 7zz
+          echo "package=${PKG_NAME}.tar.xz" >> $GITHUB_OUTPUT
+
+      - name: Upload artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: 7z${{ steps.version.outputs.version }}-linux-${{ matrix.target }}-gcc
+          path: ${{ steps.package.outputs.package }}
+          if-no-files-found: error
+          retention-days: 14
+          compression-level: 9
+
+  # ==================== Linux Clang ====================
+  linux-clang:
+    name: Linux Clang ${{ matrix.target }} (${{ matrix.asm_name }})
+    runs-on: ${{ matrix.runner }}
+    timeout-minutes: 90
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - target: x64
+            runner: ubuntu-latest
+            makefile: cmpl_clang_x64.mak
+            asmc: true
+            asm_name: ASMC
+          - target: arm64
+            runner: ubuntu-24.04-arm
+            makefile: cmpl_clang_arm64.mak
+            asmc: false
+            asm_name: GNU as
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Get 7-Zip Version
+        id: version
+        shell: bash
+        run: |
+          VERSION=$(sed -n 's/.*#define MY_VERSION_NUMBERS[[:space:]]*"\([^"]*\)".*/\1/p' C/7zVersion.h | head -1)
+          VERSION=${VERSION//./}
+          echo "version=$VERSION" >> $GITHUB_OUTPUT
+
+      - name: Install toolchain
+        run: |
+          sudo apt-get update -qq
+          sudo apt-get install -y -qq build-essential clang
+
+      - name: Cache ASMC
+        if: matrix.asmc
+        id: cache-asmc
+        uses: actions/cache@v4
+        with:
+          path: /usr/local/bin/asmc
+          key: asmc-linux-${{ runner.arch }}-v2
+
+      - name: Install ASMC
+        if: matrix.asmc && steps.cache-asmc.outputs.cache-hit != 'true'
+        run: |
+          git clone --depth 1 https://github.com/nidud/asmc_linux /tmp/asmc
+          cd /tmp/asmc
+          make -j$(nproc)
+          sudo make install
+          asmc -? | head -3
+
+      - name: Normalize line endings
+        run: find . -name "*.mak" -exec sed -i 's/\r$//' {} \;
+
+      - name: Build
+        run: |
+          cd CPP/7zip/Bundles/Alone2
+          make_args=(-j$(nproc) -f ../../${{ matrix.makefile }})
+          if [ "${{ matrix.asmc }}" = "true" ] && command -v asmc >/dev/null 2>&1; then
+            make_args+=(USE_ASM=1 MY_ASM="asmc -c" "AFLAGS_ABI=-c -elf64 -DABI_LINUX")
+          fi
+          make "${make_args[@]}" > build.log 2>&1 || { tail -100 build.log; exit 1; }
+
+      - name: Upload build log (on failure)
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: log-linux-clang-${{ matrix.target }}
+          path: CPP/7zip/Bundles/Alone2/build.log
+          if-no-files-found: warn
+          retention-days: 7
+
+      - name: Locate binary
+        id: locate
+        run: |
+          BIN=$(find CPP/7zip/Bundles/Alone2 -type f -name 7zz -executable 2>/dev/null | head -1)
+          if [ -z "$BIN" ]; then
+            BIN=$(find CPP/7zip/Bundles/Alone2 -type f -name 7zz 2>/dev/null | head -1)
+          fi
+          if [ -z "$BIN" ]; then
+            tail -50 CPP/7zip/Bundles/Alone2/build.log
+            exit 1
+          fi
+          echo "path=$BIN" >> $GITHUB_OUTPUT
+
+      - name: Package binary
+        id: package
+        run: |
+          VERSION="${{ steps.version.outputs.version }}"
+          TARGET="${{ matrix.target }}"
+          BIN="${{ steps.locate.outputs.path }}"
+          PKG_NAME="7z${VERSION}-linux-${TARGET}-clang"
+          mkdir -p package
+          cp "$BIN" package/7zz
+          chmod +x package/7zz
+          tar -cJf "${PKG_NAME}.tar.xz" -C package 7zz
+          echo "package=${PKG_NAME}.tar.xz" >> $GITHUB_OUTPUT
+
+      - name: Upload artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: 7z${{ steps.version.outputs.version }}-linux-${{ matrix.target }}-clang
+          path: ${{ steps.package.outputs.package }}
+          if-no-files-found: error
+          retention-days: 14
+          compression-level: 9
+
+  # ==================== macOS Clang (arm64 only) ====================
+  macos-clang:
+    name: macOS Clang ${{ matrix.target }} (${{ matrix.asm_name }})
+    runs-on: ${{ matrix.runner }}
+    timeout-minutes: 90
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - target: arm64
+            runner: macos-latest
+            makefile: cmpl_mac_arm64.mak
+            asm_name: Clang as
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Get 7-Zip Version
+        id: version
+        shell: bash
+        run: |
+          VERSION=$(sed -n 's/.*#define MY_VERSION_NUMBERS[[:space:]]*"\([^"]*\)".*/\1/p' C/7zVersion.h | head -1)
+          VERSION=${VERSION//./}
+          echo "version=$VERSION" >> $GITHUB_OUTPUT
+
+      - name: Normalize line endings
+        run: find . -name "*.mak" -exec sed -i '' 's/\r$//' {} \;
+
+      - name: Build
+        run: |
+          cd CPP/7zip/Bundles/Alone2
+          make_args=(-j$(sysctl -n hw.ncpu) -f ../../${{ matrix.makefile }})
+          make "${make_args[@]}" > build.log 2>&1 || { tail -100 build.log; exit 1; }
+
+      - name: Upload build log (on failure)
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: log-macos-clang-${{ matrix.target }}
+          path: CPP/7zip/Bundles/Alone2/build.log
+          if-no-files-found: warn
+          retention-days: 7
+
+      - name: Locate binary
+        id: locate
+        run: |
+          BIN=$(find CPP/7zip/Bundles/Alone2 -type f -name 7zz -executable 2>/dev/null | head -1)
+          if [ -z "$BIN" ]; then
+            BIN=$(find CPP/7zip/Bundles/Alone2 -type f -name 7zz 2>/dev/null | head -1)
+          fi
+          if [ -z "$BIN" ]; then
+            tail -50 CPP/7zip/Bundles/Alone2/build.log
+            exit 1
+          fi
+          echo "path=$BIN" >> $GITHUB_OUTPUT
+
+      - name: Package binary
+        id: package
+        run: |
+          VERSION="${{ steps.version.outputs.version }}"
+          PKG_NAME="7z${VERSION}-mac"
+          mkdir -p package
+          cp "${{ steps.locate.outputs.path }}" package/7zz
+          chmod +x package/7zz
+          tar -cJf "${PKG_NAME}.tar.xz" -C package 7zz
+          echo "package=${PKG_NAME}.tar.xz" >> $GITHUB_OUTPUT
+
+      - name: Upload artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: 7z${{ steps.version.outputs.version }}-mac
+          path: ${{ steps.package.outputs.package }}
+          if-no-files-found: error
+          retention-days: 14
+          compression-level: 9
