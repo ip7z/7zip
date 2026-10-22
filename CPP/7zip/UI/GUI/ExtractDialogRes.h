@@ -19,6 +19,7 @@
 #define IDX_EXTRACT_ELIM_DUP        3430
 #define IDX_EXTRACT_NT_SECUR        3431
 // #define IDX_EXTRACT_ALT_STREAMS     3432
+#define IDX_EXTRACT_OPEN_DEST_FOLDER 3433
 
 #define IDX_PASSWORD_SHOW           3803
 #define IDG_PASSWORD                3807

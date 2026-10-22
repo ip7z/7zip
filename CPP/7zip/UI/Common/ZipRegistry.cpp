@@ -96,6 +96,7 @@ static LPCTSTR const kShowPassword = TEXT("ShowPassword");
 static LPCTSTR const kPathHistory = TEXT("PathHistory");
 static LPCTSTR const kSplitDest = TEXT("SplitDest");
 static LPCTSTR const kElimDup = TEXT("ElimDup");
+static LPCTSTR const kOpenDestFolder = TEXT("OpenDestFolder");
 // static LPCTSTR const kAltStreams = TEXT("AltStreams");
 static LPCTSTR const kNtSecur = TEXT("Security");
 static LPCTSTR const kMemLimit = TEXT("MemLimit");
@@ -113,6 +114,7 @@ void CInfo::Save() const
 
   Key_Set_BoolPair(key, kSplitDest, SplitDest);
   Key_Set_BoolPair(key, kElimDup, ElimDup);
+  Key_Set_BoolPair(key, kOpenDestFolder, OpenDestFolder);
   // Key_Set_BoolPair(key, kAltStreams, AltStreams);
   Key_Set_BoolPair(key, kNtSecur, NtSecurity);
   Key_Set_BoolPair(key, kShowPassword, ShowPassword);
@@ -169,6 +171,7 @@ void CInfo::Load()
   Key_Get_BoolPair_true(key, kSplitDest, SplitDest);
 
   Key_Get_BoolPair(key, kElimDup, ElimDup);
+  Key_Get_BoolPair(key, kOpenDestFolder, OpenDestFolder);
   // Key_Get_BoolPair(key, kAltStreams, AltStreams);
   Key_Get_BoolPair(key, kNtSecur, NtSecurity);
   Key_Get_BoolPair(key, kShowPassword, ShowPassword);
@@ -183,6 +186,17 @@ bool Read_ShowPassword()
     return showPassword;
   key.GetValue_bool_IfOk(kShowPassword, showPassword);
   return showPassword;
+}
+
+bool Read_OpenDestFolder()
+{
+  CS_LOCK
+  CKey key;
+  bool openDestFolder = false;
+  if (OpenMainKey(key, kKeyName) != ERROR_SUCCESS)
+    return openDestFolder;
+  key.GetValue_bool_IfOk(kOpenDestFolder, openDestFolder);
+  return openDestFolder;
 }
 
 UInt32 Read_LimitGB()

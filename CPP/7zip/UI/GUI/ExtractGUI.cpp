@@ -36,6 +36,19 @@ using namespace NDir;
 
 static const wchar_t * const kIncorrectOutDir = L"Incorrect output directory path";
 
+static void OpenFolderInExplorer(CFSTR path)
+{
+  #ifdef UNDER_CE
+  SHELLEXECUTEINFO s;
+  memset(&s, 0, sizeof(s));
+  s.cbSize = sizeof(s);
+  s.lpFile = path;
+  ::ShellExecuteEx(&s);
+  #else
+  ::ShellExecute(NULL, NULL, path, NULL, NULL, SW_SHOWNORMAL);
+  #endif
+}
+
 #ifndef Z7_SFX
 
 static void AddValuePair(UString &s, UINT resourceID, UInt64 value, bool addColon = true)
@@ -182,6 +195,7 @@ HRESULT ExtractGUI(
     HWND hwndParent)
 {
   messageWasDisplayed = false;
+  bool openDestFolder = options.OpenDestFolderAfterExtract;
 
   CThreadExtracting extracter;
   /*
@@ -234,6 +248,7 @@ HRESULT ExtractGUI(
         return E_ABORT;
 
       outputDir = us2fs(dialog.DirPath);
+      openDestFolder = dialog.OpenDestFolder;
 
       options.OverwriteMode = dialog.OverwriteMode;
       options.PathMode = dialog.PathMode;
@@ -293,5 +308,7 @@ HRESULT ExtractGUI(
 
   RINOK(extracter.Create(title, hwndParent))
   messageWasDisplayed = extracter.ThreadFinishedOK && extracter.MessagesDisplayed;
+  if (openDestFolder && extracter.Result == S_OK && extractCallback->IsOK())
+    OpenFolderInExplorer(options.OutputDir);
   return extracter.Result;
 }
