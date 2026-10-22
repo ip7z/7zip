@@ -303,7 +303,8 @@ CArchiveExtractCallback::CArchiveExtractCallback():
     // Write_MTime(true),
     Is_elimPrefix_Mode(false),
     _arc(NULL),
-    _multiArchives(false)
+    _multiArchives(false),
+    _disableProgress(false)
 {
   #ifdef Z7_USE_SECURITY_CODE
   _saclEnabled = InitLocalPrivileges();
@@ -313,6 +314,7 @@ CArchiveExtractCallback::CArchiveExtractCallback():
 
 void CArchiveExtractCallback::InitBeforeNewArchive()
 {
+  _disableProgress = false;
 #if defined(_WIN32) && !defined(UNDER_CE) && !defined(Z7_SFX)
   ZoneBuf.Free();
 #endif
@@ -399,6 +401,8 @@ Z7_COM7F_IMF(CArchiveExtractCallback::SetTotal(UInt64 size))
   COM_TRY_BEGIN
   _progressTotal = size;
   // _progressTotal_Defined = true;
+  if (_disableProgress)
+    return S_OK;
   if (!_multiArchives && _extractCallback2)
     return _extractCallback2->SetTotal(size);
   return S_OK;
@@ -434,6 +438,9 @@ Z7_COM7F_IMF(CArchiveExtractCallback::SetCompleted(const UInt64 *completeValue))
   if (!_extractCallback2)
     return S_OK;
 
+  if (_disableProgress)
+    return S_OK;
+
   UInt64 packCur;
   if (_multiArchives)
   {
@@ -451,6 +458,8 @@ Z7_COM7F_IMF(CArchiveExtractCallback::SetCompleted(const UInt64 *completeValue))
 Z7_COM7F_IMF(CArchiveExtractCallback::SetRatioInfo(const UInt64 *inSize, const UInt64 *outSize))
 {
   COM_TRY_BEGIN
+  if (_disableProgress)
+    return S_OK;
   return LocalProgressSpec.Interface()->SetRatioInfo(inSize, outSize);
   COM_TRY_END
 }

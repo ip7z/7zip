@@ -730,15 +730,18 @@ Z7_COM7F_IMF(CHandler::Extract(const UInt32 *indices, UInt32 numItems,
     stream = _stream;
 
   const bool allFilesMode = (numItems == (UInt32)(Int32)-1);
-  if (allFilesMode)
+  if (allFilesMode && !seqMode)
     numItems = _items.Size();
   if (_stream && numItems == 0)
     return S_OK;
   UInt64 totalSize = 0;
   UInt32 i;
-  for (i = 0; i < numItems; i++)
-    totalSize += _items[allFilesMode ? i : indices[i]].Get_UnpackSize();
-  RINOK(extractCallback->SetTotal(totalSize))
+  if (!(seqMode && allFilesMode))
+  {
+    for (i = 0; i < numItems; i++)
+      totalSize += _items[allFilesMode ? i : indices[i]].Get_UnpackSize();
+    RINOK(extractCallback->SetTotal(totalSize))
+  }
 
   UInt64 totalPackSize;
   totalSize = totalPackSize = 0;

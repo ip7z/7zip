@@ -1035,6 +1035,7 @@ void CPanel::ExtractArchives()
       , true   // showDialog
       , false  // elimDup
       , ci.WriteZone
+      , false  // enableChainedExtract
       );
 }
 

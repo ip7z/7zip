@@ -444,6 +444,56 @@ static bool IsItArcExt(const UString &ext)
   return false;
 }
 
+static bool IsTarCompoundExtension(const UString &ext)
+{
+  return ext.IsEqualTo_Ascii_NoCase("gz")
+      || ext.IsEqualTo_Ascii_NoCase("gzip")
+      || ext.IsEqualTo_Ascii_NoCase("bz2")
+      || ext.IsEqualTo_Ascii_NoCase("bzip2")
+      || ext.IsEqualTo_Ascii_NoCase("xz")
+      || ext.IsEqualTo_Ascii_NoCase("zst")
+      || ext.IsEqualTo_Ascii_NoCase("zstd")
+      || ext.IsEqualTo_Ascii_NoCase("z");
+}
+
+static bool GetChainedExtractFolderName(const UString &arcName, UString &folderName)
+{
+  int dotPos = arcName.ReverseFind_Dot();
+  if (dotPos < 0)
+    return false;
+
+  const UString ext = arcName.Ptr(dotPos + 1);
+  UString base = arcName.Left(dotPos);
+
+  if (ext.IsEqualTo_Ascii_NoCase("tgz")
+      || ext.IsEqualTo_Ascii_NoCase("tpz")
+      || ext.IsEqualTo_Ascii_NoCase("tbz")
+      || ext.IsEqualTo_Ascii_NoCase("tbz2")
+      || ext.IsEqualTo_Ascii_NoCase("txz")
+      || ext.IsEqualTo_Ascii_NoCase("tzst")
+      || ext.IsEqualTo_Ascii_NoCase("taz"))
+  {
+    base.TrimRight();
+    folderName = Get_Correct_FsFile_Name(base);
+    return true;
+  }
+
+  if (!IsTarCompoundExtension(ext))
+    return false;
+
+  dotPos = base.ReverseFind_Dot();
+  if (dotPos < 0)
+    return false;
+
+  if (!StringsAreEqualNoCase_Ascii(base.Ptr((unsigned)(dotPos + 1)), "tar"))
+    return false;
+
+  base.DeleteFrom((unsigned)dotPos);
+  base.TrimRight();
+  folderName = Get_Correct_FsFile_Name(base);
+  return true;
+}
+
 UString GetSubFolderNameForExtract(const UString &arcName);
 UString GetSubFolderNameForExtract(const UString &arcName)
 {
@@ -831,9 +881,14 @@ Z7_COMWF_B CZipContextMenu::QueryContextMenu(HMENU hMenu, UINT indexMenu,
         if (_dropMode)
           baseFolder = _dropPath;
     
-        UString specFolder ('*');
+        UString specFolderName ('*');
         if (_fileNames.Size() == 1)
-          specFolder = GetSubFolderNameForExtract(fs2us(fi0.Name));
+        {
+          const UString arcName = fs2us(fi0.Name);
+          if (!GetChainedExtractFolderName(arcName, specFolderName))
+            specFolderName = GetSubFolderNameForExtract(arcName);
+        }
+        UString specFolder = specFolderName;
         specFolder.Add_PathSepar();
 
         if ((contextMenuFlags & NContextMenuFlags::kExtract) != 0)
@@ -861,7 +916,7 @@ Z7_COMWF_B CZipContextMenu::QueryContextMenu(HMENU hMenu, UINT indexMenu,
           UString s;
           cmi.Folder = baseFolder + specFolder;
           AddCommand(kExtractTo, s, cmi);
-          MyFormatNew_ReducedName(s, specFolder);
+          MyFormatNew_ReducedName(s, specFolderName);
           Set_UserString_in_LastCommand(s);
           MyInsertMenu(popupMenu, subIndex++, currentCommandID++, s, bitmap);
         }
@@ -1285,7 +1340,8 @@ HRESULT CZipContextMenu::InvokeCommandCommon(const CCommandMapItem &cmi)
         ExtractArchives(_fileNames, cmi.Folder,
             (cmdID == kExtract), // showDialog
             (cmdID == kExtractTo) && _elimDup.Val, // elimDup
-            _writeZone
+            _writeZone,
+            true
             );
         break;
       }

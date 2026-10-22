@@ -3,6 +3,7 @@
 #ifndef ZIP7_INC_STREAM_BINDER_H
 #define ZIP7_INC_STREAM_BINDER_H
 
+#include "../../Common/MyCom.h"
 #include "../../Windows/Synchronization.h"
 
 #include "../IStream.h"

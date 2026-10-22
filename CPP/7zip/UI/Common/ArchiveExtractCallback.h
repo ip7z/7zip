@@ -384,6 +384,7 @@ private:
   bool _some_pathParts_wereRemoved;
 
   bool _multiArchives;
+  bool _disableProgress;
   bool _keepAndReplaceEmptyDirPrefixes; // replace them to "_";
 #if defined(_WIN32) && !defined(UNDER_CE) && !defined(Z7_SFX)
   bool _saclEnabled;
@@ -527,6 +528,11 @@ public:
   #endif
 
   void InitBeforeNewArchive();
+
+  void DisableProgress()
+  {
+    _disableProgress = true;
+  }
 
   void Init(
       const CExtractNtOptions &ntOptions,
