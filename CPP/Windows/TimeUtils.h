@@ -81,6 +81,17 @@ inline bool FILETIME_IsZero(const FILETIME &ft)
 
 #endif
 
+/* FiTime_Min3: returns the oldest (earliest) of three file times */
+inline CFiTime FiTime_Min3(const CFiTime &a, const CFiTime &b, const CFiTime &c)
+{
+  const CFiTime *m = &a;
+  if (Compare_FiTime(&b, m) < 0)
+    m = &b;
+  if (Compare_FiTime(&c, m) < 0)
+    m = &c;
+  return *m;
+}
+
 // void FiTime_Normalize_With_Prec(CFiTime &ft, unsigned prec);
 
 namespace NWindows {

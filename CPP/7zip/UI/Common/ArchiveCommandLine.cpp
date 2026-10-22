@@ -207,7 +207,8 @@ enum Enum
   kNameTrailReplace,
 
   kDeleteAfterCompressing,
-  kSetArcMTime
+  kSetArcMTime,
+  kOldestCTime
 
   #ifndef Z7_NO_CRYPTO
   , kPassword
@@ -359,7 +360,8 @@ static const CSwitchForm kSwitchForms[] =
   { "snt", SWFRM_MINUS },
   
   { "sdel", SWFRM_SIMPLE },
-  { "stl", SWFRM_SIMPLE }
+  { "stl", SWFRM_SIMPLE },
+  { "stc", SWFRM_SIMPLE }
 
   #ifndef Z7_NO_CRYPTO
   , { "p", SWFRM_STRING }
@@ -1644,6 +1646,8 @@ void CArcCmdLineParser::Parse2(CArcCmdLineOptions &options)
         nt.PreserveATime = true;
       if (parser[NKey::kShareForWrite].ThereIs)
         nt.OpenShareForWrite = true;
+      if (parser[NKey::kOldestCTime].ThereIs)
+        nt.OldestCTime = true;
     }
 
     if (parser[NKey::kZoneFile].ThereIs)
@@ -1812,6 +1816,15 @@ void CArcCmdLineParser::Parse2(CArcCmdLineOptions &options)
 
     updateOptions.DeleteAfterCompressing = parser[NKey::kDeleteAfterCompressing].ThereIs;
     updateOptions.SetArcMTime = parser[NKey::kSetArcMTime].ThereIs;
+
+    if (parser[NKey::kOldestCTime].ThereIs)
+    {
+      updateOptions.StoreOldestCTime = true;
+      // force storing CTime into archive (same as "-mtc"):
+      CProperty prop;
+      prop.Name = L"tc";
+      updateOptions.MethodMode.Properties.Add(prop);
+    }
 
     if (updateOptions.StdOutMode && updateOptions.EMailMode)
       throw CArcCmdLineException("stdout mode and email mode cannot be combined");

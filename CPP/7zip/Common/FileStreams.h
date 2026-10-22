@@ -94,6 +94,7 @@ public:
 
   bool _info_WasLoaded;
   bool SupportHardLinks;
+  bool StoreOldestCTime;
   IInFileStream_Callback *Callback;
   UINT_PTR CallbackRef;
 

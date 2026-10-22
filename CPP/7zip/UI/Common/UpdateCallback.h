@@ -118,6 +118,7 @@ class CArchiveUpdateCallback Z7_final:
 
 public:
   bool PreserveATime;
+  bool StoreOldestCTime;
   bool ShareForWrite;
   bool StopAfterOpenError;
   bool StdInMode;
