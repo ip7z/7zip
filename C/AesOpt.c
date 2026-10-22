@@ -990,7 +990,190 @@ AES_FUNC_START2 (AesCtr_Code_HW)
 
 #endif // USE_HW_AES
 
-#endif // MY_CPU_ARM_OR_ARM64
+#elif defined(MY_CPU_PPC_OR_PPC64)
+
+#if defined(__POWER8_VECTOR__) || defined(__CRYPTO__) \
+ || (defined(__GNUC__)  && (__GNUC__ >= 8)) \
+ || (defined(__clang__) && (__clang_major__ >= 7))
+  #define USE_HW_AES
+#endif
+
+#ifdef USE_HW_AES
+
+#if !defined(__CRYPTO__) && !defined(__POWER8_VECTOR__)
+  #if defined(__clang__)
+    #define ATTRIB_AES __attribute__((__target__("crypto")))
+  #else
+    #define ATTRIB_AES __attribute__((__target__("cpu=power8")))
+  #endif
+#endif
+
+#ifndef ATTRIB_AES
+  #define ATTRIB_AES
+#endif
+
+#include <altivec.h>
+
+typedef __vector unsigned char       v128;
+typedef __vector unsigned long long  v128_u64;
+
+#define AES_FUNC_START(name) \
+    void Z7_FASTCALL name(UInt32 *ivAes, Byte *data8, size_t numBlocks)
+
+#define AES_FUNC_START2(name) \
+AES_FUNC_START (name); \
+ATTRIB_AES \
+AES_FUNC_START (name)
+
+#define LOAD_128(pp)         ((v128)vec_xl_be(0, (const unsigned char *)(pp)))
+#define STORE_128(pp, _v)    vec_xst_be((v128)(_v), 0, (unsigned char *)(pp))
+
+#if defined(MY_CPU_LE)
+  /* On LE the UInt32 round-key / IV storage byte order in memory matches
+     AES's input byte sequence, so the data and key loaders coincide. */
+  #define LOAD_KEY_128(pp)        LOAD_128(pp)
+  #define STORE_STATE_128(pp, _v) STORE_128(pp, _v)
+#else
+  /* On BE the UInt32 storage bytes are reversed within each 32-bit word
+     relative to AES's expected sequence; reverse per 32-bit element on
+     load and store of round keys / IV. */
+  #if defined(_ARCH_PWR9) || defined(__POWER9_VECTOR__)
+    /* POWER9+ ISA 3.0: single xxbrw instruction. */
+    #define PPC_AES_REVW(_v) ((v128)vec_revb((__vector unsigned int)(_v)))
+  #else
+    /* POWER8 fallback: vec_perm with a constant byte-reverse-per-word
+       mask. The mask selects bytes from the input vector in the order
+       {3,2,1,0,7,6,5,4,11,10,9,8,15,14,13,12}. */
+    #define PPC_AES_REVW(_v) ((v128)vec_perm((v128)(_v), (v128)(_v), \
+        (__vector unsigned char){ \
+          3,  2,  1,  0,  7,  6,  5,  4, \
+         11, 10,  9,  8, 15, 14, 13, 12 }))
+  #endif
+  #define LOAD_KEY_128(pp)        PPC_AES_REVW(LOAD_128(pp))
+  #define STORE_STATE_128(pp, _v) STORE_128(pp, PPC_AES_REVW(_v))
+#endif
+
+#define MM_XOR(dest, src)    dest = vec_xor(dest, src);
+#define MM_OP_HW(op, dest, src) \
+    dest = (v128)op((v128_u64)dest, (v128_u64)src);
+
+#define AES_E(reg, k)        MM_OP_HW (__builtin_crypto_vcipher,     reg, k)
+#define AES_E_LAST(reg, k)   MM_OP_HW (__builtin_crypto_vcipherlast, reg, k)
+#define AES_D(reg, k)        MM_OP_HW (__builtin_crypto_vncipher,    reg, k)
+#define AES_D_LAST(reg, k)   MM_OP_HW (__builtin_crypto_vncipherlast,reg, k)
+
+
+AES_FUNC_START2 (AesCbc_Encode_HW)
+{
+  if (numBlocks == 0)
+    return;
+  {
+    Byte *p = (Byte *)(void *)ivAes;
+    Byte *cur = data8;
+    v128 m = LOAD_KEY_128(p);
+    const v128 k0 = LOAD_KEY_128(p + 16 * 2);
+    const v128 k1 = LOAD_KEY_128(p + 16 * 3);
+    const UInt32 numRounds2 = *(const UInt32 *)(const void *)(p + 16) - 1;
+    do
+    {
+      UInt32 r = numRounds2;
+      const Byte *w = p + 16 * 4;
+      v128 temp = LOAD_128(cur);
+      MM_XOR(temp, k0)
+      MM_XOR(m, temp)
+      AES_E(m, k1)
+      do
+      {
+        AES_E(m, LOAD_KEY_128(w))
+        AES_E(m, LOAD_KEY_128(w + 16))
+        w += 32;
+      }
+      while (--r);
+      AES_E_LAST(m, LOAD_KEY_128(w))
+      STORE_128(cur, m);
+      cur += 16;
+    }
+    while (--numBlocks);
+    STORE_STATE_128(p, m);
+  }
+}
+
+
+AES_FUNC_START2 (AesCbc_Decode_HW)
+{
+  if (numBlocks == 0)
+    return;
+  {
+    Byte *p = (Byte *)(void *)ivAes;
+    Byte *cur = data8;
+    v128 iv = LOAD_KEY_128(p);
+    const UInt32 numRounds = *(const UInt32 *)(const void *)(p + 16) * 2;
+    const Byte * const kFirst = p + 16 * 2;
+    const Byte * const kLast  = kFirst + (size_t)numRounds * 16;
+    do
+    {
+      v128 m = LOAD_128(cur);
+      const v128 ct_save = m;
+      const Byte *w = kLast - 16;
+      MM_XOR(m, LOAD_KEY_128(kLast))
+      do
+      {
+        AES_D(m, LOAD_KEY_128(w))
+        w -= 16;
+      }
+      while (w != kFirst);
+      AES_D_LAST(m, LOAD_KEY_128(w))
+      MM_XOR(m, iv)
+      STORE_128(cur, m);
+      iv = ct_save;
+      cur += 16;
+    }
+    while (--numBlocks);
+    STORE_STATE_128(p, iv);
+  }
+}
+
+
+AES_FUNC_START2 (AesCtr_Code_HW)
+{
+  if (numBlocks == 0)
+    return;
+  {
+    Byte *p = (Byte *)(void *)ivAes;
+    Byte *cur = data8;
+    UInt32 *ctr32 = (UInt32 *)(void *)ivAes;
+    const UInt32 numRounds2 = *(const UInt32 *)(const void *)(p + 16) - 1;
+    const Byte * const kFirst = p + 16 * 2;
+    do
+    {
+      UInt32 r = numRounds2;
+      const Byte *w = kFirst + 16;
+      v128 m, d;
+      if (++ctr32[0] == 0)
+        ctr32[1]++;
+      m = LOAD_KEY_128(p);
+      MM_XOR(m, LOAD_KEY_128(kFirst))
+      do
+      {
+        AES_E(m, LOAD_KEY_128(w))
+        AES_E(m, LOAD_KEY_128(w + 16))
+        w += 32;
+      }
+      while (--r);
+      AES_E(m, LOAD_KEY_128(w))
+      AES_E_LAST(m, LOAD_KEY_128(w + 16))
+      d = LOAD_128(cur);
+      MM_XOR(m, d)
+      STORE_128(cur, m);
+      cur += 16;
+    }
+    while (--numBlocks);
+  }
+}
+
+#endif // USE_HW_AES
+
+#endif // MY_CPU_X86_OR_AMD64 / MY_CPU_ARM_OR_ARM64 / MY_CPU_PPC_OR_PPC64
 
 #undef NUM_WAYS
 #undef WOP_M1
