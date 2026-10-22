@@ -463,7 +463,12 @@ Z7_COM7F_IMF(CHandler::GetProperty(UInt32 index, PROPID propID, PROPVARIANT *val
   {
     case kpidPath:
     {
-      UString s = NItemName::WinPathToOsPath(MultiByteToUnicodeString(item.GetName(), CP_OEMCP));
+      UString res;
+      #ifndef _WIN32
+      if (!UnixConvertLegacyToUnicode(item.GetName(), res, true, false, 0))
+      #endif
+        MultiByteToUnicodeString2(res, item.GetName(), CP_OEMCP);
+      UString s = NItemName::WinPathToOsPath(res);
       if (!s.IsEmpty())
       {
         if (s.Back() == WCHAR_PATH_SEPARATOR)

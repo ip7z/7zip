@@ -433,6 +433,15 @@ void CItem::GetUnicodeString(UString &res, const AString &s, bool isComment, boo
       }
     }
     
+    #ifndef _WIN32
+    bool isOem = false;
+    bool isAnsi = false;
+    if (MadeByVersion.HostOS == NFileHeader::NHostOS::kNTFS && MadeByVersion.Version >= 20) isAnsi = true;
+    else if (MadeByVersion.HostOS == NFileHeader::NHostOS::kNTFS || MadeByVersion.HostOS == NFileHeader::NHostOS::kFAT) isOem = true;
+    if (isOem || isAnsi || (useSpecifiedCodePage && codePage != 65001))
+      if (UnixConvertLegacyToUnicode(s, res, isOem, useSpecifiedCodePage, codePage)) return;
+    #endif
+
     if (useSpecifiedCodePage)
       isUtf8 = (codePage == CP_UTF8);
     #ifdef _WIN32
