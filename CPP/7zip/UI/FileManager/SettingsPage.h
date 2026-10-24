@@ -12,6 +12,7 @@ class CSettingsPage: public NWindows::NControl::CPropertyPage
   bool _wasChanged;
   bool _largePages_wasChanged;
   bool _memx_wasChanged;
+  bool _dirTimes_wasChanged;
   bool _initMode;
   /*
   bool _wasChanged_MemLimit;

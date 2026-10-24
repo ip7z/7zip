@@ -1,18 +1,26 @@
 # Directory timestamps during extraction
 
-The extraction dialog includes **Use current timestamps for directories**. It is
-unchecked by default and applies to the current extraction operation (it is not
-saved in the registry). The control has a localization ID and falls back to its
-English resource label when the language file has no translation. The same
-option is available in the console and GUI
-command lines:
+Set the persistent GUI default in **Tools > Options > Settings > Use current
+timestamps for directories**, then click **Apply** or **OK**. It is initially off
+and is saved per user as the DWORD `UseCurrentDirTimes` under
+`HKEY_CURRENT_USER\Software\7-Zip\Extraction` (0 = off, 1 = on).
+
+GUI extraction operations, including extraction without a dialog and File Manager
+copy-out operations, read this default. The extraction dialog also includes the
+same checkbox as an override for that operation; changing that checkbox does not
+change the persistent configuration. Explicit `-sctd` and `-sctd-` switches override
+the saved default in the GUI command line. Console applications keep their own
+default of off and use the explicit switches.
+
+Both controls share a localization ID and fall back to the English resource label
+when the language file has no translation. Command-line usage:
 
 ```powershell
 .\CPP\7zip\Bundles\Alone2\x64\7zz.exe x archive.7z -ooutput -sctd
 ```
 
-`-sctd-` explicitly disables it. Omitting the switch preserves the original
-behavior.
+`-sctd-` explicitly disables it. With no saved preference and no switch, the
+original behavior is preserved.
 
 With the option enabled, directories successfully created during extraction get
 the system's current modification time after archive contents and delayed links
@@ -41,7 +49,14 @@ new timestamp pass.
 - `CPP/7zip/UI/Console/Main.cpp`: document the switch in console help.
 - `CPP/7zip/UI/GUI/ExtractDialog.h`, `ExtractDialog.cpp`, `ExtractDialog.rc`,
   `ExtractDialogRes.h`, and `ExtractGUI.cpp`: checkbox and option plumbing.
+- `CPP/7zip/UI/Common/ZipRegistry.h` and `ZipRegistry.cpp`: persistent GUI
+  configuration and explicit-option precedence.
+- `CPP/7zip/UI/FileManager/SettingsPage.cpp`, `SettingsPage.h`,
+  `SettingsPage2.rc`, and `SettingsPageRes.h`: configuration control.
+- `CPP/7zip/UI/Agent/Agent.cpp`: apply the default to File Manager copy-out.
 - `tests/test_current_dir_times.py`: standard-library integration tests.
+- `tests/test_directory_time_config.cpp` and `test_directory_time_config.ps1`:
+  isolated Windows registry persistence and precedence test.
 
 ## Exact build commands
 
@@ -86,3 +101,17 @@ The 13 integration tests passed on Windows x64 using Python 3.12. Full forced
 MSVC 19.44 x64 builds of the three executables above were also validated.
 Interactive GUI operation, Windows CE, and non-Windows builds have not been
 validated.
+
+## Configuration test
+
+After building the GUI, run from an x64 Visual Studio developer PowerShell:
+
+```powershell
+powershell -NoProfile -File tests/test_directory_time_config.ps1
+```
+
+The test links the actual registry implementation. It checks the missing-value
+(default off) case, saved on/off values, persistence across separate processes,
+explicit-option precedence, and isolation from extraction-history saves. It uses
+`RegOverridePredefKey` with an isolated temporary HKCU key, cleans it up, and never
+changes the user's live 7-Zip configuration. This test passed on Windows x64.

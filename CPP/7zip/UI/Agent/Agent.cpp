@@ -20,6 +20,9 @@
 #include "../../Archive/Common/ItemNameUtils.h"
 
 #include "../Common/ArchiveExtractCallback.h"
+#ifndef Z7_NO_REGISTRY
+#include "../Common/ZipRegistry.h"
+#endif
 #include "../FileManager/RegistryUtils.h"
 
 #include "Agent.h"
@@ -1525,6 +1528,9 @@ Z7_COM7F_IMF(CAgentFolder::Extract(const UInt32 *indices,
   }
 
   CExtractNtOptions extractNtOptions;
+  #ifndef Z7_NO_REGISTRY
+  NExtract::Load_UseCurrentDirTimes(extractNtOptions.UseCurrentDirTimes);
+  #endif
   extractNtOptions.AltStreams.Val = IntToBool(includeAltStreams); // change it!!!
   extractNtOptions.AltStreams.Def = true;
 
@@ -1843,6 +1849,9 @@ Z7_COM7F_IMF(CAgent::Extract(
       k_keepEmptyDirPrefixes);
 
   CExtractNtOptions extractNtOptions;
+  #ifndef Z7_NO_REGISTRY
+  NExtract::Load_UseCurrentDirTimes(extractNtOptions.UseCurrentDirTimes);
+  #endif
   extractNtOptions.AltStreams.Val = true; // change it!!!
   extractNtOptions.AltStreams.Def = true; // change it!!!
   extractNtOptions.ReplaceColonForAltStream = false; // change it!!!

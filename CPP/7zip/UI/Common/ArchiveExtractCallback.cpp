@@ -536,7 +536,7 @@ void CArchiveExtractCallback::CreateComplexDirectory(
         hres = GetLastError_noZero_HRESULT();
 #endif
 
-      if (_ntOptions.UseCurrentDirTimes && hres == S_OK)
+      if (_ntOptions.UseCurrentDirTimes.Val && hres == S_OK)
         AddCreatedDirectory(fullPath);
 
       if (isFinalDir && !NFile::NFind::DoesDirExist(fullPath))
@@ -3220,7 +3220,7 @@ HRESULT CArchiveExtractCallback::SetDirsTimes()
   #endif // _WIN32
   */
 
-  if (_ntOptions.UseCurrentDirTimes)
+  if (_ntOptions.UseCurrentDirTimes.Val)
   {
     // Do this after archive times and post links, including implicit parents.
     // Filesystem timestamps use UTC; the UI displays them in local time.

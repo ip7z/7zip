@@ -57,7 +57,7 @@ struct CExtractNtOptions
   bool ReplaceColonForAltStream;
   bool WriteToAltStreamIfColon;
 
-  bool UseCurrentDirTimes;
+  CBoolPair UseCurrentDirTimes;
 
   bool ExtractOwner;
 
@@ -74,7 +74,6 @@ struct CExtractNtOptions
   CExtractNtOptions():
       ReplaceColonForAltStream(false),
       WriteToAltStreamIfColon(false),
-      UseCurrentDirTimes(false),
       ExtractOwner(false),
       PreserveATime(false),
       OpenShareForWrite(false),

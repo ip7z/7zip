@@ -194,7 +194,7 @@ static HRESULT DecompressArchive(
   #endif
 
   FStringVector createdOutDirs;
-  if (options.NtOptions.UseCurrentDirTimes && !options.TestMode && !options.StdOutMode
+  if (options.NtOptions.UseCurrentDirTimes.Val && !options.TestMode && !options.StdOutMode
       && !outDir.IsEmpty())
   {
     // Remember missing output path components before CreateComplexDir creates them.

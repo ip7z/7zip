@@ -1614,7 +1614,8 @@ void CArcCmdLineParser::Parse2(CArcCmdLineOptions &options)
     {
       CExtractNtOptions &nt = eo.NtOptions;
       nt.NtSecurity = options.NtSecurity;
-      nt.UseCurrentDirTimes = parser[NKey::kUseCurrentDirTimes].ThereIs
+      nt.UseCurrentDirTimes.Def = parser[NKey::kUseCurrentDirTimes].ThereIs;
+      nt.UseCurrentDirTimes.Val = nt.UseCurrentDirTimes.Def
           && !parser[NKey::kUseCurrentDirTimes].WithMinus;
 
       nt.AltStreams = options.AltStreams;
