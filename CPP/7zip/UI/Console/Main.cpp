@@ -192,6 +192,7 @@ static const char * const kHelpString =
     "  -spf[2] : use fully qualified file paths\n"
     "  -ssc[-] : set sensitive case mode\n"
     "  -sse : stop archive creating, if it can't open some input file\n"
+    "  -sctd[-] : use current timestamps for newly created directories on extraction\n"
     "  -ssp : do not change Last Access Time of source files while archiving\n"
     "  -ssw : compress shared files\n"
     "  -stl : set archive timestamp from the most recently modified file\n"

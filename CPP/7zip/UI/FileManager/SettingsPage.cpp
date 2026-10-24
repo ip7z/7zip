@@ -37,6 +37,7 @@ static const UInt32 kLangIDs[] =
   IDX_SETTINGS_SINGLE_CLICK,
   IDX_SETTINGS_ALTERNATIVE_SELECTION,
   IDX_SETTINGS_LARGE_PAGES,
+  IDX_SETTINGS_CURRENT_DIR_TIMES,
   IDT_MEM_USAGE_EXTRACT
   // , IDT_COMPRESS_MEMORY
 };
@@ -117,6 +118,7 @@ bool CSettingsPage::OnInit()
   _wasChanged = false;
   _largePages_wasChanged = false;
   _memx_wasChanged = false;
+  _dirTimes_wasChanged = false;
   /*
   _wasChanged_MemLimit = false;
   _memLimitStrings.Clear();
@@ -129,6 +131,8 @@ bool CSettingsPage::OnInit()
 
   CFmSettings st;
   st.Load();
+
+  CheckButton(IDX_SETTINGS_CURRENT_DIR_TIMES, NExtract::Read_UseCurrentDirTimes());
 
   CheckButton(IDX_SETTINGS_SHOW_DOTS, st.ShowDots);
   CheckButton(IDX_SETTINGS_SHOW_REAL_FILE_ICONS, st.ShowRealFileIcons);
@@ -271,6 +275,12 @@ static void AddSize_MB(UString &s, UInt64 size)
 
 LONG CSettingsPage::OnApply()
 {
+  if (_dirTimes_wasChanged)
+  {
+    NExtract::Save_UseCurrentDirTimes(IsButtonCheckedBool(IDX_SETTINGS_CURRENT_DIR_TIMES));
+    _dirTimes_wasChanged = false;
+  }
+
   if (_wasChanged)
   {
     CFmSettings st;
@@ -431,6 +441,10 @@ bool CSettingsPage::OnButtonClicked(unsigned buttonID, HWND buttonHWND)
     case IDX_SETTINGS_SHOW_GRID:
     case IDX_SETTINGS_ALTERNATIVE_SELECTION:
       _wasChanged = true;
+      break;
+
+    case IDX_SETTINGS_CURRENT_DIR_TIMES:
+      _dirTimes_wasChanged = true;
       break;
 
     case IDX_SETTINGS_LARGE_PAGES:

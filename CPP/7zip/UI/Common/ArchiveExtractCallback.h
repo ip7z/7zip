@@ -57,6 +57,8 @@ struct CExtractNtOptions
   bool ReplaceColonForAltStream;
   bool WriteToAltStreamIfColon;
 
+  CBoolPair UseCurrentDirTimes;
+
   bool ExtractOwner;
 
   bool PreAllocateOutFile;
@@ -454,6 +456,8 @@ private:
   // bool _progressTotal_Defined;
 
   CObjectVector<CDirPathTime> _extractedFolders;
+  // Kept across archives in one extraction operation.
+  FStringVector _createdFolders;
   
   #ifndef _WIN32
   // CObjectVector<NWindows::NFile::NDir::CDelayedSymLink> _delayedSymLinks;
@@ -501,6 +505,7 @@ public:
       NExtract::NZoneIdMode::EEnum zoneMode,
       bool keepAndReplaceEmptyDirPrefixes)
   {
+    _createdFolders.Clear();
     _multiArchives = multiArchives;
     _pathMode = pathMode;
     _overwriteMode = overwriteMode;
@@ -580,6 +585,8 @@ public:
     _use_baseParentFolder_mode = true;
   }
   #endif
+
+  void AddCreatedDirectory(const FString &path) { _createdFolders.Add(path); }
 
   HRESULT CloseArc();
 
