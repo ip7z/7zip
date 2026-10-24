@@ -80,6 +80,7 @@ static const UInt32 kLangIDs[] =
   // IDX_EXTRACT_ALT_STREAMS,
   IDX_EXTRACT_NT_SECUR,
   IDX_EXTRACT_ELIM_DUP,
+  IDX_EXTRACT_CURRENT_DIR_TIMES,
   IDG_PASSWORD,
   IDX_PASSWORD_SHOW
 };
@@ -185,6 +186,8 @@ bool CExtractDialog::OnInit()
   UpdatePasswordControl();
 
   #endif
+
+  CheckButton(IDX_EXTRACT_CURRENT_DIR_TIMES, UseCurrentDirTimes);
 
   _path.Attach(GetItem(IDC_EXTRACT_PATH));
 
@@ -347,6 +350,8 @@ void CExtractDialog::OnOK()
 
   #endif
   
+  UseCurrentDirTimes = IsButtonCheckedBool(IDX_EXTRACT_CURRENT_DIR_TIMES);
+
   UString s;
   
   #ifdef Z7_NO_REGISTRY

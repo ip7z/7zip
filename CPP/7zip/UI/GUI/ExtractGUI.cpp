@@ -219,6 +219,7 @@ HRESULT ExtractGUI(
       dialog.PathMode = options.PathMode;
       dialog.PathMode_Force = options.PathMode_Force;
       dialog.ElimDup = options.ElimDup;
+      dialog.UseCurrentDirTimes = options.NtOptions.UseCurrentDirTimes;
 
       if (archivePathsFull.Size() == 1)
         dialog.ArcPath = archivePathsFull[0];
@@ -238,6 +239,7 @@ HRESULT ExtractGUI(
       options.OverwriteMode = dialog.OverwriteMode;
       options.PathMode = dialog.PathMode;
       options.ElimDup = dialog.ElimDup;
+      options.NtOptions.UseCurrentDirTimes = dialog.UseCurrentDirTimes;
       
       #ifndef Z7_SFX
       // options.NtOptions.AltStreams = dialog.AltStreams;
