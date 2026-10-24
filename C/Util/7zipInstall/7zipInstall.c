@@ -810,13 +810,6 @@ static void SetShellProgramsGroup(HWND hwndOwner)
       continue;
 
     NormalizePrefix(link);
-    CatAscii(link, k_7zip);
-    // CatAscii(link, "2");
-    
-    if (i != 0)
-      MyCreateDir(link);
-    
-    NormalizePrefix(link);
     
     {
       unsigned baseLen = (unsigned)wcslen(link);
@@ -826,7 +819,6 @@ static void SetShellProgramsGroup(HWND hwndOwner)
       {
         CpyAscii(link + baseLen, k == 0 ?
             "7-Zip File Manager.lnk" :
-            "7-Zip Help.lnk"
            );
         wcscpy(destPath, path);
         CatAscii(destPath, k == 0 ?
