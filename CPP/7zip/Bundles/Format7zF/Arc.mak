@@ -81,6 +81,7 @@ AR_OBJS = \
   $O\IhexHandler.obj \
   $O\LpHandler.obj \
   $O\LzhHandler.obj \
+  $O\LzipHandler.obj \
   $O\LzmaHandler.obj \
   $O\MachoHandler.obj \
   $O\MbrHandler.obj \
