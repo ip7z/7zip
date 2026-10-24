@@ -37,6 +37,7 @@ void LangString_OnlyFromLangFile(UInt32 langID, UString &dest);
 inline UString LangString(UInt32 langID) { return NWindows::MyLoadString(langID); }
 inline void LangString(UInt32 langID, UString &dest) { NWindows::MyLoadString(langID, dest); }
 inline void AddLangString(UString &s, UInt32 langID) { s += NWindows::MyLoadString(langID); }
+inline void LangString_OnlyFromLangFile(UInt32, UString &dest) { dest.Empty(); }
 
 #endif
 

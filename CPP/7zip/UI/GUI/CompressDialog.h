@@ -70,6 +70,11 @@ namespace NCompressDialog
     CBoolPair SetArcMTime;
     
     UString ArcPath; // in: Relative or abs ; out: Relative or abs
+    UStringVector ArcPaths;
+    UStringVector ItemPaths;
+    UStringVector ItemOutputItemPaths;
+    UStringVector ItemArcPaths;
+    bool SeparateItemArchives;
     
     // FString CurrentDirPrefix;
     bool KeepName;
@@ -88,6 +93,7 @@ namespace NCompressDialog
         SFXMode(false),
         OpenShareForWrite(false),
         DeleteAfterCompressing(false),
+        SeparateItemArchives(false),
         FormatIndex(-1)
     {
       Level = Order = (UInt32)(Int32)-1;
@@ -148,9 +154,41 @@ public:
   CBool1 NtSecurity;
   CBool1 PreserveATime;
 private:
+  struct CLayoutItem
+  {
+    unsigned Id;
+    RECT Rect;
+  };
+
+  struct CItemOutputGroup
+  {
+    UString ItemPath;
+    UStringVector ArcPaths;
+  };
+
+  static const unsigned kNumOutputPathRows = 5;
+
   bool _ramSize_Defined;
+  bool _outputLayout_Inited;
+  UStringVector _outputArcPaths;
+  CObjectVector<CItemOutputGroup> _itemOutputGroups;
+  CRecordVector<CLayoutItem> _outputLayout_Items;
+  unsigned _outputPathCount;
+  int _outputPathRowStep;
+  int _outputLayout_BaseWindowX;
+  int _outputLayout_BaseWindowY;
+  int _outputLayout_BaseControlsTop;
+  int _outputGroupGapY;
+  RECT _outputTemplate_ItemLabelRect;
+  RECT _outputTemplate_CountLabelRect;
+  RECT _outputTemplate_CountComboRect;
+  RECT _outputTemplate_ArchiveLabelRect;
+  RECT _outputTemplate_ArchiveComboRects[kNumOutputPathRows];
+  RECT _outputTemplate_ArchiveButtonRects[kNumOutputPathRows];
 
   NWindows::NControl::CComboBox m_ArchivePath;
+  NWindows::NControl::CComboBox m_OutputPathCount;
+  NWindows::NControl::CComboBox m_ExtraArchivePaths[kNumOutputPathRows - 1];
   NWindows::NControl::CComboBox m_Format;
   NWindows::NControl::CComboBox m_Level;
   NWindows::NControl::CComboBox m_Method;
@@ -339,8 +377,34 @@ public:
 
   void UpdatePasswordControl();
   bool IsShowPasswordChecked() const { return IsButtonCheckedBool(IDX_PASSWORD_SHOW); }
+  bool IsMultiItemMode() const { return Info.ItemPaths.Size() > 1; }
 
   unsigned GetFormatIndex();
+  void InitOutputPathLayout();
+  void UpdateOutputPathLayout();
+  void UpdateOutputPathControls();
+  void RefreshArchivePathInfo();
+  void SyncPrimaryArcPathFromControl();
+  void SyncExtraArcPathsFromControls();
+  void SetOutputPathCount(unsigned count, bool syncFromControls = true);
+  void SetOutputArcPaths(const UStringVector &paths);
+  bool GetOutputArcPaths(UStringVector &paths) const;
+  void InitItemOutputGroups();
+  void CreateDynamicItemOutputControls();
+  void LayoutItemOutputGroups();
+  void UpdateItemOutputGroupControls(unsigned groupIndex);
+  void SyncItemOutputGroupFromControls(unsigned groupIndex);
+  void SyncAllItemOutputGroupsFromControls();
+  void SetItemOutputGroupCount(unsigned groupIndex, unsigned count, bool syncFromControls = true);
+  bool GetItemOutputGroupPaths(UStringVector &itemPaths, UStringVector &paths) const;
+  bool BrowseItemOutputPath(unsigned groupIndex, unsigned pathIndex);
+  void UpdateSeparateItemModeControls();
+  bool GetItemArcPaths(UStringVector &itemPaths, UStringVector &paths) const;
+  void BuildItemArcPath(const UString &inputPath, UString &path);
+  void UpdateItemArcPathToCurrentFormat(UString &path, int prevFormat, bool prevWasSFX);
+  void UpdateArcPathToCurrentFormat(UString &path, int prevFormat, bool prevWasSFX);
+  void UpdateExtraArcPathsForFormatChange(int prevFormat, bool prevWasSFX);
+  bool BrowseArchivePath(UString &path, bool allowFormatChange, bool &formatWasChanged);
   bool SetArcPathFields(const UString &path, UString &name, bool always);
   bool SetArcPathFields(const UString &path);
   bool GetFinalPath_Smart(UString &resPath) const;
@@ -351,6 +415,7 @@ public:
   void EnableMultiCombo(unsigned id);
   void FormatChanged(bool isChanged);
 
+  void OnButtonSetArchivePath(unsigned index);
   void OnButtonSetArchive();
   bool IsSFX();
   void OnButtonSFX();
@@ -381,11 +446,18 @@ public:
 
   INT_PTR Create(HWND wndParent = NULL)
   {
-    BIG_DIALOG_SIZE(400, 320);
+    BIG_DIALOG_SIZE(400, 430);
     return CModalDialog::Create(SIZED_DIALOG(IDD_COMPRESS), wndParent);
   }
 
-  CCompressDialog() {}
+  CCompressDialog():
+      _ramSize_Defined(false),
+      _outputLayout_Inited(false),
+      _outputPathCount(1),
+      _outputPathRowStep(0),
+      _outputLayout_BaseWindowX(0),
+      _outputLayout_BaseWindowY(0)
+      {}
 };
 
 

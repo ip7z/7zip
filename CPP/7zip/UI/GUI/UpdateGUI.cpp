@@ -29,11 +29,34 @@ using namespace NFile;
 using namespace NDir;
 
 static const char * const kDefaultSfxModule = "7z.sfx";
-static const char * const kSFXExtension = "exe";
 
 extern void AddMessageToString(UString &dest, const UString &src);
 
 UString HResultToMessage(HRESULT errorCode);
+
+static void AddUniquePath(UStringVector &paths, const UString &path)
+{
+  FOR_VECTOR (i, paths)
+    if (path.IsEqualTo_NoCase(paths[i]))
+      return;
+  paths.Add(path);
+}
+
+static void PrepareWorkingDirForArchivePath(const UString &userArchivePath, CUpdateOptions &options)
+{
+  NWorkDir::CInfo workDirInfo;
+  workDirInfo.Load();
+  options.WorkingDir.Empty();
+  if (workDirInfo.Mode != NWorkDir::NMode::kCurrent)
+  {
+    FString fullPath;
+    if (!MyGetFullPathName(us2fs(userArchivePath), fullPath))
+      return;
+    FString namePart;
+    options.WorkingDir = GetWorkDir(workDirInfo, fullPath, namePart);
+    CreateComplexDir(options.WorkingDir);
+  }
+}
 
 class CThreadUpdating: public CProgressThreadVirt
 {
@@ -50,15 +73,67 @@ public:
  
 HRESULT CThreadUpdating::ProcessVirt()
 {
-  CUpdateErrorInfo ei;
-  HRESULT res = UpdateArchive(codecs, *formatIndices, *cmdArcPath,
-      *WildcardCensor, *Options,
-      ei, UpdateCallbackGUI, UpdateCallbackGUI, needSetPath);
-  FinalMessage.ErrorMessage.Message = ei.Message.Ptr();
-  ErrorPaths = ei.FileNames;
-  if (res != S_OK)
-    return res;
-  return HRESULT_FROM_WIN32(ei.SystemError);
+  if (!Options->SeparateItemMode)
+  {
+    CUpdateErrorInfo ei;
+    HRESULT res = UpdateArchive(codecs, *formatIndices, *cmdArcPath,
+        *WildcardCensor, *Options,
+        ei, UpdateCallbackGUI, UpdateCallbackGUI, needSetPath);
+    FinalMessage.ErrorMessage.Message = ei.Message.Ptr();
+    ErrorPaths = ei.FileNames;
+    if (res != S_OK)
+      return res;
+    return HRESULT_FROM_WIN32(ei.SystemError);
+  }
+
+  if (Options->SeparateItemPaths.IsEmpty() ||
+      Options->SeparateItemPaths.Size() != Options->SeparateItemArchivePaths.Size())
+  {
+    FinalMessage.ErrorMessage.Message = L"Invalid per-item output configuration";
+    return E_FAIL;
+  }
+
+  NUpdateArchive::CActionSet actionSet = NUpdateArchive::k_ActionSet_Add;
+  if (!Options->Commands.IsEmpty())
+    actionSet = Options->Commands.Front().ActionSet;
+
+  FOR_VECTOR (i, Options->SeparateItemPaths)
+  {
+    CUpdateOptions options = *Options;
+    options.SeparateItemMode = false;
+    options.SeparateItemPaths.Clear();
+    options.SeparateItemArchivePaths.Clear();
+    options.Commands.Clear();
+
+    CUpdateArchiveCommand command;
+    command.ActionSet = actionSet;
+    command.UserArchivePath = Options->SeparateItemArchivePaths[i];
+    options.Commands.Add(command);
+
+    if (!options.SetArcPath(codecs, command.UserArchivePath))
+    {
+      FinalMessage.ErrorMessage.Message = L"Update is not supported";
+      return E_NOTIMPL;
+    }
+
+    PrepareWorkingDirForArchivePath(command.UserArchivePath, options);
+
+    NWildcard::CCensor censor;
+    censor.AddPreItem_NoWildcard(Options->SeparateItemPaths[i]);
+
+    CUpdateErrorInfo ei;
+    HRESULT res = UpdateArchive(codecs, *formatIndices, command.UserArchivePath,
+        censor, options,
+        ei, UpdateCallbackGUI, UpdateCallbackGUI, false);
+    FinalMessage.ErrorMessage.Message = ei.Message.Ptr();
+    ErrorPaths = ei.FileNames;
+    if (res != S_OK)
+      return res;
+    if (ei.ThereIsError())
+      return ei.Get_HRESULT_Error();
+  }
+
+  return S_OK;
 }
 
 
@@ -318,8 +393,8 @@ static HRESULT ShowDialog(
     CUpdateOptions &options,
     CUpdateCallbackGUI *callback, HWND hwndParent)
 {
-  if (options.Commands.Size() != 1)
-    throw "It must be one command";
+  if (options.Commands.IsEmpty())
+    options.SetActionCommand_Add();
   /*
   FString currentDirPrefix;
   #ifndef UNDER_CE
@@ -418,9 +493,34 @@ static HRESULT ShowDialog(
     return E_FAIL;
   }
 
-  // di.ArchiveName = options.ArchivePath.GetFinalPath();
-  di.ArcPath = options.ArchivePath.GetPathWithoutExt();
+  di.ArcPaths.Clear();
+  FOR_VECTOR (i, options.Commands)
+  {
+    const CUpdateArchiveCommand &command = options.Commands[i];
+    UString path = command.UserArchivePath;
+    if (path.IsEmpty())
+      path = command.ArchivePath.GetFinalPath();
+    if (!path.IsEmpty())
+      di.ArcPaths.Add(path);
+  }
+  if (di.ArcPaths.IsEmpty())
+    di.ArcPaths.Add(options.ArchivePath.GetFinalPath());
+  di.ArcPath = di.ArcPaths.Front();
   dialog.OriginalFileName = fs2us(fileInfo.Name);
+  di.ItemPaths.Clear();
+  FOR_VECTOR (i, censor)
+  {
+    const NWildcard::CCensorPath &cp = censor[i];
+    if (!cp.Include)
+      continue;
+    UString path = cp.Path;
+    path.Trim();
+    if (!path.IsEmpty())
+      AddUniquePath(di.ItemPaths, path);
+  }
+  di.ItemOutputItemPaths = options.SeparateItemPaths;
+  di.ItemArcPaths = options.SeparateItemArchivePaths;
+  di.SeparateItemArchives = options.SeparateItemMode;
 
   di.PathMode = options.PathMode;
     
@@ -443,7 +543,7 @@ static HRESULT ShowDialog(
     
   di.KeepName = !oneFile;
 
-  NUpdateArchive::CActionSet &actionSet = options.Commands.Front().ActionSet;
+  NUpdateArchive::CActionSet actionSet = options.Commands.Front().ActionSet;
  
   {
     int index = FindActionSet(actionSet);
@@ -513,30 +613,39 @@ static HRESULT ShowDialog(
   options.OpenShareForWrite = di.OpenShareForWrite;
   ParseAndAddPropertires(options.MethodMode.Properties, optionStrings);
 
-  if (di.SFXMode)
-    options.SfxMode = true;
+  options.SfxMode = di.SFXMode;
   options.MethodMode.Type = COpenType();
   options.MethodMode.Type_Defined = true;
   options.MethodMode.Type.FormatIndex = di.FormatIndex;
 
-  options.ArchivePath.VolExtension = archiverInfo.GetMainExt();
-  if (di.SFXMode)
-    options.ArchivePath.BaseExtension = kSFXExtension;
-  else
-    options.ArchivePath.BaseExtension = options.ArchivePath.VolExtension;
-  options.ArchivePath.ParseFromPath(di.ArcPath, k_ArcNameMode_Smart);
-
-  NWorkDir::CInfo workDirInfo;
-  workDirInfo.Load();
-  options.WorkingDir.Empty();
-  if (workDirInfo.Mode != NWorkDir::NMode::kCurrent)
+  options.Commands.Clear();
+  FOR_VECTOR (i, di.ArcPaths)
   {
-    FString fullPath;
-    MyGetFullPathName(us2fs(di.ArcPath), fullPath);
-    FString namePart;
-    options.WorkingDir = GetWorkDir(workDirInfo, fullPath, namePart);
-    CreateComplexDir(options.WorkingDir);
+    CUpdateArchiveCommand command;
+    command.ActionSet = actionSet;
+    command.UserArchivePath = di.ArcPaths[i];
+    options.Commands.Add(command);
   }
+  if (options.Commands.IsEmpty())
+  {
+    CUpdateArchiveCommand command;
+    command.ActionSet = actionSet;
+    command.UserArchivePath = di.ArcPath;
+    options.Commands.Add(command);
+  }
+
+  // Paths returned by the dialog are explicit user choices. Re-parse them in
+  // smart mode so names like "Download" get one ".7z", while "Download.7z"
+  // doesn't get the archive extension appended twice.
+  options.ArcNameMode = k_ArcNameMode_Smart;
+  options.SeparateItemMode = di.SeparateItemArchives;
+  options.SeparateItemPaths = di.ItemOutputItemPaths;
+  options.SeparateItemArchivePaths = di.ItemArcPaths;
+
+  if (!options.SetArcPath(codecs, options.Commands.Front().UserArchivePath))
+    return E_NOTIMPL;
+
+  PrepareWorkingDirForArchivePath(options.Commands.Front().UserArchivePath, options);
   return S_OK;
 }
 

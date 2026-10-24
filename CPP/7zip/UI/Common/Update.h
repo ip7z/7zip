@@ -111,6 +111,9 @@ struct CUpdateOptions
 
   CObjectVector<CUpdateArchiveCommand> Commands;
   CArchivePath ArchivePath;
+  bool SeparateItemMode;
+  UStringVector SeparateItemPaths;
+  UStringVector SeparateItemArchivePaths;
 
   FString SfxModule;
   UString StdInFileName;
@@ -143,7 +146,8 @@ struct CUpdateOptions
     RenameMode(false),
 
     ArcNameMode(k_ArcNameMode_Smart),
-    PathMode(NWildcard::k_RelatPath)
+    PathMode(NWildcard::k_RelatPath),
+    SeparateItemMode(false)
     
     {}
 
