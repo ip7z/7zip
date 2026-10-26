@@ -31,7 +31,7 @@ HRESULT ListArchives(
     const NWildcard::CCensorNode &wildcardCensor,
     bool enableHeaders, bool techMode,
   #ifndef Z7_NO_CRYPTO
-    bool &passwordEnabled, UString &password,
+    bool &passwordEnabled, UString &password, int &passwordFd,
   #endif
   #ifndef Z7_SFX
     const CObjectVector<CProperty> *props,

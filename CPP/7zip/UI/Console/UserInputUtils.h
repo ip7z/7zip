@@ -3,6 +3,7 @@
 #ifndef ZIP7_INC_USER_INPUT_UTILS_H
 #define ZIP7_INC_USER_INPUT_UTILS_H
 
+#include "../../../Common/StdInStream.h"
 #include "../../../Common/StdOutStream.h"
 
 namespace NUserAnswerMode {

@@ -67,6 +67,7 @@ public:
   bool PasswordIsDefined;
   // bool PasswordWasAsked;
   UString Password;
+  int PasswordFd;
   #endif
 };
 
