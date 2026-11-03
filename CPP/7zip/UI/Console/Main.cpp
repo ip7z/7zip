@@ -190,6 +190,7 @@ static const char * const kHelpString =
     "  -spd : disable wildcard matching for file names\n"
     "  -spe : eliminate duplication of root folder for extract command\n"
     "  -spf[2] : use fully qualified file paths\n"
+    "  -sps : extract to subfolder with archive name, if archive has more than one root item\n"
     "  -ssc[-] : set sensitive case mode\n"
     "  -sse : stop archive creating, if it can't open some input file\n"
     "  -ssp : do not change Last Access Time of source files while archiving\n"

@@ -26,6 +26,7 @@ enum EEnum
 struct CExtractOptionsBase
 {
   CBoolPair ElimDup;
+  CBoolPair SmartExtract;
 
   bool ExcludeDirItems;
   bool ExcludeFileItems;

@@ -8,6 +8,7 @@ namespace NContextMenuFlags
   const UInt32 kExtract = 1 << 0;
   const UInt32 kExtractHere = 1 << 1;
   const UInt32 kExtractTo = 1 << 2;
+  const UInt32 kExtractSmart = 1 << 3;
 
   const UInt32 kTest = 1 << 4;
   const UInt32 kOpen = 1 << 5;

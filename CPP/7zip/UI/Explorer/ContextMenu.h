@@ -78,6 +78,7 @@ public:
     kExtract,
     kExtractHere,
     kExtractTo,
+    kExtractSmart,
     kTest,
     kCompress,
     kCompressEmail,

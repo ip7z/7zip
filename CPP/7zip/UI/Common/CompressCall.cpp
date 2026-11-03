@@ -252,7 +252,7 @@ static void ExtractGroupCommand(const UStringVector &arcPaths, UString &params, 
     ErrorMessageHRESULT(result);
 }
 
-void ExtractArchives(const UStringVector &arcPaths, const UString &outFolder, bool showDialog, bool elimDup, UInt32 writeZone)
+void ExtractArchives(const UStringVector &arcPaths, const UString &outFolder, bool showDialog, bool elimDup, UInt32 writeZone, bool smartExtract)
 {
   MY_TRY_BEGIN
   UString params ('x');
@@ -263,6 +263,8 @@ void ExtractArchives(const UStringVector &arcPaths, const UString &outFolder, bo
   }
   if (elimDup)
     params += " -spe";
+  if (smartExtract)
+    params += " -sps";
   if (writeZone != (UInt32)(Int32)-1)
   {
     params += " -snz";
