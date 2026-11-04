@@ -106,10 +106,34 @@ static CSysString Get_DragDropHandler_KeyName(LPCTSTR keyName)
   { return (AString)keyName + k_KeyPostfix_DragDrop); }
 */
 
-static bool CheckHandlerCommon(const AString &keyName, UInt32 wow)
+// The MSI records this marker only in the installation's own registry hive.
+// Legacy machine installers also wrote Software\7-Zip\Path to HKCU, so that
+// older value cannot be used to determine the installation scope.
+static bool IsPerUserInstallation(const UString &path)
 {
   CKey key;
-  if (key.Open(HKEY_CLASSES_ROOT, (CSysString)keyName, KEY_READ | wow) != ERROR_SUCCESS)
+  if (key.Open(HKEY_CURRENT_USER, TEXT("Software\\7-Zip\\Installer"), KEY_READ) != ERROR_SUCCESS)
+    return false;
+  UString installPath;
+  if (key.QueryValue(
+      #ifdef _WIN64
+        L"Path64",
+      #else
+        L"Path32",
+      #endif
+      installPath) != ERROR_SUCCESS)
+    return false;
+  while (!installPath.IsEmpty() && (installPath.Back() == L'\\' || installPath.Back() == L'/'))
+    installPath.DeleteBack();
+  const int pos = path.ReverseFind_PathSepar();
+  return pos >= 0 && !installPath.IsEmpty()
+      && installPath.IsEqualTo_NoCase(path.Left(pos));
+}
+
+static bool CheckHandlerCommon(HKEY classesKey, const AString &keyName, UInt32 wow)
+{
+  CKey key;
+  if (key.Open(classesKey, (CSysString)keyName, KEY_READ | wow) != ERROR_SUCCESS)
     return false;
   CSysString value;
   if (key.QueryValue(NULL, value) != ERROR_SUCCESS)
@@ -121,13 +145,22 @@ bool CheckContextMenuHandler(const UString &path, UInt32 wow)
 {
   // NSynchronization::CCriticalSectionLock lock(g_CS);
 
+  CKey userClasses;
+  HKEY classesKey = HKEY_CLASSES_ROOT;
+  if (IsPerUserInstallation(path))
+  {
+    if (userClasses.Open(HKEY_CURRENT_USER, TEXT("Software\\Classes"), KEY_READ | wow) != ERROR_SUCCESS)
+      return false;
+    classesKey = userClasses;
+  }
+
   CSysString s ("CLSID\\");
   s += k_Clsid_A;
   s += "\\InprocServer32";
   
   {
     NRegistry::CKey key;
-    if (key.Open(HKEY_CLASSES_ROOT, s, KEY_READ | wow) != ERROR_SUCCESS)
+    if (key.Open(classesKey, s, KEY_READ | wow) != ERROR_SUCCESS)
       return false;
     UString regPath;
     if (key.QueryValue(NULL, regPath) != ERROR_SUCCESS)
@@ -137,7 +170,7 @@ bool CheckContextMenuHandler(const UString &path, UInt32 wow)
   }
   
   return
-       CheckHandlerCommon(Get_ContextMenuHandler_KeyName(k_KeyName_File), wow);
+       CheckHandlerCommon(classesKey, Get_ContextMenuHandler_KeyName(k_KeyName_File), wow);
   /*
     && CheckHandlerCommon(Get_ContextMenuHandler_KeyName(k_KeyName_Directory), wow)
     // && CheckHandlerCommon(Get_ContextMenuHandler_KeyName(k_KeyName_Folder))
@@ -154,11 +187,103 @@ static LONG MyCreateKey(CKey &key, HKEY parentKey, LPCTSTR keyName, UInt32 wow)
       REG_OPTION_NON_VOLATILE, KEY_ALL_ACCESS | wow);
 }
 
+static LONG SetContextMenuHandlerForUser(bool setMode, const UString &path, UInt32 wow)
+{
+  CKey classesKey;
+  LONG res;
+  if (setMode)
+    res = MyCreateKey(classesKey, HKEY_CURRENT_USER, TEXT("Software\\Classes"), wow);
+  else
+    res = classesKey.Open(HKEY_CURRENT_USER, TEXT("Software\\Classes"), KEY_READ | KEY_WRITE | wow);
+  if (res != ERROR_SUCCESS)
+    return !setMode && (res == ERROR_FILE_NOT_FOUND || res == ERROR_PATH_NOT_FOUND)
+        ? ERROR_SUCCESS : res;
+
+  CSysString clsidKey ("CLSID\\");
+  clsidKey += k_Clsid_A;
+  CSysString inprocKey (clsidKey);
+  inprocKey += "\\InprocServer32";
+
+  if (!setMode)
+  {
+    // Do not remove another copy's registration, even in the same user hive.
+    {
+      CKey key;
+      res = key.Open(classesKey, inprocKey, KEY_READ | wow);
+      if (res == ERROR_FILE_NOT_FOUND || res == ERROR_PATH_NOT_FOUND)
+        return ERROR_SUCCESS;
+      if (res != ERROR_SUCCESS)
+        return res;
+      UString registeredPath;
+      res = key.QueryValue(NULL, registeredPath);
+      if (res != ERROR_SUCCESS)
+        return res;
+      if (!path.IsEqualTo_NoCase(registeredPath))
+        return ERROR_SUCCESS;
+    }
+    res = MyRegistry_DeleteKey(classesKey, inprocKey, wow);
+    if (res != ERROR_SUCCESS)
+      return res;
+    // Keep the shared handler keys: the other DLL architecture can still use them.
+    return MyRegistry_DeleteKey(classesKey, clsidKey, wow);
+  }
+
+  {
+    CKey key;
+    res = MyCreateKey(key, classesKey, clsidKey, wow);
+    if (res != ERROR_SUCCESS)
+      return res;
+    res = key.SetValue(NULL, k_ShellExtName);
+    if (res != ERROR_SUCCESS)
+      return res;
+    CKey inproc;
+    res = MyCreateKey(inproc, key, k_Inproc, wow);
+    if (res != ERROR_SUCCESS)
+      return res;
+    res = inproc.SetValue(NULL, path);
+    if (res != ERROR_SUCCESS)
+      return res;
+    res = inproc.SetValue(TEXT("ThreadingModel"), TEXT("Apartment"));
+    if (res != ERROR_SUCCESS)
+      return res;
+  }
+
+  {
+    CKey approved;
+    res = MyCreateKey(approved, HKEY_CURRENT_USER, k_Approved, wow);
+    if (res != ERROR_SUCCESS)
+      return res;
+    res = approved.SetValue(k_Clsid, k_ShellExtName);
+    if (res != ERROR_SUCCESS)
+      return res;
+  }
+
+  for (unsigned i = 0; i < 2; i++)
+    for (unsigned k = 0; k < Z7_ARRAY_SIZE(k_shellex_Prefixes); k++)
+      if (k_shellex_Statuses[i][k])
+      {
+        CSysString s (k_shellex_Prefixes[k]);
+        s += (i == 0 ? k_KeyPostfix_ContextMenu : k_KeyPostfix_DragDrop);
+        CKey key;
+        res = MyCreateKey(key, classesKey, s, wow);
+        if (res != ERROR_SUCCESS)
+          return res;
+        res = key.SetValue(NULL, k_Clsid);
+        if (res != ERROR_SUCCESS)
+          return res;
+      }
+
+  return ERROR_SUCCESS;
+}
+
 LONG SetContextMenuHandler(bool setMode, const UString &path, UInt32 wow)
 {
   // NSynchronization::CCriticalSectionLock lock(g_CS);
 
   INIT_REG_WOW
+
+  if (IsPerUserInstallation(path))
+    return SetContextMenuHandlerForUser(setMode, path, wow);
 
   LONG res;
 
