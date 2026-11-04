@@ -2,11 +2,13 @@
 
 <?define VerMajor = "26" ?>
 <?define VerMinor = "05" ?>
-<?define VerBuild = "00" ?>
+<?ifndef VerBuild ?>
+  <?define VerBuild = "00" ?>
+<?endif ?>
 <?define MmVer = "$(var.VerMajor).$(var.VerMinor)" ?>
 <?define MmHex = "$(var.VerMajor)$(var.VerMinor)" ?>
 <?define MmmmVer = "$(var.MmVer).$(var.VerBuild).0" ?>
-<?define UpgradeMinVer = "4.38" ?>
+<?define UpgradeMinVer = "4.38.0" ?>
 
 <?define ProductName = "7-Zip" ?>
 
@@ -54,20 +56,21 @@
 <?define CompGui      = "$(var.CompId)05" ?>
 <?define CompGuiSfx   = "$(var.CompId)06" ?>
 <?define CompConSfx   = "$(var.CompId)07" ?>
-<?define CompHelp     = "$(var.CompId)08" ?>
+<?define CompHelp     = "$(var.CompId)91" ?>
 <?define CompDocs     = "$(var.CompId)09" ?>
 <?define CompFormats  = "$(var.CompId)10" ?>
 <?define CompCodecs   = "$(var.CompId)11" ?>
 <?define CompLang     = "$(var.CompId)12" ?>
-<?define CompShellExt2 = "$(var.CompId)13" ?>
-<?define CompInstallRegCU         = "$(var.CompId)80" ?>
-<?define CompInstallRegLM         = "$(var.CompId)81" ?>
+<?define CompShellExt2            = "$(var.CompId)93" ?>
+<?define CompShellExt32Reg        = "$(var.CompId)94" ?>
+<?define CompShortcuts            = "$(var.CompId)95" ?>
+<?define CompInstallReg           = "$(var.CompId)89" ?>
 <?define CompInstallRegWild       = "$(var.CompId)82" ?>
 <?define CompInstallRegDirectory  = "$(var.CompId)83" ?>
 <?define CompInstallRegDirDD      = "$(var.CompId)84" ?>
 <?define CompInstallRegDriveDD    = "$(var.CompId)85" ?>
 <?define CompInstallRegApproved   = "$(var.CompId)86" ?>
-<?define CompInstallRegAppPath    = "$(var.CompId)87" ?>
+<?define CompInstallRegAppPath    = "$(var.CompId)90" ?>
 <?define CompInstallRegFolder     = "$(var.CompId)88" ?>
 
 
@@ -91,7 +94,7 @@
         Description="$(var.ProductName)$(var.CpuPostfix) Package"
         Comments="$(var.ProductName)$(var.CpuPostfix) Package"
         Manufacturer="$(var.Manufacturer)"
-        InstallerVersion="200"
+        InstallerVersion="500"
         Compressed="yes"
         Platforms="$(var.Platforms)"
         />
@@ -106,14 +109,23 @@
 
     <Property Id="MSIRMSHUTDOWN" Value="2"/>
 
-    <Property Id="INSTALLDIR">
-      <RegistrySearch Id="My7zipPathLM"  Type="raw" Root="HKLM" Key="Software\7-Zip" Name="Path" />
-      <RegistrySearch Id="My7zipPathLM2" Type="raw" Root="HKLM" Key="Software\7-Zip" Name="Path$(var.NumBits)" />
-      <RegistrySearch Id="My7zipPath"    Type="raw" Root="HKCU" Key="Software\7-Zip" Name="Path" />
-      <RegistrySearch Id="My7zipPath2"   Type="raw" Root="HKCU" Key="Software\7-Zip" Name="Path$(var.NumBits)" />
+    <!-- Legacy EXE installers also wrote the machine path to HKCU. Only
+         reuse an HKCU path explicitly recorded by this dual-purpose MSI. -->
+    <Property Id="MACHINEINSTALLDIR" Secure="yes">
+      <RegistrySearch Id="My7zipPathLM2" Type="raw" Root="HKLM" Key="Software\7-Zip" Name="Path$(var.NumBits)" Win64="$(var.Is64)" />
+    </Property>
+    <Property Id="USERINSTALLDIR" Secure="yes">
+      <RegistrySearch Id="My7zipUserPath" Type="raw" Root="HKCU" Key="Software\7-Zip\Installer" Name="Path$(var.NumBits)" Win64="$(var.Is64)" />
     </Property>
 
-    <Property Id="ALLUSERS">2</Property>
+    <!-- Keep machine installation as the default. Select per-user with
+         ALLUSERS=2 MSIINSTALLPERUSER=1 (Windows Installer 5.0 or later). -->
+    <Property Id="ALLUSERS" Secure="yes">2</Property>
+    <Property Id="MSIINSTALLPERUSER" Secure="yes" />
+    <Property Id="INSTALLDIR" Secure="yes" />
+
+    <CustomAction Id="UseMachineInstallDir" Property="INSTALLDIR" Value="[MACHINEINSTALLDIR]" />
+    <CustomAction Id="UseUserInstallDir" Property="INSTALLDIR" Value="[USERINSTALLDIR]" />
 
     <Property Id="LicenseAccepted">1</Property>
 
@@ -126,14 +138,10 @@
       <Directory Id="$(var.PFilesFolder)" Name="Files">
         <Directory Id="INSTALLDIR" Name="7-Zip">
 
-          <Component Id="InstallRegCU" Guid="$(var.CompInstallRegCU)" DiskId="1" Win64="$(var.Is64)">
-            <Registry Id="MyInstallRegCU"  Root="HKCU" Key="Software\7-Zip" Name="Path" Action="write" Type="string" Value="[INSTALLDIR]" />
-            <Registry Id="MyInstallRegCU2" Root="HKCU" Key="Software\7-Zip" Name="Path$(var.NumBits)" Action="write" Type="string" Value="[INSTALLDIR]" />
-          </Component>
-          <Component Id="InstallRegLM" Guid="$(var.CompInstallRegLM)" DiskId="1" Win64="$(var.Is64)">
-            <Condition>Privileged</Condition>
-            <Registry Id="MyInstallRegLM"  Root="HKLM" Key="Software\7-Zip" Name="Path" Action="write" Type="string" Value="[INSTALLDIR]" />
-            <Registry Id="MyInstallRegLM2" Root="HKLM" Key="Software\7-Zip" Name="Path$(var.NumBits)" Action="write" Type="string" Value="[INSTALLDIR]" />
+          <Component Id="InstallReg" Guid="$(var.CompInstallReg)" DiskId="1" Win64="$(var.Is64)">
+            <Registry Id="MyInstallReg" Root="HKMU" Key="Software\7-Zip" Name="Path" Action="write" Type="string" Value="[INSTALLDIR]" />
+            <Registry Id="MyInstallReg2" Root="HKMU" Key="Software\7-Zip" Name="Path$(var.NumBits)" Action="write" Type="string" Value="[INSTALLDIR]" />
+            <Registry Id="MyInstallerPath" Root="HKMU" Key="Software\7-Zip\Installer" Name="Path$(var.NumBits)" Action="write" Type="string" Value="[INSTALLDIR]" KeyPath="yes" />
           </Component>
           
 
@@ -168,7 +176,7 @@
           </Component>
 
           <Component Id="InstallRegApproved" Guid="$(var.CompInstallRegApproved)" DiskId="1" Win64="$(var.Is64)">
-            <Condition>Privileged</Condition>
+            <Condition>ALLUSERS = 1</Condition>
             <Registry Id="MyInstallRegApproved" Action="write" Type="string"
                Root="HKLM" Key="Software\Microsoft\Windows\CurrentVersion\Shell Extensions\Approved"
                Name="$(var.ShellExtId)" Value="7-Zip Shell Extension" />
@@ -176,32 +184,25 @@
 
 
           <Component Id="InstallRegAppPath" Guid="$(var.CompInstallRegAppPath)" DiskId="1" Win64="$(var.Is64)">
-            <Condition>Privileged</Condition>
             <Registry Id="MyInstallRegAppPath" Action="write" Type="string"
-               Root="HKLM" Key="Software\Microsoft\Windows\CurrentVersion\App Paths\7zFM.exe"
+               Root="HKMU" Key="Software\Microsoft\Windows\CurrentVersion\App Paths\7zFM.exe"
                Value="[INSTALLDIR]7zFM.exe" />
             <Registry Id="MyInstallRegAppPath2" Action="write" Type="string"
-               Root="HKLM" Key="Software\Microsoft\Windows\CurrentVersion\App Paths\7zFM.exe" Name="Path"
+               Root="HKMU" Key="Software\Microsoft\Windows\CurrentVersion\App Paths\7zFM.exe" Name="Path"
                Value="[INSTALLDIR]" />
           </Component>
 
           <Component Id="Fm" Guid="$(var.CompFm)" DiskId="1" Win64="$(var.Is64)">
-            <File Id="_7zFM.exe" Name="7zFM.exe">
-              <Shortcut Id="startmenuFmShortcut" Directory="PMenu" Name="7zipFM" LongName="7-Zip File Manager" />
-            </File>
+            <File Id="_7zFM.exe" Name="7zFM.exe" />
           </Component>
 
           <?if $(var.MyCPU) = "x64" ?>
 
-          <Component Id="ShellExt32" Guid="$(var.CompShellExt2)" DiskId="1" Win64="no">
+          <!-- The file lives in the native installation directory. Its PE
+               architecture does not determine the component's registry view.
+               Register it in a separate 32-bit registry-only component. -->
+          <Component Id="ShellExt32" Guid="$(var.CompShellExt2)" DiskId="1" Win64="yes">
             <File Id="_7zip32.dll" Name="7-zip32.dll" />
-            <Registry Id="shellReg0_32" Action="write" Type="string" Root="HKCR"
-               Key="CLSID\$(var.ShellExtId)\InprocServer32"
-               Value="[INSTALLDIR]7-zip32.dll" />
-            <Registry Id="shellReg1_32" Action="write" Type="string" Root="HKCR"
-               Key="CLSID\$(var.ShellExtId)\InprocServer32"
-               Name="ThreadingModel"
-               Value="Apartment" />
           </Component>
 
           <?endif ?>
@@ -245,10 +246,8 @@
           </Component>
 
 
-          <Component Id="Help" Guid="$(var.CompHelp)">
-            <File Id="_7zip.chm" Name="7-zip.chm" DiskId="1" >
-              <Shortcut Id="startmenuHelpShortcut" Directory="PMenu" Name="7zipHelp" LongName="7-Zip Help" />
-            </File>
+          <Component Id="Help" Guid="$(var.CompHelp)" Win64="$(var.Is64)">
+            <File Id="_7zip.chm" Name="7-zip.chm" DiskId="1" />
           </Component>
 
           <Directory Id="MyLang" Name="Lang">
@@ -353,8 +352,30 @@
         </Directory>
       </Directory>
 
+      <?if $(var.MyCPU) = "x64" ?>
+      <!-- TARGETDIR is architecture-neutral; this component contains no files. -->
+      <Component Id="ShellExt32Reg" Guid="$(var.CompShellExt32Reg)" DiskId="1" Win64="no">
+        <Registry Id="shellReg0_32" Action="write" Type="string" Root="HKCR"
+           Key="CLSID\$(var.ShellExtId)\InprocServer32"
+           Value="[INSTALLDIR]7-zip32.dll" KeyPath="yes" />
+        <Registry Id="shellReg1_32" Action="write" Type="string" Root="HKCR"
+           Key="CLSID\$(var.ShellExtId)\InprocServer32"
+           Name="ThreadingModel" Value="Apartment" />
+      </Component>
+      <?endif ?>
+
       <Directory Id="ProgramMenuFolder" Name="PMenu" LongName="Programs">
-        <Directory Id="PMenu" Name="7zip" LongName="7-Zip" />
+        <Directory Id="PMenu" Name="7zip" LongName="7-Zip">
+          <!-- Non-advertised shortcuts require a strictly per-user KeyPath,
+               even in a dual-purpose MSI. Keep them out of file components
+               whose installation directory can resolve to Program Files. -->
+          <Component Id="Shortcuts" Guid="$(var.CompShortcuts)" DiskId="1" Win64="no">
+            <Registry Id="ShortcutsInstalled" Root="HKCU" Key="Software\7-Zip\Installer" Name="Shortcuts$(var.NumBits)" Action="write" Type="integer" Value="1" KeyPath="yes" />
+            <Shortcut Id="startmenuFmShortcut" Name="7zipFM" LongName="7-Zip File Manager" Target="[INSTALLDIR]7zFM.exe" WorkingDirectory="INSTALLDIR" />
+            <Shortcut Id="startmenuHelpShortcut" Name="7zipHelp" LongName="7-Zip Help" Target="[INSTALLDIR]7-zip.chm" WorkingDirectory="INSTALLDIR" />
+            <RemoveFolder Id="RemoveProgramsGroup" On="uninstall" />
+          </Component>
+        </Directory>
       </Directory>
     </Directory>
 
@@ -364,9 +385,11 @@
       <Feature Id="Program" Title="Program files" Description="Program files." Level="1"
          Absent="disallow" AllowAdvertise="no">
         <ComponentRef Id="Fm" />
+        <ComponentRef Id="Shortcuts" />
         <ComponentRef Id="ShellExt" />
         <?if $(var.MyCPU) = "x64" ?>
         <ComponentRef Id="ShellExt32" />
+        <ComponentRef Id="ShellExt32Reg" />
         <?endif ?>
         <ComponentRef Id="CmdLine" />
         <ComponentRef Id="Gui" />
@@ -375,8 +398,7 @@
         <ComponentRef Id="Formats" />
         <ComponentRef Id="Docs" />
         <ComponentRef Id="Help" />
-        <ComponentRef Id="InstallRegCU" />
-        <ComponentRef Id="InstallRegLM" />
+        <ComponentRef Id="InstallReg" />
         <ComponentRef Id="InstallRegWild" />
         <ComponentRef Id="InstallRegDirectory" />
         <ComponentRef Id="InstallRegDirDD" />
@@ -395,7 +417,28 @@
     <UIRef Id="WixUI" />
 
     <!-- Install Sequences -->
+    <!-- AppSearch does not select a registry hive based on installation scope.
+         Select its result explicitly, before directory costing, and preserve
+         an INSTALLDIR supplied by the caller or already resolved by the UI. -->
+    <InstallUISequence>
+      <Custom Action="UseMachineInstallDir" After="AppSearch"><![CDATA[
+        NOT Installed AND NOT INSTALLDIR AND MACHINEINSTALLDIR AND
+        (ALLUSERS = 1 OR (ALLUSERS = 2 AND NOT MSIINSTALLPERUSER = 1))
+      ]]></Custom>
+      <Custom Action="UseUserInstallDir" After="UseMachineInstallDir"><![CDATA[
+        NOT Installed AND NOT INSTALLDIR AND USERINSTALLDIR AND
+        (NOT ALLUSERS OR (ALLUSERS = 2 AND MSIINSTALLPERUSER = 1))
+      ]]></Custom>
+    </InstallUISequence>
     <InstallExecuteSequence>
+      <Custom Action="UseMachineInstallDir" After="AppSearch"><![CDATA[
+        NOT Installed AND NOT INSTALLDIR AND MACHINEINSTALLDIR AND
+        (ALLUSERS = 1 OR (ALLUSERS = 2 AND NOT MSIINSTALLPERUSER = 1))
+      ]]></Custom>
+      <Custom Action="UseUserInstallDir" After="UseMachineInstallDir"><![CDATA[
+        NOT Installed AND NOT INSTALLDIR AND USERINSTALLDIR AND
+        (NOT ALLUSERS OR (ALLUSERS = 2 AND MSIINSTALLPERUSER = 1))
+      ]]></Custom>
       <RemoveExistingProducts After="InstallValidate" />
     </InstallExecuteSequence>
 
