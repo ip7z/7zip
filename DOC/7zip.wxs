@@ -69,7 +69,7 @@
 <?define CompInstallRegDirectory  = "$(var.CompId)83" ?>
 <?define CompInstallRegDirDD      = "$(var.CompId)84" ?>
 <?define CompInstallRegDriveDD    = "$(var.CompId)85" ?>
-<?define CompInstallRegApproved   = "$(var.CompId)86" ?>
+<?define CompInstallRegApproved   = "$(var.CompId)96" ?>
 <?define CompInstallRegAppPath    = "$(var.CompId)90" ?>
 <?define CompInstallRegFolder     = "$(var.CompId)88" ?>
 
@@ -176,9 +176,8 @@
           </Component>
 
           <Component Id="InstallRegApproved" Guid="$(var.CompInstallRegApproved)" DiskId="1" Win64="$(var.Is64)">
-            <Condition>ALLUSERS = 1</Condition>
             <Registry Id="MyInstallRegApproved" Action="write" Type="string"
-               Root="HKLM" Key="Software\Microsoft\Windows\CurrentVersion\Shell Extensions\Approved"
+               Root="HKMU" Key="Software\Microsoft\Windows\CurrentVersion\Shell Extensions\Approved"
                Name="$(var.ShellExtId)" Value="7-Zip Shell Extension" />
           </Component>
 
@@ -361,6 +360,9 @@
         <Registry Id="shellReg1_32" Action="write" Type="string" Root="HKCR"
            Key="CLSID\$(var.ShellExtId)\InprocServer32"
            Name="ThreadingModel" Value="Apartment" />
+        <Registry Id="MyInstallRegApproved32" Action="write" Type="string" Root="HKMU"
+           Key="Software\Microsoft\Windows\CurrentVersion\Shell Extensions\Approved"
+           Name="$(var.ShellExtId)" Value="7-Zip Shell Extension" />
       </Component>
       <?endif ?>
 
