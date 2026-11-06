@@ -38,6 +38,7 @@ using namespace NWindows;
 #define ISWITCH_NO_WILDCARD_POSTFIX
 
 #define kShowDialogSwitch  " -ad"
+#define kOpenDestFolderSwitch  " -sod"
 #define kEmailSwitch  " -seml."
 #define kArchiveTypeSwitch  " -t"
 #define kIncludeSwitch  " -i" ISWITCH_NO_WILDCARD_POSTFIX
@@ -252,7 +253,8 @@ static void ExtractGroupCommand(const UStringVector &arcPaths, UString &params, 
     ErrorMessageHRESULT(result);
 }
 
-void ExtractArchives(const UStringVector &arcPaths, const UString &outFolder, bool showDialog, bool elimDup, UInt32 writeZone)
+void ExtractArchives(const UStringVector &arcPaths, const UString &outFolder,
+    bool showDialog, bool elimDup, UInt32 writeZone, bool openDestFolder)
 {
   MY_TRY_BEGIN
   UString params ('x');
@@ -270,8 +272,16 @@ void ExtractArchives(const UStringVector &arcPaths, const UString &outFolder, bo
   }
   if (showDialog)
     params += kShowDialogSwitch;
+  if (openDestFolder)
+    params += kOpenDestFolderSwitch;
   ExtractGroupCommand(arcPaths, params, false);
   MY_TRY_FINISH_VOID
+}
+
+void ExtractArchives(const UStringVector &arcPaths, const UString &outFolder,
+    bool showDialog, bool elimDup, UInt32 writeZone)
+{
+  ExtractArchives(arcPaths, outFolder, showDialog, elimDup, writeZone, false);
 }
 
 
