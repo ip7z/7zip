@@ -456,8 +456,26 @@ Z7_COM7F_IMF(CArchiveExtractCallback::SetRatioInfo(const UInt64 *inSize, const U
 }
 
 
+// CFileInfo::Find() does not follow links by default: it uses the reparse-point
+// attributes on Windows and lstat() on POSIX.
+static bool PathIsReparsePointNoFollow(const FString &path)
+{
+  FString pathToCheck(path);
+#if defined(_WIN32) && !defined(UNDER_CE)
+  // Find() handles alternate data streams by returning the stream's metadata,
+  // which does not include the base file's reparse-point attribute. Check the
+  // base file because opening an alternate stream through a link follows it.
+  const int colonPos = NName::FindAltStreamColon(pathToCheck);
+  if (colonPos >= 0 && pathToCheck[(unsigned)colonPos + 1] != 0)
+    pathToCheck.DeleteFrom((unsigned)colonPos);
+#endif
+  NFind::CFileInfo pathInfo;
+  return pathInfo.Find(pathToCheck) && pathInfo.IsOsSymLink();
+}
+
+
 void CArchiveExtractCallback::CreateComplexDirectory(
-    const UStringVector &dirPathParts, bool isFinal, FString &fullPath)
+    const UStringVector &dirPathParts, bool isFinal, FString &fullPath, bool createDirs)
 {
   // we use (_item.IsDir) in this function
   bool isAbsPath = false;
@@ -485,6 +503,14 @@ void CArchiveExtractCallback::CreateComplexDirectory(
     fullPath += us2fs(s);
 
     const bool isFinalDir = (i == dirPathParts.Size() - 1 && isFinal && _item.IsDir);
+
+    // Check each path prefix before creating or opening anything below it.
+    if (PathIsReparsePointNoFollow(fullPath))
+    {
+      _itemFailure = true;
+      SendMessageError("Cannot extract through symbolic link or reparse point", fullPath);
+      return;
+    }
     
     if (fullPath.IsEmpty()
 #if defined(_WIN32) && !defined(UNDER_CE)
@@ -497,6 +523,9 @@ void CArchiveExtractCallback::CreateComplexDirectory(
         _itemFailure = true; // we don't want to set attributes for root (or root drive) path
       continue;
     }
+
+    if (!createDirs)
+      continue;
 
     // bool need_SetAttrib = isFinalDir;
     if (!isFinalDir || !NFile::NFind::DoesDirExist(fullPath))
@@ -1204,7 +1233,7 @@ void CArchiveExtractCallback::CreateFolders()
   */
 
   FString fullPathNew;
-  CreateComplexDirectory(pathParts, isFinal, fullPathNew);
+  CreateComplexDirectory(pathParts, isFinal, fullPathNew, true);
 
   /*
   if (is_DirOp)
@@ -1400,6 +1429,18 @@ HRESULT CArchiveExtractCallback::GetExtractStream(CMyComPtr<ISequentialOutStream
     // 21.04: CreateFolders doesn't change (_item.PathParts)
     CreateFolders();
   }
+#if defined(_WIN32) && !defined(UNDER_CE)
+  else
+  {
+    // Anti-items do not create parent directories, but may delete an existing
+    // output path. Check their components without creating anything first.
+    FString fullPath;
+    CreateComplexDirectory(_item.PathParts, true, fullPath, false);
+  }
+#endif
+  // Do not open, delete, or set attributes through a failed output path.
+  if (_itemFailure)
+    return S_OK;
   
   FString fullProcessedPath (us2fs(processedPath));
   if (_pathMode != NExtract::NPathMode::kAbsPaths
@@ -1423,6 +1464,16 @@ HRESULT CArchiveExtractCallback::GetExtractStream(CMyComPtr<ISequentialOutStream
     }
   }
   #endif // SUPPORT_ALT_STREAMS
+
+  // CreateComplexDirectory() checks parent directories. The final component
+  // of a file path is not part of _item.PathParts, so check it separately
+  // before CheckExistFile() can remove or rename an existing destination.
+  if (!isAnti && PathIsReparsePointNoFollow(fullProcessedPath))
+  {
+    _itemFailure = true;
+    RINOK(SendMessageError("Cannot extract through symbolic link or reparse point", fullProcessedPath))
+    return S_OK;
+  }
 
   if (_item.IsDir)
   {
