@@ -139,7 +139,7 @@ public:
   size_t MaxTotalAllocSize; // remain size, including Files.Back()
   FString DirPrefix; // files will be flushed to this FS directory.
   UString FileName; // name of file that will be extracted.
-                    // it can be name of alt stream without "fileName:" prefix, if (IsAltStreamFile == trye).
+                    // it can be name of alt stream without "fileName:" prefix, if (IsAltStreamFile == true).
                     // we use that name to detect altStream part in "FileName:altStream".
   CByteBuffer ZoneBuf;
   int Index_of_MainExtractedFile_in_Files; // out: index in Files. == -1, if expected file was not extracted

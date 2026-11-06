@@ -83,7 +83,7 @@ if !defined(USE_PREFETCH_FOR_ALIGNED_ARRAY)
 #if 1 && PREFETCH_LEVEL <= 3 && defined(USE_PREFETCH_FOR_ALIGNED_ARRAY)
   #define PREFETCH_ADD_OFFSET   0
 #else
-  // last offset that can be reqiured in PREFETCH_LEVEL step:
+  // last offset that can be required in PREFETCH_LEVEL step:
   #define PREFETCH_RANGE        ((2 << PREFETCH_LEVEL) - 1)
   #define PREFETCH_ADD_OFFSET   PREFETCH_RANGE / 2
 #endif

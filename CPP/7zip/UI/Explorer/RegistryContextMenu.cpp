@@ -200,7 +200,7 @@ LONG SetContextMenuHandler(bool setMode, const UString &path, UInt32 wow)
   }
   }
 
-  // shellex items probably are shared beween 32-bit and 64-bit apps. So we don't delete items for delete operation.
+  // shellex items probably are shared between 32-bit and 64-bit apps. So we don't delete items for delete operation.
   if (setMode)
   for (unsigned i = 0; i < 2; i++)
   {

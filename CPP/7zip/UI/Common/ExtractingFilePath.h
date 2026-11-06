@@ -9,7 +9,7 @@
 void Correct_AltStream_Name(UString &s);
 // #endif
 
-// replaces unsuported characters, and replaces "." , ".." and "" to "[]"
+// replaces unsupported characters, and replaces "." , ".." and "" to "[]"
 UString Get_Correct_FsFile_Name(const UString &name);
 
 /*

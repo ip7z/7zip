@@ -369,9 +369,9 @@ HRESULT CFfpOpen::OpenFileFolderPlugin(IInStream *inStream,
       {
         ErrorMessage = nonOpen_Errors;
         // if (t.Result != S_OK) return t.Result;
-        /* if there are good open leves, and non0open level,
+        /* if there are good open leaves, and non-open level,
            we could force error as critical error and return error here
-           but it's better to allow to open such rachives */
+           but it's better to allow to open such archives */
         // return S_FALSE;
       }
     }

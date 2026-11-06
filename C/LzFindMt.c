@@ -178,10 +178,10 @@ static void MtSync_StopWriting(CMtSync *p)
 
     PRF(printf("\nMtSync_StopWriting %p : Event_Wait(&p->wasStopped)\n", p));
   Event_Wait(&p->wasStopped);
-    PRF(printf("\nMtSync_StopWriting %p : Event_Wait() finsihed\n", p));
+    PRF(printf("\nMtSync_StopWriting %p : Event_Wait() finished\n", p));
 
-  /* 21.03 : we don't restore samaphore counters here.
-     We will recreate and reinit samaphores in next start */
+  /* 21.03 : we don't restore semaphore counters here.
+     We will recreate and reinit semaphores in next start */
 
   p->needStart = True;
 }
@@ -972,7 +972,7 @@ static UInt32 MatchFinderMt_GetNextBlock_Bt(CMatchFinderMt *p)
         p->failure_LZ_BT = True;
         // p->btNumAvailBytes = 0;
         /* we don't want to decrease AvailBytes, that was load before.
-            that can be unxepected for the code that have loaded anopther value before */
+            that can be unexpected for the code that have loaded another value before */
       }
     }
   

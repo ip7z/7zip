@@ -1210,7 +1210,7 @@ HRESULT CHandler::Open3()
       AddErrorMessage("non-empty LOG was not replayed");
       /*
       if (h.LogVersion != 0)
-        AddErrorMessage("unknown LogVresion");
+        AddErrorMessage("unknown LogVersion");
       else
       {
         CByteBuffer log;
@@ -2065,7 +2065,7 @@ Z7_COM7F_IMF(CHandler::GetStream(UInt32 /* index */, ISequentialInStream **strea
 {
   COM_TRY_BEGIN
   *stream = NULL;
-  // if some prarent is not OK, we don't create stream
+  // if some parent is not OK, we don't create stream
   if (!AreParentsOK())
     return S_FALSE;
   InitSeekPositions();

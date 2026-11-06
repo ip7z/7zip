@@ -60,7 +60,7 @@ static const int kParentIndex = -1;
 
 
 static const wchar_t * const k_Message_Link_operation_was_Blocked =
-    L"link openning was blocked by 7-Zip";
+    L"link opening was blocked by 7-Zip";
 
 extern UString HResultToMessage(HRESULT errorCode);
 
@@ -1153,7 +1153,7 @@ bool CBrowseDialog2::OnContextMenu(HANDLE windowHandle, int xPos, int yPos)
       RECT rect;
       if (!_list.GetItemRect(itemIndex, &rect, LVIR_ICON))
         return false;
-      // rect : rect of file icon relative to listVeiw.
+      // rect : rect of file icon relative to listView.
       xPos = (rect.left + rect.right) / 2;
       yPos = (rect.top + rect.bottom) / 2;
       RECT r;

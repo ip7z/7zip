@@ -462,7 +462,7 @@ Z7_COM7F_IMF(CHandler::GetProperty(UInt32 index, PROPID propID, PROPVARIANT *val
   COM_TRY_END
 }
 
-// we suppport signature only for 512-bytes sector.
+// we support signature only for 512-bytes sector.
 REGISTER_ARC_I(
   "GPT", "gpt mbr", NULL, 0xCB,
   k_Signature,
