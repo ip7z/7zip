@@ -84,6 +84,7 @@ AR_OBJS = \
   $O\LzmaHandler.obj \
   $O\MachoHandler.obj \
   $O\MbrHandler.obj \
+  $O\MirayHandler.obj \
   $O\MslzHandler.obj \
   $O\MubHandler.obj \
   $O\NtfsHandler.obj \

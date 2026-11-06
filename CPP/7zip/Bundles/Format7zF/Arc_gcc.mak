@@ -121,6 +121,7 @@ AR_OBJS = \
   $O/LzmaHandler.o \
   $O/MachoHandler.o \
   $O/MbrHandler.o \
+  $O/MirayHandler.o \
   $O/MslzHandler.o \
   $O/MubHandler.o \
   $O/NtfsHandler.o \
