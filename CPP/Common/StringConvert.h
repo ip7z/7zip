@@ -16,6 +16,9 @@ void UnicodeStringToMultiByte2(AString &dest, const UString &src, UINT codePage)
 
 AString UnicodeStringToMultiByte(const UString &src, UINT codePage, char defaultChar, bool &defaultCharWasUsed);
 AString UnicodeStringToMultiByte(const UString &src, UINT codePage = CP_ACP);
+#ifndef _WIN32
+bool UnixConvertLegacyToUnicode(const AString &src, UString &dest, bool isOem, bool useSpecifiedCodePage, UINT codePage);
+#endif
 
 inline const wchar_t* GetUnicodeString(const wchar_t *u Z7_lifetimebound)  { return u; }
 inline const UString& GetUnicodeString(const UString &u Z7_lifetimebound)  { return u; }
