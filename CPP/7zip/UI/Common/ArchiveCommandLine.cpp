@@ -179,6 +179,7 @@ enum Enum
   kListPathSlash,
   kListTimestampUTC,
   
+  kUseCurrentDirTimes,
   kPreserveATime,
   kShareForWrite,
   kStopAfterOpenError,
@@ -331,6 +332,7 @@ static const CSwitchForm kSwitchForms[] =
   { "slsl", SWFRM_MINUS },
   { "slmu", SWFRM_MINUS },
 
+  { "sctd", SWFRM_MINUS },
   { "ssp", SWFRM_SIMPLE },
   { "ssw", SWFRM_SIMPLE },
   { "sse", SWFRM_SIMPLE },
@@ -1612,6 +1614,9 @@ void CArcCmdLineParser::Parse2(CArcCmdLineOptions &options)
     {
       CExtractNtOptions &nt = eo.NtOptions;
       nt.NtSecurity = options.NtSecurity;
+      nt.UseCurrentDirTimes.Def = parser[NKey::kUseCurrentDirTimes].ThereIs;
+      nt.UseCurrentDirTimes.Val = nt.UseCurrentDirTimes.Def
+          && !parser[NKey::kUseCurrentDirTimes].WithMinus;
 
       nt.AltStreams = options.AltStreams;
       if (!options.AltStreams.Def)

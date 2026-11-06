@@ -99,6 +99,7 @@ static LPCTSTR const kElimDup = TEXT("ElimDup");
 // static LPCTSTR const kAltStreams = TEXT("AltStreams");
 static LPCTSTR const kNtSecur = TEXT("Security");
 static LPCTSTR const kMemLimit = TEXT("MemLimit");
+static LPCTSTR const kUseCurrentDirTimes = TEXT("UseCurrentDirTimes");
 
 void CInfo::Save() const
 {
@@ -127,6 +128,30 @@ void Save_ShowPassword(bool showPassword)
   CKey key;
   CreateMainKey(key, kKeyName);
   key.SetValue(kShowPassword, showPassword);
+}
+
+void Save_UseCurrentDirTimes(bool enable)
+{
+  CS_LOCK
+  CKey key;
+  CreateMainKey(key, kKeyName);
+  key.SetValue(kUseCurrentDirTimes, enable);
+}
+
+bool Read_UseCurrentDirTimes()
+{
+  CS_LOCK
+  CKey key;
+  bool enable = false;
+  if (OpenMainKey(key, kKeyName) == ERROR_SUCCESS)
+    key.GetValue_bool_IfOk(kUseCurrentDirTimes, enable);
+  return enable;
+}
+
+void Load_UseCurrentDirTimes(CBoolPair &value)
+{
+  if (!value.Def)
+    value.Val = Read_UseCurrentDirTimes();
 }
 
 void Save_LimitGB(UInt32 limit_GB)

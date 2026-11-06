@@ -27,6 +27,8 @@ BEGIN
       "4", m + 30, spin_y, spin_x_size)
   LTEXT "GB", IDT_SETTINGS_MEM_GB, m + 30 + spin_x_size + 8, spin_y + 2, xc - m - 30 - spin_x_size - 8, 8
 
+  MY_CONTROL_CHECKBOX ( "Use current timestamps for directories", IDX_SETTINGS_CURRENT_DIR_TIMES, m, 180, xc)
+
   // LTEXT     "Memory usage for Compressing:", IDT_COMPRESS_MEMORY, m, 140, xc, 8
   // COMBOBOX  IDC_SETTINGS_MEM, m , 152, g1xs, yc - 152, MY_COMBO
   // LTEXT     "/ RAM", IDT_SETTINGS_MEM_RAM, m + g1xs + m, 154, xc - g1xs - m, MY_TEXT_NOPREFIX

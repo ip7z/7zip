@@ -90,6 +90,7 @@ public:
   #endif
 
   CBoolPair ElimDup;
+  bool UseCurrentDirTimes;
 
   INT_PTR Create(HWND aWndParent = NULL)
   {
@@ -103,7 +104,8 @@ public:
 
   CExtractDialog():
     PathMode_Force(false),
-    OverwriteMode_Force(false)
+    OverwriteMode_Force(false),
+    UseCurrentDirTimes(false)
   {
     ElimDup.Val = true;
   }

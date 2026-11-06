@@ -193,6 +193,27 @@ static HRESULT DecompressArchive(
   // outDir = GetCorrectFullFsPath(outDir);
   #endif
 
+  FStringVector createdOutDirs;
+  if (options.NtOptions.UseCurrentDirTimes.Val && !options.TestMode && !options.StdOutMode
+      && !outDir.IsEmpty())
+  {
+    // Remember missing output path components before CreateComplexDir creates them.
+    FString path;
+    if (MyGetFullPathName(outDir, path))
+    {
+      if (!path.IsEmpty() && IS_PATH_SEPAR(path.Back()))
+        path.DeleteBack();
+      while (!path.IsEmpty() && !NFind::DoesDirExist(path))
+      {
+        createdOutDirs.Add(path);
+        const int pos = path.ReverseFind_PathSepar();
+        if (pos < 0)
+          break;
+        path.DeleteFrom((unsigned)pos);
+      }
+    }
+  }
+
   if (outDir.IsEmpty())
     outDir = "." STRING_PATH_SEPARATOR;
   /*
@@ -216,6 +237,10 @@ static HRESULT DecompressArchive(
       outDir,
       removePathParts, false,
       packSize);
+
+  // Store parents first, so the final pass can visit children first.
+  for (unsigned i = createdOutDirs.Size(); i != 0;)
+    ecs->AddCreatedDirectory(createdOutDirs[--i]);
 
   ecs->Is_elimPrefix_Mode = elimIsPossible;
 
