@@ -224,6 +224,7 @@ static LPCTSTR const kAltStreams = TEXT("AltStreams");
 static LPCTSTR const kHardLinks = TEXT("HardLinks");
 static LPCTSTR const kSymLinks = TEXT("SymLinks");
 static LPCTSTR const kPreserveATime = TEXT("PreserveATime");
+static LPCTSTR const kOldestCTime = TEXT("OldestCTime");
 
 static LPCTSTR const kTimePrec = TEXT("TimePrec");
 static LPCTSTR const kMTime = TEXT("MTime");
@@ -264,6 +265,7 @@ void CInfo::Save() const
   Key_Set_BoolPair_Delete_IfNotDef (key, kHardLinks, HardLinks);
   Key_Set_BoolPair_Delete_IfNotDef (key, kSymLinks, SymLinks);
   Key_Set_BoolPair_Delete_IfNotDef (key, kPreserveATime, PreserveATime);
+  Key_Set_BoolPair_Delete_IfNotDef (key, kOldestCTime, OldestCTime);
   
   key.SetValue(kShowPassword, ShowPassword);
   key.SetValue(kLevel, (UInt32)Level);
@@ -325,6 +327,7 @@ void CInfo::Load()
   Key_Get_BoolPair(key, kHardLinks, HardLinks);
   Key_Get_BoolPair(key, kSymLinks, SymLinks);
   Key_Get_BoolPair(key, kPreserveATime, PreserveATime);
+  Key_Get_BoolPair(key, kOldestCTime, OldestCTime);
 
   key.GetValue_Strings(kArcHistory, ArcPaths);
   

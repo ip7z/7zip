@@ -58,6 +58,7 @@ bool InitLocalPrivileges();
 
 CArchiveUpdateCallback::CArchiveUpdateCallback():
     PreserveATime(false),
+    StoreOldestCTime(false),
     ShareForWrite(false),
     StopAfterOpenError(false),
     StdInMode(false),
@@ -167,7 +168,7 @@ Z7_COM7F_IMF(CArchiveUpdateCallback::GetRootProp(PROPID propID, PROPVARIANT *val
   {
     case kpidIsDir:  prop = true; break;
     case kpidAttrib: if (ParentDirItem) prop = ParentDirItem->GetWinAttrib(); break;
-    case kpidCTime:  if (ParentDirItem) PropVariant_SetFrom_FiTime(prop, ParentDirItem->CTime); break;
+    case kpidCTime:  if (ParentDirItem) PropVariant_SetFrom_FiTime(prop, StoreOldestCTime ? FiTime_Min3(ParentDirItem->CTime, ParentDirItem->ATime, ParentDirItem->MTime) : ParentDirItem->CTime); break;
     case kpidATime:  if (ParentDirItem) PropVariant_SetFrom_FiTime(prop, ParentDirItem->ATime); break;
     case kpidMTime:  if (ParentDirItem) PropVariant_SetFrom_FiTime(prop, ParentDirItem->MTime); break;
     case kpidArcFileName:  if (!ArcFileName.IsEmpty()) prop = ArcFileName; break;
@@ -514,7 +515,7 @@ Z7_COM7F_IMF(CArchiveUpdateCallback::GetProperty(UInt32 index, PROPID propID, PR
       case kpidPath:  prop = DirItems->GetLogPath((unsigned)up.DirIndex); break;
       case kpidIsDir:  prop = di.IsDir(); break;
       case kpidSize:  prop = (UInt64)(di.IsDir() ? (UInt64)0 : di.Size); break;
-      case kpidCTime:  PropVariant_SetFrom_FiTime(prop, di.CTime); break;
+      case kpidCTime:  PropVariant_SetFrom_FiTime(prop, StoreOldestCTime ? FiTime_Min3(di.CTime, di.ATime, di.MTime) : di.CTime); break;
       case kpidATime:  PropVariant_SetFrom_FiTime(prop, di.ATime); break;
       case kpidMTime:  PropVariant_SetFrom_FiTime(prop, di.MTime); break;
       case kpidAttrib:  /* if (di.Attrib_IsDefined) */ prop = (UInt32)di.GetWinAttrib(); break;
@@ -697,6 +698,7 @@ Z7_COM7F_IMF(CArchiveUpdateCallback::GetStream2(UInt32 index, ISequentialInStrea
    #endif
 
     inStreamSpec->SupportHardLinks = StoreHardLinks;
+    inStreamSpec->StoreOldestCTime = StoreOldestCTime;
     const bool preserveATime = (PreserveATime
         || mode == NUpdateNotifyOp::kAnalyze);   // 22.00 : we don't change access time in Analyze pass.
     inStreamSpec->Set_PreserveATime(preserveATime);

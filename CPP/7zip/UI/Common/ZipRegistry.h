@@ -145,6 +145,7 @@ namespace NCompression
     CBoolPair SymLinks;
 
     CBoolPair PreserveATime;
+    CBoolPair OldestCTime;
 
     UString ArcType;
     UStringVector ArcPaths;

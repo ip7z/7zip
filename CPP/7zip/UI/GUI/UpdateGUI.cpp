@@ -275,6 +275,8 @@ static void SetOutProperties(
   AddProp_BoolPair(properties, "tm", di.MTime);
   AddProp_BoolPair(properties, "tc", di.CTime);
   AddProp_BoolPair(properties, "ta", di.ATime);
+  if (di.OldestCTime.Def && di.OldestCTime.Val)
+    AddProp_bool(properties, "tc", true); // force storing CTime for "oldest as creation time"
 
   if (di.TimePrec != (UInt32)(Int32)-1)
     AddProp_UInt32(properties, "tp", di.TimePrec);
@@ -437,6 +439,8 @@ static HRESULT ShowDialog(
     di.SetArcMTime.SetTrueTrue();
   if (options.PreserveATime)
     di.PreserveATime.SetTrueTrue();
+  if (options.StoreOldestCTime)
+    di.OldestCTime.SetTrueTrue();
   
   if (callback->PasswordIsDefined)
     di.Password = callback->Password;
@@ -466,6 +470,8 @@ static HRESULT ShowDialog(
   options.SetArcMTime = di.SetArcMTime.Val;
   if (di.PreserveATime.Def)
     options.PreserveATime = di.PreserveATime.Val;
+  if (di.OldestCTime.Def)
+    options.StoreOldestCTime = di.OldestCTime.Val;
  
   /*
   #if defined(_WIN32) && !defined(UNDER_CE)
