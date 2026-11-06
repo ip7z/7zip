@@ -350,10 +350,12 @@ int APIENTRY WinMain(HINSTANCE hInstance, HINSTANCE /* hPrevInstance */,
     ::CloseHandle(processInformation.hThread);
     hProcess = processInformation.hProcess;
   }
+  DWORD exitCode = 0;
   if (hProcess)
   {
     WaitForSingleObject(hProcess, INFINITE);
+    ::GetExitCodeProcess(hProcess, &exitCode);
     ::CloseHandle(hProcess);
   }
-  return 0;
+  return static_cast<int>(exitCode);
 }
