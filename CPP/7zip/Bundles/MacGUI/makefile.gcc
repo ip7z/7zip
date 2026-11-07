@@ -1,0 +1,143 @@
+# 7-Zip for macOS (GUI): 7-Zip.app
+#
+# arm64:
+#   make -f ../../cmpl_mac_arm64.mak
+# x86_64:
+#   make -f ../../cmpl_mac_x64.mak
+# universal (arm64 + x86_64) application:
+#   ./build_app.sh
+#
+# The application is created in $O/7-Zip.app
+
+PROG = 7zFM
+
+# minimal supported macOS version
+MACOS_MIN_VERSION = 11.0
+export MACOSX_DEPLOYMENT_TARGET = $(MACOS_MIN_VERSION)
+
+include ../Format7zF/Arc_gcc.mak
+
+LOCAL_FLAGS = \
+  $(LOCAL_FLAGS_ST) \
+
+SYS_OBJS = \
+  $O/MyWindows.o \
+
+UI_COMMON_OBJS = \
+  $O/ArchiveCommandLine.o \
+  $O/ArchiveExtractCallback.o \
+  $O/ArchiveOpenCallback.o \
+  $O/Bench.o \
+  $O/DefaultName.o \
+  $O/EnumDirItems.o \
+  $O/Extract.o \
+  $O/ExtractingFilePath.o \
+  $O/HashCalc.o \
+  $O/LoadCodecs.o \
+  $O/OpenArchive.o \
+  $O/PropIDUtils.o \
+  $O/SetProperties.o \
+  $O/SortUtils.o \
+  $O/TempFiles.o \
+  $O/Update.o \
+  $O/UpdateAction.o \
+  $O/UpdateCallback.o \
+  $O/UpdatePair.o \
+  $O/UpdateProduce.o \
+
+COMMON_OBJS_2 = \
+  $O/CommandLineParser.o \
+  $O/Lang.o \
+  $O/ListFileUtils.o \
+  $O/StdInStream.o \
+  $O/StdOutStream.o \
+
+WIN_OBJS_2 = \
+  $O/ErrorMsg.o \
+  $O/FileLink.o \
+  $O/SystemInfo.o \
+
+7ZIP_COMMON_OBJS_2 = \
+  $O/FilePathAutoRename.o \
+  $O/FileStreams.o \
+  $O/MultiOutStream.o \
+
+# C++ code that connects the GUI with UI/Common code
+MAC_ENGINE_OBJS = \
+  $O/MacEngine.o \
+
+# Objective-C++ code (Cocoa GUI)
+MAC_GUI_OBJS = \
+  $O/main.o \
+  $O/AppDelegate.o \
+  $O/SZBrowserController.o \
+  $O/SZCommands.o \
+  $O/SZCompressController.o \
+  $O/SZEngine.o \
+  $O/SZExtractController.o \
+  $O/SZLang.o \
+  $O/SZProgressController.o \
+  $O/SZPrompts.o \
+  $O/SZPropertiesController.o \
+  $O/SZUtils.o \
+
+OBJS = \
+  $(ARC_OBJS) \
+  $(SYS_OBJS) \
+  $(COMMON_OBJS_2) \
+  $(WIN_OBJS_2) \
+  $(7ZIP_COMMON_OBJS_2) \
+  $(UI_COMMON_OBJS) \
+  $(MAC_ENGINE_OBJS) \
+  $(MAC_GUI_OBJS) \
+
+MY_LIBS = \
+  -framework Cocoa \
+  -framework UniformTypeIdentifiers \
+
+include ../../7zip_gcc.mak
+
+
+MAC_UI_DIR = ../../UI/MacOS
+
+# Objective-C++ files use their own set of warnings:
+# Cocoa headers are not compatible with (-Weverything).
+OBJCXX_FLAGS = $(MY_ARCH_2) -O2 -c -fobjc-arc -std=c++17 \
+  -Wall -Wextra -Wno-unused-parameter \
+  $(CFLAGS_DEBUG) -o $@
+
+$O/MacEngine.o: $(MAC_UI_DIR)/MacEngine.cpp $(MAC_UI_DIR)/MacEngine.h
+	$(CXX) $(CXXFLAGS) $<
+
+$O/%.o: $(MAC_UI_DIR)/%.mm $(wildcard $(MAC_UI_DIR)/*.h)
+	$(CXX) $(OBJCXX_FLAGS) $<
+
+
+# ---------- application bundle ----------
+
+APP_NAME = 7-Zip
+APP_DIR = $O/$(APP_NAME).app
+MAC_RES_DIR = $(MAC_UI_DIR)/Resources
+LANG_DIR ?= ../../../../Lang
+
+MY_VERSION_NUMBERS := $(shell sed -n 's/^\#define MY_VERSION_NUMBERS "\(.*\)"/\1/p' ../../../../C/7zVersion.h)
+MY_COPYRIGHT_CR := $(shell sed -n 's/^\#define MY_COPYRIGHT_CR "\(.*\)"/\1/p' ../../../../C/7zVersion.h)
+
+all: $(APP_DIR)
+
+$(APP_DIR): $(PROGPATH) $(MAC_RES_DIR)/Info.plist $(MAC_RES_DIR)/AppIcon.icns
+	rm -rf $(APP_DIR)
+	mkdir -p $(APP_DIR)/Contents/MacOS $(APP_DIR)/Contents/Resources
+	cp $(PROGPATH) $(APP_DIR)/Contents/MacOS/$(PROG)
+	sed -e 's/@VERSION@/$(MY_VERSION_NUMBERS)/g' \
+	    -e 's/@MIN_MACOS@/$(MACOS_MIN_VERSION)/g' \
+	    -e 's/@COPYRIGHT@/$(MY_COPYRIGHT_CR)/g' \
+	    $(MAC_RES_DIR)/Info.plist > $(APP_DIR)/Contents/Info.plist
+	cp $(MAC_RES_DIR)/AppIcon.icns $(MAC_RES_DIR)/ArchiveIcon.icns $(APP_DIR)/Contents/Resources/
+	if [ -d "$(LANG_DIR)" ]; then cp -R "$(LANG_DIR)" $(APP_DIR)/Contents/Resources/Lang; fi
+	codesign --force --sign - $(APP_DIR)
+
+app: $(APP_DIR)
+
+clean_app:
+	rm -rf $(APP_DIR)

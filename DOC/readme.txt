@@ -162,6 +162,15 @@ To compile 7-Zip for arm64 with assembler:
 To compile 7-Zip for arm64 for macOS:
   make -j -f ../../cmpl_mac_arm64.mak
 
+To compile 7-Zip GUI for macOS (7-Zip.app):
+  cd CPP/7zip/Bundles/MacGUI
+  make -j -f ../../cmpl_mac_arm64.mak
+or (universal application for arm64 and x86-64):
+  ./build_app.sh
+To compile and install 7-Zip.app to /Applications:
+  ./install_app.sh
+Read CPP/7zip/UI/MacOS/readme.txt for more information.
+
 Also you can change some compiler options in the "mak" files:
   cmpl_gcc.mak
   var_gcc.mak
@@ -273,6 +282,7 @@ Windows           common files for Windows related code
     Format7zExtractR    7zxr.dll: .7z support, reduced version, extracting only
     Format7zF           7z.dll:   all formats
     LzmaCon       lzma.exe: LZMA compression/decompression
+    MacGUI        7-Zip.app: 7-Zip GUI for macOS
     SFXCon        7zCon.sfx: Console 7z SFX module
     SFXWin        7z.sfx: Windows 7z SFX module
     SFXSetup      7zS.sfx: Windows 7z SFX module for Installers
@@ -291,6 +301,7 @@ Windows           common files for Windows related code
     Far           plugin for Far Manager
     FileManager   7zFM.exe: 7-Zip File Manager
     GUI           7zG.exe: 7-Zip GUI version
+    MacOS         7-Zip.app: 7-Zip GUI for macOS (Cocoa)
 
 
 

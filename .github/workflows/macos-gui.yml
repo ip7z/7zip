@@ -1,0 +1,31 @@
+name: macOS GUI
+
+on:
+  push:
+    paths:
+      - 'C/**'
+      - 'CPP/**'
+      - '.github/workflows/macos-gui.yml'
+  pull_request:
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: macos-14
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Build universal 7-Zip.app and dmg
+        run: CPP/7zip/Bundles/MacGUI/build_app.sh dmg
+
+      - name: Check application
+        run: |
+          APP=CPP/7zip/Bundles/MacGUI/b/m_universal/7-Zip.app
+          lipo -info "$APP/Contents/MacOS/7zFM"
+          plutil -lint "$APP/Contents/Info.plist"
+          codesign --verify --verbose "$APP"
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: 7-Zip-macOS
+          path: CPP/7zip/Bundles/MacGUI/b/*.dmg
