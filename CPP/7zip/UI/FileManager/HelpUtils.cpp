@@ -28,7 +28,7 @@ void ShowHelpWindow(LPCSTR)
 #include "../../../Windows/FileName.h"
 
 #else
-#include <HtmlHelp.h>
+#include <htmlhelp.h>
 #endif
 
 #include "../../../Common/StringConvert.h"

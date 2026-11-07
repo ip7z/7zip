@@ -1,0 +1,64 @@
+# MinGW-w64 cross-build from Linux / WSL.
+# make -f makefile.gcc -j4
+PROG = 7-zip
+DEF_FILE = Explorer.def
+IS_MINGW = 1
+MSYSTEM = 1
+CROSS_COMPILE ?= x86_64-w64-mingw32-
+CC = $(CROSS_COMPILE)gcc
+CXX = $(CROSS_COMPILE)g++
+RC = $(CROSS_COMPILE)windres
+LOCAL_FLAGS = -DZ7_LANG
+MY_LIBS = -lmpr -lhtmlhelp
+
+OBJS = \
+  $O/DllExportsExplorer.o \
+  $O/ContextMenu.o \
+  $O/MyMessages.o \
+  $O/IntToString.o \
+  $O/Lang.o \
+  $O/MyString.o \
+  $O/MyVector.o \
+  $O/NewHandler.o \
+  $O/Random.o \
+  $O/StringConvert.o \
+  $O/StringToInt.o \
+  $O/UTFConvert.o \
+  $O/Wildcard.o \
+  $O/DLL.o \
+  $O/ErrorMsg.o \
+  $O/FileDir.o \
+  $O/FileFind.o \
+  $O/FileIO.o \
+  $O/FileName.o \
+  $O/MemoryLock.o \
+  $O/Menu.o \
+  $O/ProcessUtils.o \
+  $O/Registry.o \
+  $O/ResourceString.o \
+  $O/Shell.o \
+  $O/Synchronization.o \
+  $O/TimeUtils.o \
+  $O/Window.o \
+  $O/CommonDialog.o \
+  $O/Dialog.o \
+  $O/ListView.o \
+  $O/ArchiveName.o \
+  $O/CompressCall.o \
+  $O/ExtractingFilePath.o \
+  $O/ZipRegistry.o \
+  $O/FormatUtils.o \
+  $O/HelpUtils.o \
+  $O/LangUtils.o \
+  $O/ProgramLocation.o \
+  $O/PropertyName.o \
+  $O/RegistryUtils.o \
+  $O/CpuArch.o \
+  $O/Threads.o \
+  $O/Sort.o \
+  $O/resource.o
+
+include ../../7zip_gcc.mak
+
+# GNU ld takes the module definition file as an input, not an MSVC /DEF flag.
+LDFLAGS = -shared $(DEF_FILE) -static-libgcc -static-libstdc++

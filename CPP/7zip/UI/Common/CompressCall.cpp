@@ -189,7 +189,8 @@ HRESULT CompressFiles(
     const UString &arcType,
     bool addExtension,
     const UStringVector &names,
-    bool email, bool showDialog, bool waitFinish)
+    bool email, bool showDialog, bool waitFinish,
+    bool createNew)
 {
   MY_TRY_BEGIN
   UString params ('a');
@@ -213,7 +214,13 @@ HRESULT CompressFiles(
 
   AddLagePagesSwitch(params);
 
-  if (arcName.IsEmpty())
+  if (createNew)
+  {
+    // No input archive: the update engine creates the output with CREATE_NEW.
+    params += " -an -u- -u!";
+    params += GetQuotedString(arcPathPrefix + arcName);
+  }
+  else if (arcName.IsEmpty())
     params += " -an";
 
   if (addExtension)
@@ -224,7 +231,7 @@ HRESULT CompressFiles(
   params += kStopSwitchParsing;
   params.Add_Space();
   
-  if (!arcName.IsEmpty())
+  if (!createNew && !arcName.IsEmpty())
   {
     params += GetQuotedString(
     // #ifdef UNDER_CE
