@@ -146,3 +146,10 @@ C_OBJS = \
 !include "../../Sort.mak"
 
 !include "../../7zip.mak"
+
+$O\CompressDialog.obj: CompressDialog.cpp CompressDialog.h CompressDialogRes.h
+$O\ArchiveCommandLine.obj: ..\Common\ArchiveCommandLine.cpp ..\Common\Update.h
+$O\Update.obj: ..\Common\Update.cpp ..\Common\Update.h
+$O\UpdateCallbackGUI.obj: UpdateCallbackGUI.cpp ..\Common\Update.h UpdateCallbackGUI.h
+$O\UpdateGUI.obj: UpdateGUI.cpp ..\Common\Update.h UpdateGUI.h CompressDialog.h CompressDialogRes.h
+$O\resource.res: resource.rc resource2.rc CompressDialog.rc CompressDialogRes.h
