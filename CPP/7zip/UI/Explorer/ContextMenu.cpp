@@ -278,6 +278,7 @@ static const CContextMenuCommand g_Commands[] =
   CMD_REC( kCompress,           "Compress",           IDS_CONTEXT_COMPRESS),
   CMD_REC( kCompressEmail,      "CompressEmail",      IDS_CONTEXT_COMPRESS_EMAIL),
   CMD_REC( kCompressTo7z,       "CompressTo7z",       IDS_CONTEXT_COMPRESS_TO),
+  { 0, CZipContextMenu::kCompressTo7zBackup, "CompressTo7zBackup", IDS_CONTEXT_COMPRESS_TO },
   CMD_REC( kCompressTo7zEmail,  "CompressTo7zEmail",  IDS_CONTEXT_COMPRESS_TO_EMAIL),
   CMD_REC( kCompressToZip,      "CompressToZip",      IDS_CONTEXT_COMPRESS_TO),
   CMD_REC( kCompressToZipEmail, "CompressToZipEmail", IDS_CONTEXT_COMPRESS_TO_EMAIL)
@@ -955,6 +956,28 @@ Z7_COMWF_B CZipContextMenu::QueryContextMenu(HMENU hMenu, UINT indexMenu,
       MyInsertMenu(popupMenu, subIndex++, currentCommandID++, s, bitmap);
     }
 
+    // IExplorerCommand uses no HMENU and supplies its own root submenu.
+    if (!_dropMode && fileNames->Size() == 1 && fi0.IsDir()
+        && (ci.Cascaded.Val || !hMenu) && currentCommandID <= commandIDLast)
+    {
+      SYSTEMTIME time;
+      GetLocalTime(&time);
+      wchar_t suffix[32];
+      wsprintfW(suffix, L"-%04u-%02u-%02u-%02u-%02u.7z",
+          (unsigned)time.wYear, (unsigned)time.wMonth, (unsigned)time.wDay,
+          (unsigned)time.wHour, (unsigned)time.wMinute);
+      CCommandMapItem cmi;
+      cmi.Folder = fs2us(folderPrefix);
+      cmi.ArcName = fs2us(fi0.Name);
+      cmi.ArcName += suffix;
+      cmi.ArcType = "7z";
+      UString s;
+      AddCommand(kCompressTo7zBackup, s, cmi);
+      MyFormatNew_ReducedName(s, cmi.ArcName);
+      Set_UserString_in_LastCommand(s);
+      MyInsertMenu(popupMenu, subIndex++, currentCommandID++, s, bitmap);
+    }
+
     #ifdef EMAIL_SUPPORT
     // CompressTo7zEmail
     if ((contextMenuFlags & NContextMenuFlags::kCompressTo7zEmail) != 0  && !_dropMode)
@@ -1293,6 +1316,11 @@ HRESULT CZipContextMenu::InvokeCommandCommon(const CCommandMapItem &cmi)
       {
         TestArchives(_fileNames);
         break;
+      }
+      case kCompressTo7zBackup:
+      {
+        return CompressFiles(cmi.Folder, cmi.ArcName, cmi.ArcType,
+            false, _fileNames, false, false, false, true);
       }
       case kCompress:
       case kCompressEmail:

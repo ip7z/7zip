@@ -82,6 +82,7 @@ public:
     kCompress,
     kCompressEmail,
     kCompressTo7z,
+    kCompressTo7zBackup,
     kCompressTo7zEmail,
     kCompressToZip,
     kCompressToZipEmail,
