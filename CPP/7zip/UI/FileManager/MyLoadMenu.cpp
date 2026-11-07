@@ -434,6 +434,9 @@ void OnMenuActivating(HWND /* hWnd */, HMENU hMenu, int position)
     menu.CheckItemByID(IDM_VIEW_TOOLBARS_LARGE_BUTTONS, g_App.LargeButtons);
     menu.CheckItemByID(IDM_VIEW_TOOLBARS_SHOW_BUTTONS_TEXT, g_App.ShowButtonsLables);
     menu.CheckItemByID(IDM_VIEW_AUTO_REFRESH, g_App.Get_AutoRefresh_Mode());
+    menu.CheckRadioItem(
+        IDM_VIEW_SIZE_BYTES, IDM_VIEW_SIZE_AUTO,
+        IDM_VIEW_SIZE_BYTES + g_App.GetSizeDisplayMode(), MF_BYCOMMAND);
     // menu.CheckItemByID(IDM_VIEW_SHOW_STREAMS, g_App.Get_ShowNtfsStrems_Mode());
     // menu.CheckItemByID(IDM_VIEW_SHOW_DELETED, g_App.ShowDeletedFiles);
 
@@ -909,6 +912,14 @@ bool OnMenuCommand(HWND hWnd, unsigned id)
     case IDM_VIEW_TIME_UTC:
       g_Timestamp_Show_UTC = !g_Timestamp_Show_UTC;
       g_App.RedrawListItems_InPanels();
+      break;
+
+    case IDM_VIEW_SIZE_BYTES:
+      g_App.SetSizeDisplayMode(k_SizeDisplayMode_Bytes);
+      break;
+
+    case IDM_VIEW_SIZE_AUTO:
+      g_App.SetSizeDisplayMode(k_SizeDisplayMode_Auto);
       break;
 
     // Tools
