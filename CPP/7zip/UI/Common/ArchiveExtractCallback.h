@@ -460,7 +460,7 @@ private:
   #endif
 
   void CreateComplexDirectory(
-      const UStringVector &dirPathParts, bool isFinal, FString &fullPath);
+      const UStringVector &dirPathParts, bool isFinal, FString &fullPath, bool createDirs);
   HRESULT GetTime(UInt32 index, PROPID propID, CArcTime &ft);
   HRESULT GetUnpackSize();
 
