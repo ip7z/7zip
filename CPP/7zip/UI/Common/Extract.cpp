@@ -54,19 +54,21 @@ static HRESULT DecompressArchive(
   UStringVector removePathParts;
 
   FString outDir = options.OutputDir;
+
+  UString replaceName = arc.DefaultName;
+  if (arcLink.Arcs.Size() > 1)
+  {
+    // Most "pe" archives have same name of archive subfile "[0]" or ".rsrc_1".
+    // So it extracts different archives to one folder.
+    // We will use top level archive name
+    const CArc &arc0 = arcLink.Arcs[0];
+    if (arc0.FormatIndex >= 0 && StringsAreEqualNoCase_Ascii(codecs->Formats[(unsigned)arc0.FormatIndex].Name, "pe"))
+      replaceName = arc0.DefaultName;
+  }
+  const FString correctedName = us2fs(Get_Correct_FsFile_Name(replaceName));
+
   if (options.OutDirMode != NExtractOutDirMode::k_Direct)
   {
-    UString replaceName = arc.DefaultName;
-    if (arcLink.Arcs.Size() > 1)
-    {
-      // Most "pe" archives have same name of archive subfile "[0]" or ".rsrc_1".
-      // So it extracts different archives to one folder.
-      // We will use top level archive name
-      const CArc &arc0 = arcLink.Arcs[0];
-      if (arc0.FormatIndex >= 0 && StringsAreEqualNoCase_Ascii(codecs->Formats[(unsigned)arc0.FormatIndex].Name, "pe"))
-        replaceName = arc0.DefaultName;
-    }
-    const FString correctedName = us2fs(Get_Correct_FsFile_Name(replaceName));
     if (options.OutDirMode == NExtractOutDirMode::k_AddArcName)
     {
       outDir += correctedName;
@@ -178,6 +180,43 @@ static HRESULT DecompressArchive(
     {
       callback->ThereAreNoFiles();
       return callback->ExtractResult(S_OK);
+    }
+
+    // for -sps (SmartExtract): if archive has more than one root item name,
+    // we extract to subfolder with archive name
+    if (options.SmartExtract.Val)
+    {
+      bool multiRoots = false;
+      UString rootName;
+      for (UInt32 i = 0; i < numItems; i++)
+      {
+        RINOK(arc.GetItem(i, item))
+        UString s =
+          #ifdef SUPPORT_ALT_STREAMS
+            item.MainPath;
+          #else
+            item.Path;
+          #endif
+        int slashPos = s.Find(WCHAR_PATH_SEPARATOR);
+        #if WCHAR_PATH_SEPARATOR != L'/'
+        if (slashPos < 0)
+          slashPos = s.Find(L'/');
+        #endif
+        if (slashPos >= 0)
+          s.DeleteFrom((unsigned)slashPos);
+        if (i == 0)
+          rootName = s;
+        else if (s != rootName)
+        {
+          multiRoots = true;
+          break;
+        }
+      }
+      if (multiRoots)
+      {
+        outDir += correctedName;
+        NFile::NName::NormalizeDirPathPrefix(outDir);
+      }
     }
   }
 

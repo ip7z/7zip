@@ -188,6 +188,7 @@ enum Enum
   kUseSlashMark,
   kDisableWildcardParsing,
   kElimDup,
+  kSmartExtract,
   kFullPathMode,
   kOutDirMode,
   
@@ -340,6 +341,7 @@ static const CSwitchForm kSwitchForms[] =
   { "spm", SWFRM_STRING_SINGL(0) },
   { "spd", SWFRM_SIMPLE },
   { "spe", SWFRM_MINUS },
+  { "sps", SWFRM_MINUS },
   { "spf", SWFRM_STRING_SINGL(0) },
   { "spo", NSwitchType::kChar, false, 1, "dcr" }, // kOutDirMode
 
@@ -1463,6 +1465,12 @@ void CArcCmdLineParser::Parse2(CArcCmdLineOptions &options)
   {
     options.ExtractOptions.ElimDup.Def = true;
     options.ExtractOptions.ElimDup.Val = !parser[NKey::kElimDup].WithMinus;
+  }
+
+  if (parser[NKey::kSmartExtract].ThereIs)
+  {
+    options.ExtractOptions.SmartExtract.Def = true;
+    options.ExtractOptions.SmartExtract.Val = !parser[NKey::kSmartExtract].WithMinus;
   }
   
   NWildcard::ECensorPathMode censorPathMode = NWildcard::k_RelatPath;
