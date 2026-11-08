@@ -1,8 +1,7 @@
 
 MY_ARCH_2 = $(MY_ARCH)
 
-MY_ASM = jwasm
-MY_ASM = asmc
+MY_ASM = nasm
 
 ifndef RC
 #RC=windres.exe --target=pe-x86-64
@@ -127,14 +126,12 @@ endif
 
 
 ifdef IS_X64
-AFLAGS_ABI = -elf64 -DABI_LINUX
+AFLAGS_ABI = -felf64
 else
-AFLAGS_ABI = -elf -DABI_LINUX -DABI_CDECL
-# -DABI_CDECL
-# -DABI_LINUX
-# -DABI_CDECL
+AFLAGS_ABI = -felf32
 endif
-AFLAGS = $(AFLAGS_ABI) -Fo$(O)/
+
+AFLAGS = $(AFLAGS_ABI) -I$(<D) -o $(O)/$(*F).o
 
 C_WARN_FLAGS =
 
@@ -146,7 +143,10 @@ STATIC_TARGET=$(PROGPATH_STATIC)
 endif
 
 
-all: $(O) $(PROGPATH) $(STATIC_TARGET)
+all: $(PROGPATH) $(STATIC_TARGET)
+
+# we need $(O) as order-only-prerequisites:
+$(OBJS): | $(O)
 
 $(O):
 	$(MY_MKDIR) $(O)
