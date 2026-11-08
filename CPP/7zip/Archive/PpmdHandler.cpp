@@ -27,7 +27,7 @@ using namespace NWindows;
 namespace NArchive {
 namespace NPpmd {
 
-static const UInt32 kBufSize = (1 << 20);
+static const size_t kBufSize = 1 << 20;
 
 struct CBuf
 {
@@ -43,8 +43,6 @@ struct CBuf
   }
 };
 
-static const UInt32 kHeaderSize = 16;
-static const UInt32 kSignature = 0x84ACAF8F;
 static const unsigned kNewHeaderVer = 8;
 
 struct CItem
@@ -68,20 +66,20 @@ struct CItem
 
 HRESULT CItem::ReadHeader(ISequentialInStream *s, UInt32 &headerSize)
 {
-  Byte h[kHeaderSize];
-  RINOK(ReadStream_FALSE(s, h, kHeaderSize))
-  if (GetUi32(h) != kSignature)
+  const unsigned kHeaderSize = 16;
+  UInt32 h32[kHeaderSize / 4];
+  RINOK(ReadStream_FALSE(s, h32, kHeaderSize))
+  if (h32[0] != Z7_CONV_LE_TO_NATIVE_CONST32(0x84acaf8f)) // kSignature
     return S_FALSE;
-  Attrib = GetUi32(h + 4);
-  Time = GetUi32(h + 12);
-  const unsigned info = GetUi16(h + 8);
+  Attrib = GetUi32a(h32 + 1);
+  Time = GetUi32a(h32 + 3);
+  const unsigned info = GetUi16a((const Byte *)(const void *)(h32) + 8);
   Order = (info & 0xF) + 1;
   MemInMB = ((info >> 4) & 0xFF) + 1;
   Ver = info >> 12;
-
-  if (Ver < 6 || Ver > 11) return S_FALSE;
- 
-  UInt32 nameLen = GetUi16(h + 10);
+  if (Ver < 6 || Ver > 11)
+    return S_FALSE;
+  unsigned nameLen = GetUi16a((const Byte *)(const void *)(h32) + 10);
   Restor = nameLen >> 14;
   if (Restor > 2)
     return S_FALSE;
@@ -92,6 +90,7 @@ HRESULT CItem::ReadHeader(ISequentialInStream *s, UInt32 &headerSize)
   char *name = Name.GetBuf(nameLen);
   const HRESULT res = ReadStream_FALSE(s, name, nameLen);
   Name.ReleaseBuf_CalcLen(nameLen);
+  // if (Name.Len() != nameLen) return S_FALSE; // optional strict check
   headerSize = kHeaderSize + nameLen;
   return res;
 }
@@ -194,12 +193,12 @@ Z7_COM7F_IMF(CHandler::OpenSeq(ISequentialInStream *stream))
 {
   COM_TRY_BEGIN
   HRESULT res;
-  try
+  // try
   {
     Close();
     res = _item.ReadHeader(stream, _headerSize);
   }
-  catch(...) { res = S_FALSE; }
+  // catch(...) { res = S_FALSE; }
   if (res == S_OK)
     _stream = stream;
   else
@@ -210,6 +209,7 @@ Z7_COM7F_IMF(CHandler::OpenSeq(ISequentialInStream *stream))
 
 Z7_COM7F_IMF(CHandler::Close())
 {
+  _headerSize = 0;
   _packSize = 0;
   _packSize_Defined = false;
   _stream.Release();
@@ -220,58 +220,74 @@ Z7_COM7F_IMF(CHandler::Close())
 
 struct CPpmdCpp
 {
-  unsigned Ver;
-  CPpmd7 _ppmd7;
-  CPpmd8 _ppmd8;
+  CPpmd7 *_ppmd7;
+  CPpmd8 *_ppmd8;
   
-  CPpmdCpp(unsigned version)
+  CPpmdCpp(unsigned version):
+    _ppmd7(NULL),
+    _ppmd8(NULL)
   {
-    Ver = version;
-    Ppmd7_Construct(&_ppmd7);
-    Ppmd8_Construct(&_ppmd8);
+    if (version == 7)
+    {
+      _ppmd7 = new CPpmd7();
+      Ppmd7_Construct(_ppmd7);
+    }
+    else
+    {
+      _ppmd8 = new CPpmd8();
+      Ppmd8_Construct(_ppmd8);
+    }
   }
 
   ~CPpmdCpp()
   {
-    Ppmd7_Free(&_ppmd7, &g_BigAlloc);
-    Ppmd8_Free(&_ppmd8, &g_BigAlloc);
+    if (_ppmd7)
+    {
+      Ppmd7_Free(_ppmd7, &g_BigAlloc);
+      delete _ppmd7;
+    }
+    if (_ppmd8)
+    {
+      Ppmd8_Free(_ppmd8, &g_BigAlloc);
+      delete _ppmd8;
+    }
   }
 
-  bool Alloc(UInt32 memInMB)
+  BoolInt Alloc(UInt32 memInMB)
   {
     memInMB <<= 20;
-    if (Ver == 7)
-      return Ppmd7_Alloc(&_ppmd7, memInMB, &g_BigAlloc) != 0;
-    return Ppmd8_Alloc(&_ppmd8, memInMB, &g_BigAlloc) != 0;
+    if (_ppmd7)
+      return Ppmd7_Alloc(_ppmd7, memInMB, &g_BigAlloc);
+    return Ppmd8_Alloc(_ppmd8, memInMB, &g_BigAlloc);
   }
 
   void Init(unsigned order, unsigned restor)
   {
-    if (Ver == 7)
-      Ppmd7_Init(&_ppmd7, order);
+    if (_ppmd7)
+      Ppmd7_Init(_ppmd7, order);
     else
-      Ppmd8_Init(&_ppmd8, order, restor);
+      Ppmd8_Init(_ppmd8, order, restor);
   }
     
   bool InitRc(CByteInBufWrap *inStream)
   {
-    if (Ver == 7)
+    if (_ppmd7)
     {
-      _ppmd7.rc.dec.Stream = &inStream->vt;
-      return (Ppmd7a_RangeDec_Init(&_ppmd7.rc.dec) != 0);
+      _ppmd7->rc.dec.Stream = &inStream->vt;
+      return (Ppmd7a_RangeDec_Init(&_ppmd7->rc.dec) != 0);
     }
     else
     {
-      _ppmd8.Stream.In = &inStream->vt;
-      return Ppmd8_Init_RangeDec(&_ppmd8) != 0;
+      _ppmd8->Stream.In = &inStream->vt;
+      return Ppmd8_Init_RangeDec(_ppmd8) != 0;
     }
   }
 
   bool IsFinishedOK()
   {
-    if (Ver == 7)
-      return Ppmd7z_RangeDec_IsFinishedOK(&_ppmd7.rc.dec);
-    return Ppmd8_RangeDec_IsFinishedOK(&_ppmd8);
+    if (_ppmd7)
+      return Ppmd7z_RangeDec_IsFinishedOK(&_ppmd7->rc.dec);
+    return Ppmd8_RangeDec_IsFinishedOK(_ppmd8);
   }
 };
 
@@ -311,14 +327,14 @@ Z7_COM7F_IMF(CHandler::Extract(const UInt32 *indices, UInt32 numItems,
   CMyComPtr2_Create<ICompressProgressInfo, CLocalProgress> lps;
   lps->Init(extractCallback, true);
 
-  CPpmdCpp ppmd(_item.Ver);
-  if (!ppmd.Alloc(_item.MemInMB))
-    return E_OUTOFMEMORY;
-  
   opRes = NExtract::NOperationResult::kUnsupportedMethod;
 
   if (_item.IsSupported())
   {
+    CPpmdCpp ppmd(_item.Ver);
+    if (!ppmd.Alloc(_item.MemInMB))
+      return E_OUTOFMEMORY;
+  
     opRes = NExtract::NOperationResult::kDataError;
     
     ppmd.Init(_item.Order, _item.Restor);
@@ -328,19 +344,20 @@ Z7_COM7F_IMF(CHandler::Extract(const UInt32 *indices, UInt32 numItems,
     if (ppmd.InitRc(&inBuf) && !inBuf.Extra && inBuf.Res == S_OK)
     for (;;)
     {
-      lps->InSize = _packSize = inBuf.GetProcessed();
-      lps->OutSize = outSize;
-      RINOK(lps->SetCur())
+      CLocalProgress *lps2 = lps.ClsPtr();
+      lps2->InSize = _packSize = inBuf.GetProcessed();
+      lps2->OutSize = outSize;
+      RINOK(lps2->SetCur())
 
       size_t i;
       int sym = 0;
 
       Byte *buf = outBuf.Buf;
-      if (ppmd.Ver == 7)
+      if (ppmd._ppmd7)
       {
         for (i = 0; i < kBufSize; i++)
         {
-          sym = Ppmd7a_DecodeSymbol(&ppmd._ppmd7);
+          sym = Ppmd7a_DecodeSymbol(ppmd._ppmd7);
           if (inBuf.Extra || sym < 0)
             break;
           buf[i] = (Byte)sym;
@@ -350,7 +367,7 @@ Z7_COM7F_IMF(CHandler::Extract(const UInt32 *indices, UInt32 numItems,
       {
         for (i = 0; i < kBufSize; i++)
         {
-          sym = Ppmd8_DecodeSymbol(&ppmd._ppmd8);
+          sym = Ppmd8_DecodeSymbol(ppmd._ppmd8);
           if (inBuf.Extra || sym < 0)
             break;
           buf[i] = (Byte)sym;

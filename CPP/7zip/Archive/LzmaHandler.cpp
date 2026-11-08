@@ -185,7 +185,7 @@ Z7_CLASS_IMP_CHandler_IInArchive_1(
   UInt64 _unpackSize;
   UInt64 _numStreams;
 
-  void GetMethod(NCOM::CPropVariant &prop);
+  void GetMethod(NCOM::CPropVariant &prop) const;
 
   unsigned GetHeaderSize() const { return 5 + 8 + (_lzma86 ? 1 : 0); }
 public:
@@ -228,7 +228,7 @@ Z7_COM7F_IMF(CHandler::GetNumberOfItems(UInt32 *numItems))
 }
 
 
-static char * DictSizeToString(UInt32 val, char *s)
+static char * DictSizeToString(UInt32 val, char *s Z7_lifetimebound)
 {
   for (unsigned i = 0; i < 32; i++)
     if (((UInt32)1 << i) == val)
@@ -242,14 +242,14 @@ static char * DictSizeToString(UInt32 val, char *s)
   return s;
 }
 
-static char *AddProp32(char *s, const char *name, UInt32 v)
+static char *AddProp32(char *s Z7_lifetimebound, const char *name, UInt32 v)
 {
   *s++ = ':';
   s = MyStpCpy(s, name);
   return ::ConvertUInt32ToString(v, s);
 }
 
-void CHandler::GetMethod(NCOM::CPropVariant &prop)
+void CHandler::GetMethod(NCOM::CPropVariant &prop) const
 {
   if (!_stream)
     return;
@@ -270,7 +270,7 @@ void CHandler::GetMethod(NCOM::CPropVariant &prop)
     UInt32 lp = d % 5;
     if (lc != 3) s = AddProp32(s, "lc", lc);
     if (lp != 0) s = AddProp32(s, "lp", lp);
-    if (pb != 2) s = AddProp32(s, "pb", pb);
+    if (pb != 2) /* s = */ AddProp32(s, "pb", pb);
   }
   prop = sz;
 }
@@ -494,9 +494,10 @@ Z7_COM7F_IMF(CHandler::Extract(const UInt32 *indices, UInt32 numItems,
 
   for (;;)
   {
-    lps->InSize = packSize;
-    lps->OutSize = unpackSize;
-    RINOK(lps->SetCur())
+    CLocalProgress *lps2 = lps.ClsPtr();
+    lps2->InSize = packSize;
+    lps2->OutSize = unpackSize;
+    RINOK(lps2->SetCur())
 
     const UInt32 kBufSize = 1 + 5 + 8;
     Byte buf[kBufSize];
@@ -568,9 +569,7 @@ Z7_COM7F_IMF(CHandler::Extract(const UInt32 *indices, UInt32 numItems,
     opResult = NExtract::NOperationResult::kDataAfterEnd;
   else if (hres == S_FALSE)
     opResult = NExtract::NOperationResult::kDataError;
-  else if (hres == S_OK)
-    opResult = NExtract::NOperationResult::kOK;
-  else
+  else if (hres != S_OK)
     return hres;
 
   // outStream.Release();

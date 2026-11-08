@@ -177,7 +177,7 @@ class CCriticalSectionLock  MY_UNCOPYABLE
   CCriticalSection *_object;
   void Unlock()  { _object->Leave(); }
 public:
-  CCriticalSectionLock(CCriticalSection &object): _object(&object) {_object->Enter(); }
+  CCriticalSectionLock(CCriticalSection &object Z7_lifetimebound): _object(&object) {_object->Enter(); }
   ~CCriticalSectionLock() { Unlock(); }
 };
 
@@ -275,7 +275,7 @@ struct CBaseHandle_WFMO  MY_UNCOPYABLE
   CBaseHandle_WFMO(): _sync(NULL) {}
   virtual ~CBaseHandle_WFMO();
 
-  operator CHandle_WFMO() { return this; }
+  operator CHandle_WFMO() Z7_lifetimebound { return this; }
   virtual bool IsSignaledAndUpdate() = 0;
 };
 

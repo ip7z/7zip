@@ -398,7 +398,7 @@ FilesInfo
         if(External != 0)
           UINT64 DataIndex
         []
-        for(Definded Items)
+        for(Defined Items)
           REAL_UINT64 Time
         []
       
@@ -425,7 +425,7 @@ FilesInfo
         if(External != 0)
           UINT64 DataIndex
         []
-        for(Definded Attributes)
+        for(Defined Attributes)
           UINT32 Attributes
         []
     }

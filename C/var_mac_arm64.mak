@@ -5,7 +5,9 @@ IS_X86=
 IS_ARM64=1
 CROSS_COMPILE=
 MY_ARCH=-arch arm64
+MY_ARCH+= -mmacosx-version-min=11.0
 USE_ASM=1
 CC=$(CROSS_COMPILE)clang
 CXX=$(CROSS_COMPILE)clang++
 USE_CLANG=1
+MACOS_MODE=1

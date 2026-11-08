@@ -18,74 +18,60 @@ namespace NExt {
 API_FUNC_IsArc IsArc_Ext(const Byte *p, size_t size);
 }
 
-Z7_COM7F_IMF(CHandlerCont::Extract(const UInt32 *indices, UInt32 numItems,
-    Int32 testMode, IArchiveExtractCallback *extractCallback))
+Z7_COM7F_IMF(CHandlerCont::Extract(const UInt32 * const indices, UInt32 numItems,
+    const Int32 testMode, IArchiveExtractCallback * extractCallback))
 {
   COM_TRY_BEGIN
   const bool allFilesMode = (numItems == (UInt32)(Int32)-1);
   if (allFilesMode)
-  {
     RINOK(GetNumberOfItems(&numItems))
-  }
   if (numItems == 0)
     return S_OK;
-  UInt64 totalSize = 0;
+  
+  UInt64 totalSize = 0, size, pos;
   UInt32 i;
   for (i = 0; i < numItems; i++)
   {
-    UInt64 pos, size;
+    size = pos = 0;
     GetItem_ExtractInfo(allFilesMode ? i : indices[i], pos, size);
     totalSize += size;
   }
   RINOK(extractCallback->SetTotal(totalSize))
 
-  totalSize = 0;
-  
+  NCompress::CCopyCoderBase copyCoder;
   CMyComPtr2_Create<ICompressProgressInfo, CLocalProgress> lps;
   lps->Init(extractCallback, false);
-  CMyComPtr2_Create<ISequentialInStream, CLimitedSequentialInStream> streamSpec;
-  streamSpec->SetStream(_stream);
-  CMyComPtr2_Create<ICompressCoder, NCompress::CCopyCoder> copyCoder;
 
-  for (i = 0;; i++)
+  for (i = 0;; i++, lps->InSize += size)
   {
-    lps->InSize = totalSize;
-    lps->OutSize = totalSize;
-    RINOK(lps->SetCur())
+    CLocalProgress *lps2 = lps.ClsPtr();
+    lps2->OutSize = lps2->InSize; //  = totalSize;
+    RINOK(lps2->SetCur())
     if (i >= numItems)
       break;
-
-    CMyComPtr<ISequentialOutStream> outStream;
-    const Int32 askMode = testMode ?
-        NExtract::NAskMode::kTest :
-        NExtract::NAskMode::kExtract;
-    const UInt32 index = allFilesMode ? i : indices[i];
-    
-    RINOK(extractCallback->GetStream(index, &outStream, askMode))
-
-    UInt64 pos, size;
-    int opRes = GetItem_ExtractInfo(index, pos, size);
-    totalSize += size;
-    if (!testMode && !outStream)
-      continue;
-    
-    RINOK(extractCallback->PrepareOperation(askMode))
-
-    if (opRes == NExtract::NOperationResult::kOK)
+    int opRes;
     {
-      RINOK(InStream_SeekSet(_stream, pos))
-      streamSpec->Init(size);
-    
-      RINOK(copyCoder.Interface()->Code(streamSpec, outStream, NULL, NULL, lps))
-      
-      opRes = NExtract::NOperationResult::kDataError;
-      if (copyCoder->TotalSize == size)
-        opRes = NExtract::NOperationResult::kOK;
-      else if (copyCoder->TotalSize < size)
-        opRes = NExtract::NOperationResult::kUnexpectedEnd;
+      CMyComPtr<ISequentialOutStream> outStream;
+      const Int32 askMode = testMode ?
+          NExtract::NAskMode::kTest :
+          NExtract::NAskMode::kExtract;
+      const UInt32 index = allFilesMode ? i : indices[i];
+      RINOK(extractCallback->GetStream(index, &outStream, askMode))
+      size = pos = 0;
+      opRes = GetItem_ExtractInfo(index, pos, size);
+      if (!testMode && !outStream)
+        continue;
+      RINOK(extractCallback->PrepareOperation(askMode))
+      if (opRes == NExtract::NOperationResult::kOK)
+      {
+        RINOK(InStream_SeekSet(_stream, pos))
+        RINOK(copyCoder.Code(_stream, outStream, &size, lps))
+        if (copyCoder.TotalSize != size)
+          opRes = (copyCoder.TotalSize < size) ?
+              NExtract::NOperationResult::kUnexpectedEnd:
+              NExtract::NOperationResult::kDataError;
+      }
     }
-    
-    outStream.Release();
     RINOK(extractCallback->SetOperationResult(opRes))
   }
   
@@ -226,7 +212,7 @@ public:
   CHandlerImg &Handler;
   CMyComPtr<ICompressProgressInfo> _ratioProgress;
 
-  CHandlerImgProgress(CHandlerImg &handler) : Handler(handler) {}
+  CHandlerImgProgress(CHandlerImg &handler Z7_lifetimebound) : Handler(handler) {}
 };
 
 
@@ -239,8 +225,8 @@ Z7_COM7F_IMF(CHandlerImgProgress::SetRatioInfo(const UInt64 *inSize, const UInt6
 }
   
 
-Z7_COM7F_IMF(CHandlerImg::Extract(const UInt32 *indices, UInt32 numItems,
-    Int32 testMode, IArchiveExtractCallback *extractCallback))
+Z7_COM7F_IMF(CHandlerImg::Extract(const UInt32 * const indices, UInt32 numItems,
+    const Int32 testMode, IArchiveExtractCallback * const extractCallback))
 {
   COM_TRY_BEGIN
   if (numItems == 0)
@@ -249,60 +235,59 @@ Z7_COM7F_IMF(CHandlerImg::Extract(const UInt32 *indices, UInt32 numItems,
     return E_INVALIDARG;
 
   RINOK(extractCallback->SetTotal(_size))
-  CMyComPtr<ISequentialOutStream> outStream;
-  const Int32 askMode = testMode ?
-      NExtract::NAskMode::kTest :
-      NExtract::NAskMode::kExtract;
-  RINOK(extractCallback->GetStream(0, &outStream, askMode))
-  if (!testMode && !outStream)
-    return S_OK;
-  RINOK(extractCallback->PrepareOperation(askMode))
-
-  int opRes = NExtract::NOperationResult::kDataError;
-  
-  ClearStreamVars();
-  
-  CMyComPtr<ISequentialInStream> inStream;
-  HRESULT hres = GetStream(0, &inStream);
-  if (hres == S_FALSE)
-    hres = E_NOTIMPL;
-
-  if (hres == S_OK && inStream)
+  int opRes;
+  HRESULT hres;
   {
-    CLocalProgress *lps = new CLocalProgress;
-    CMyComPtr<ICompressProgressInfo> progress = lps;
-    lps->Init(extractCallback, false);
-    
-    if (Init_PackSizeProcessed())
-    {
-      CHandlerImgProgress *imgProgressSpec = new CHandlerImgProgress(*this);
-      CMyComPtr<ICompressProgressInfo> imgProgress = imgProgressSpec;
-      imgProgressSpec->_ratioProgress = progress;
-      progress.Release();
-      progress = imgProgress;
-    }
-
-    CMyComPtr2_Create<ICompressCoder, NCompress::CCopyCoder> copyCoder;
-
-    hres = copyCoder.Interface()->Code(inStream, outStream, NULL, &_size, progress);
-    if (hres == S_OK)
-    {
-      if (copyCoder->TotalSize == _size)
-        opRes = NExtract::NOperationResult::kOK;
+    CMyComPtr<ISequentialOutStream> outStream;
+    const Int32 askMode = testMode ?
+        NExtract::NAskMode::kTest :
+        NExtract::NAskMode::kExtract;
+    RINOK(extractCallback->GetStream(0, &outStream, askMode))
+    if (!testMode && !outStream)
+      return S_OK;
+    RINOK(extractCallback->PrepareOperation(askMode))
       
-      if (_stream_unavailData)
-        opRes = NExtract::NOperationResult::kUnavailable;
-      else if (_stream_unsupportedMethod)
-        opRes = NExtract::NOperationResult::kUnsupportedMethod;
-      else if (_stream_dataError)
-        opRes = NExtract::NOperationResult::kDataError;
-      else if (copyCoder->TotalSize < _size)
-        opRes = NExtract::NOperationResult::kUnexpectedEnd;
+    ClearStreamVars();
+    opRes = NExtract::NOperationResult::kDataError;
+    
+    CMyComPtr<ISequentialInStream> inStream;
+    hres = GetStream(0, &inStream);
+    if (hres == S_FALSE)
+      hres = E_NOTIMPL;
+    
+    if (hres == S_OK && inStream)
+    {
+      CLocalProgress *lps = new CLocalProgress;
+      CMyComPtr<ICompressProgressInfo> progress = lps;
+      lps->Init(extractCallback, false);
+      
+      if (Init_PackSizeProcessed())
+      {
+        CHandlerImgProgress *imgProgressSpec = new CHandlerImgProgress(*this);
+        CMyComPtr<ICompressProgressInfo> imgProgress = imgProgressSpec;
+        imgProgressSpec->_ratioProgress = progress;
+        progress.Release();
+        progress = imgProgress;
+      }
+      
+      NCompress::CCopyCoderBase copyCoder;
+      hres = copyCoder.Code(inStream, outStream, &_size, progress);
+      if (hres == S_OK)
+      {
+        if (copyCoder.TotalSize == _size)
+          opRes = NExtract::NOperationResult::kOK;
+        
+        if (_stream_unavailData)
+          opRes = NExtract::NOperationResult::kUnavailable;
+        else if (_stream_unsupportedMethod)
+          opRes = NExtract::NOperationResult::kUnsupportedMethod;
+        else if (_stream_dataError)
+          opRes = NExtract::NOperationResult::kDataError;
+        else if (copyCoder.TotalSize < _size)
+          opRes = NExtract::NOperationResult::kUnexpectedEnd;
+      }
     }
   }
-
-  inStream.Release();
-  outStream.Release();
   
   if (hres != S_OK)
   {

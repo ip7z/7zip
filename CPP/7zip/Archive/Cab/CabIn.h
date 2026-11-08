@@ -16,23 +16,21 @@ namespace NCab {
 struct COtherArc
 {
   AString FileName;
-  AString DiskName;
+  // AString DiskName;
   
   void Clear()
   {
     FileName.Empty();
-    DiskName.Empty();
+    // DiskName.Empty();
   }
 };
 
 
-struct CArchInfo
+struct CInArcInfo
 {
-  Byte VersionMinor; // cabinet file format version, minor
-  Byte VersionMajor; // cabinet file format version, major
-  UInt32 NumFolders; // number of CFFOLDER entries in this cabinet
-  UInt32 NumFiles;   // number of CFFILE entries in this cabinet
-  UInt32 Flags;      // cabinet file option indicators
+  unsigned NumFolders; // number of CFFOLDER entries in this cabinet
+  unsigned NumFiles;   // number of CFFILE entries in this cabinet
+  unsigned Flags;      // cabinet file option indicators
   UInt32 SetID;      // must be the same for all cabinets in a set
   UInt32 CabinetNumber; // number of this cabinet file in a set
 
@@ -43,12 +41,15 @@ struct CArchInfo
   COtherArc PrevArc; // prev link can skip some volumes !!!
   COtherArc NextArc;
 
+  UInt32 Size; // size of this cabinet file in bytes
+  UInt32 FileHeadersOffset; // offset of the first CFFILE entry
+
   bool ReserveBlockPresent() const { return (Flags & NHeader::NArcFlags::kReservePresent) != 0; }
   bool IsTherePrev() const { return (Flags & NHeader::NArcFlags::kPrevCabinet) != 0; }
   bool IsThereNext() const { return (Flags & NHeader::NArcFlags::kNextCabinet) != 0; }
-  Byte GetDataBlockReserveSize() const { return (Byte)(ReserveBlockPresent() ? PerDataBlock_AreaSize : 0); }
+  Byte GetDataBlockReserveSize() const { return PerDataBlock_AreaSize; }
 
-  CArchInfo()
+  CInArcInfo()
   {
     PerCabinet_AreaSize = 0;
     PerFolder_AreaSize = 0;
@@ -64,13 +65,6 @@ struct CArchInfo
     PrevArc.Clear();
     NextArc.Clear();
   }
-};
-
-
-struct CInArcInfo: public CArchInfo
-{
-  UInt32 Size; // size of this cabinet file in bytes
-  UInt32 FileHeadersOffset; // offset of the first CFFILE entry
 
   bool Parse(const Byte *p);
 };
@@ -97,20 +91,15 @@ struct CDatabase
         return true;
     return false;
   }
-  
-  int GetNumberOfNewFolders() const
-  {
-    int res = (int)Folders.Size();
-    if (IsTherePrevFolder())
-      res--;
-    return res;
-  }
 };
 
 
 struct CDatabaseEx: public CDatabase
 {
   CMyComPtr<IInStream> Stream;
+  int StartGlobalFolderIndex; // == (-1), if there are links to a previous volume that is missing or contains an error
+  
+  CDatabaseEx(): StartGlobalFolderIndex(-1) {}
 };
 
 
@@ -123,31 +112,29 @@ struct CMvItem
 
 class CMvDatabaseEx
 {
-  bool AreItemsEqual(unsigned i1, unsigned i2);
+  bool AreItemsEqual(unsigned i1, unsigned i2) const;
 
 public:
   CObjectVector<CDatabaseEx> Volumes;
   CRecordVector<CMvItem> Items;
-  CRecordVector<int> StartFolderOfVol; // can be negative
-  CRecordVector<unsigned> FolderStartFileIndex;
+  CRecordVector<unsigned> FolderStartFileIndex; // GlobalFolderIndex to Items[] index
 
-  int GetFolderIndex(const CMvItem *mvi) const
+  // out: (returned_value == -1) is possible, if (mvi) refers to a previous volume that is missing or contains an error
+  int GetGlobalFolderIndex(const CMvItem &mvi) const
   {
-    const CDatabaseEx &db = Volumes[mvi->VolumeIndex];
-    return StartFolderOfVol[mvi->VolumeIndex] +
-        db.Items[mvi->ItemIndex].GetFolderIndex(db.Folders.Size());
+    const CDatabaseEx &db = Volumes[mvi.VolumeIndex];
+    return db.StartGlobalFolderIndex +
+        (int)db.Items[mvi.ItemIndex].GetFolderIndex(db.Folders.Size());
   }
 
   void Clear()
   {
     Volumes.Clear();
     Items.Clear();
-    StartFolderOfVol.Clear();
     FolderStartFileIndex.Clear();
   }
   
-  void FillSortAndShrink();
-  bool Check();
+  bool Fill_Sort_Shrink_and_Check();
 };
 
 
@@ -158,8 +145,8 @@ class CInArchive
 
   void Skip(unsigned size);
   void Read(Byte *data, unsigned size);
-  void ReadName(AString &s);
-  void ReadOtherArc(COtherArc &oa);
+  bool ReadName(AString &s, UInt32 index = (UInt32)0-1);
+  bool ReadOtherArc(COtherArc &oa);
   HRESULT Open2(CDatabaseEx &db, const UInt64 *searchHeaderSizeLimit);
 
 public:

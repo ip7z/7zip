@@ -51,12 +51,11 @@ static const Byte kProps[] =
   kpidAttrib,
   kpidMethod,
   kpidBlock
-  #ifdef CAB_DETAILS
-  ,
-  // kpidBlockReal, // L"BlockReal",
-  kpidOffset,
-  kpidVolume
-  #endif
+#ifdef CAB_DETAILS
+  // , kpidBlockReal // L"BlockReal",
+  , kpidOffset
+  , kpidVolume
+#endif
 };
 
 static const Byte kArcProps[] =
@@ -88,8 +87,7 @@ static void SetMethodName(char *s, unsigned method, unsigned param)
   if (method < Z7_ARRAY_SIZE(kMethods))
   {
     s = MyStpCpy(s, kMethods[method]);
-    if (method != NHeader::NMethod::kLZX &&
-        method != NHeader::NMethod::kQuantum)
+    if (method < NHeader::NMethod::kQuantum)
       return;
     *s++ = ':';
     method = param;
@@ -105,8 +103,8 @@ Z7_COM7F_IMF(CHandler::GetArchiveProperty(PROPID propID, PROPVARIANT *value))
   {
     case kpidMethod:
     {
-      UInt32 mask = 0;
-      UInt32 params[2] = { 0, 0 };
+      unsigned mask = 0;
+      unsigned params[2] = { 0, 0 };
       {
         FOR_VECTOR (v, m_Database.Volumes)
         {
@@ -115,45 +113,35 @@ Z7_COM7F_IMF(CHandler::GetArchiveProperty(PROPID propID, PROPVARIANT *value))
           {
             const CFolder &folder = folders[i];
             const unsigned method = folder.GetMethod();
-            mask |= ((UInt32)1 << method);
+            mask |= 1u << method;
             if (method == NHeader::NMethod::kLZX ||
                 method == NHeader::NMethod::kQuantum)
             {
-              const unsigned di = (method == NHeader::NMethod::kQuantum) ? 0 : 1;
+              const unsigned di = method & 1;
               if (params[di] < folder.MethodMinor)
                   params[di] = folder.MethodMinor;
             }
           }
         }
       }
-      
       AString s;
-      
       for (unsigned i = 0; i < kNumMethodsMax; i++)
       {
-        if ((mask & (1 << i)) == 0)
+        if ((mask & (1u << i)) == 0)
           continue;
-        s.Add_Space_if_NotEmpty();
         char temp[kMethodNameBufSize];
-        SetMethodName(temp, i, params[i == NHeader::NMethod::kQuantum ? 0 : 1]);
-        s += temp;
+        SetMethodName(temp, i, params[i & 1]);
+        s.Add_OptSpaced(temp);
       }
-      
       prop = s;
       break;
     }
     // case kpidSolid: prop = _database.IsSolid(); break;
     case kpidNumBlocks:
-    {
-      UInt32 numFolders = 0;
-      FOR_VECTOR (v, m_Database.Volumes)
-        numFolders += m_Database.Volumes[v].Folders.Size();
-      prop = numFolders;
+      prop = (UInt32)m_Database.FolderStartFileIndex.Size();
       break;
-    }
 
     case kpidTotalPhySize:
-    {
       if (m_Database.Volumes.Size() > 1)
       {
         UInt64 sum = 0;
@@ -162,45 +150,26 @@ Z7_COM7F_IMF(CHandler::GetArchiveProperty(PROPID propID, PROPVARIANT *value))
         prop = sum;
       }
       break;
-    }
 
     case kpidNumVolumes:
       prop = (UInt32)m_Database.Volumes.Size();
       break;
 
     case kpidVolumeIndex:
-    {
       if (!m_Database.Volumes.IsEmpty())
-      {
-        const CDatabaseEx &db = m_Database.Volumes[0];
-        const CInArcInfo &ai = db.ArcInfo;
-        prop = (UInt32)ai.CabinetNumber;
-      }
+        prop = (UInt32)m_Database.Volumes[0].ArcInfo.CabinetNumber;
       break;
-    }
 
     case kpidId:
-    {
-      if (m_Database.Volumes.Size() != 0)
-      {
+      if (!m_Database.Volumes.IsEmpty())
         prop = (UInt32)m_Database.Volumes[0].ArcInfo.SetID;
-      }
       break;
-    }
 
     case kpidOffset:
-      /*
-      if (m_Database.Volumes.Size() == 1)
-        prop = m_Database.Volumes[0].StartPosition;
-      */
       prop = _offset;
       break;
     
     case kpidPhySize:
-      /*
-      if (m_Database.Volumes.Size() == 1)
-        prop = (UInt64)m_Database.Volumes[0].ArcInfo.Size;
-      */
       prop = (UInt64)_phySize;
       break;
 
@@ -235,7 +204,7 @@ Z7_COM7F_IMF(CHandler::GetArchiveProperty(PROPID propID, PROPVARIANT *value))
           prop = s;
         }
         /*
-        // that code is incomplete. It gcan give accurate name of volume
+        // that code is incomplete. It can give accurate name of volume
         char s[32];
         ConvertUInt32ToString(ai.CabinetNumber + 2, s);
         unsigned len = MyStringLen(s);
@@ -262,7 +231,6 @@ Z7_COM7F_IMF(CHandler::GetArchiveProperty(PROPID propID, PROPVARIANT *value))
       break;
     }
 
-    // case kpidShortComment:
     default: break;
   }
   prop.Detach(value);
@@ -292,20 +260,15 @@ Z7_COM7F_IMF(CHandler::GetProperty(UInt32 index, PROPID propID, PROPVARIANT *val
       break;
     }
     
-    case kpidIsDir:  prop = item.IsDir(); break;
     case kpidSize:  prop = item.Size; break;
     case kpidAttrib:  prop = item.GetWinAttrib(); break;
-
-    case kpidMTime:
-    {
-      PropVariant_SetFrom_DosTime(prop, item.Time);
-      break;
-    }
+    case kpidMTime:  PropVariant_SetFrom_DosTime(prop, item.Time); break;
 
     case kpidMethod:
     {
-      const int realFolderIndex = item.GetFolderIndex(db.Folders.Size());
-      if (realFolderIndex >= 0)
+      const unsigned realFolderIndex = item.GetFolderIndex(db.Folders.Size());
+      if (realFolderIndex < db.Folders.Size())
+      // if (realFolderIndex >= 0)
       {
         const CFolder &folder = db.Folders[(unsigned)realFolderIndex];
         char s[kMethodNameBufSize];
@@ -315,15 +278,13 @@ Z7_COM7F_IMF(CHandler::GetProperty(UInt32 index, PROPID propID, PROPVARIANT *val
       break;
     }
 
-    case kpidBlock:  prop.Set_Int32((Int32)m_Database.GetFolderIndex(&mvItem)); break;
+    case kpidBlock:  prop.Set_Int32((Int32)m_Database.GetGlobalFolderIndex(mvItem)); break;
     
-    #ifdef CAB_DETAILS
-    
+#ifdef CAB_DETAILS
     // case kpidBlockReal:  prop = (UInt32)item.FolderIndex; break;
     case kpidOffset:  prop = (UInt32)item.Offset; break;
     case kpidVolume:  prop = (UInt32)mvItem.VolumeIndex; break;
-
-    #endif
+#endif
 
     default: break;
   }
@@ -365,7 +326,7 @@ Z7_COM7F_IMF(CHandler::Open(IInStream *inStream,
       
       if (res == S_OK && !m_Database.Volumes.IsEmpty())
       {
-        const CArchInfo &lastArc = m_Database.Volumes.Back().ArcInfo;
+        const CInArcInfo &lastArc = m_Database.Volumes.Back().ArcInfo;
         const unsigned cabNumber = db.ArcInfo.CabinetNumber;
         if (lastArc.SetID != db.ArcInfo.SetID)
           res = S_FALSE;
@@ -378,7 +339,7 @@ Z7_COM7F_IMF(CHandler::Open(IInStream *inStream,
           res = S_FALSE;
         else if (numTempVolumes != 0)
         {
-          const CArchInfo &prevArc = m_Database.Volumes[numTempVolumes - 1].ArcInfo;
+          const CInArcInfo &prevArc = m_Database.Volumes[numTempVolumes - 1].ArcInfo;
           if (cabNumber != prevArc.CabinetNumber + 1)
             res = S_FALSE;
         }
@@ -516,8 +477,7 @@ Z7_COM7F_IMF(CHandler::Open(IInStream *inStream,
       return S_FALSE;
     else
     {
-      m_Database.FillSortAndShrink();
-      if (!m_Database.Check())
+      if (!m_Database.Fill_Sort_Shrink_and_Check())
         return S_FALSE;
     }
   }
@@ -531,7 +491,6 @@ Z7_COM7F_IMF(CHandler::Close())
   _isArc = false;
   _errorInHeaders = false;
   _unexpectedEnd = false;
-  // _mainVolIndex = -1;
   _phySize = 0;
   _offset = 0;
 
@@ -921,9 +880,7 @@ Z7_COM7F_IMF(CHandler::Extract(const UInt32 *indices, UInt32 numItems,
     const unsigned index = allFilesMode ? i : indices[i];
     const CMvItem &mvItem = m_Database.Items[index];
     const CItem &item = m_Database.Volumes[mvItem.VolumeIndex].Items[mvItem.ItemIndex];
-    if (item.IsDir())
-      continue;
-    const int folderIndex = m_Database.GetFolderIndex(&mvItem);
+    const int folderIndex = m_Database.GetGlobalFolderIndex(mvItem);
     if (folderIndex != lastFolder)
       totalUnPacked += lastFolderSize;
     lastFolder = folderIndex;
@@ -953,48 +910,39 @@ Z7_COM7F_IMF(CHandler::Extract(const UInt32 *indices, UInt32 numItems,
   
   for (i = 0;;)
   {
-    lps->OutSize = totalUnPacked;
-    lps->InSize = totalPacked;
-    RINOK(lps->SetCur())
+    {
+      CLocalProgress *lps2 = lps.ClsPtr();
+      lps2->OutSize = totalUnPacked;
+      lps2->InSize = totalPacked;
+      RINOK(lps2->SetCur())
+    }
     if (i >= numItems)
       break;
 
     const unsigned index = allFilesMode ? i : indices[i];
-
+    i++;
     const CMvItem &mvItem = m_Database.Items[index];
     const CDatabaseEx &db = m_Database.Volumes[mvItem.VolumeIndex];
     const unsigned itemIndex = mvItem.ItemIndex;
     const CItem &item = db.Items[itemIndex];
+    const int folderIndex = m_Database.GetGlobalFolderIndex(mvItem);
 
-    i++;
-    if (item.IsDir())
-    {
-      const Int32 askMode = testMode ?
-          NExtract::NAskMode::kTest :
-          NExtract::NAskMode::kExtract;
-      CMyComPtr<ISequentialOutStream> realOutStream;
-      RINOK(extractCallback->GetStream(index, &realOutStream, askMode))
-      RINOK(extractCallback->PrepareOperation(askMode))
-      realOutStream.Release();
-      RINOK(extractCallback->SetOperationResult(NExtract::NOperationResult::kOK))
-      continue;
-    }
-    
-    const int folderIndex = m_Database.GetFolderIndex(&mvItem);
-    
     if (folderIndex < 0)
     {
       // If we need previous archive
       const Int32 askMode= testMode ?
           NExtract::NAskMode::kTest :
           NExtract::NAskMode::kExtract;
-      CMyComPtr<ISequentialOutStream> realOutStream;
-      RINOK(extractCallback->GetStream(index, &realOutStream, askMode))
-      RINOK(extractCallback->PrepareOperation(askMode))
-      realOutStream.Release();
-      RINOK(extractCallback->SetOperationResult(NExtract::NOperationResult::kDataError))
+      {
+        CMyComPtr<ISequentialOutStream> realOutStream;
+        RINOK(extractCallback->GetStream(index, &realOutStream, askMode))
+        RINOK(extractCallback->PrepareOperation(askMode))
+      }
+      RINOK(extractCallback->SetOperationResult(NExtract::NOperationResult::kUnavailable))
       continue;
     }
+    if ((unsigned)folderIndex >= m_Database.FolderStartFileIndex.Size())
+      return E_FAIL;
     
     const unsigned startIndex2 = m_Database.FolderStartFileIndex[(unsigned)folderIndex];
     unsigned startIndex = startIndex2;
@@ -1010,9 +958,7 @@ Z7_COM7F_IMF(CHandler::Extract(const UInt32 *indices, UInt32 numItems,
       const unsigned indexNext = allFilesMode ? i : indices[i];
       const CMvItem &mvItem2 = m_Database.Items[indexNext];
       const CItem &item2 = m_Database.Volumes[mvItem2.VolumeIndex].Items[mvItem2.ItemIndex];
-      if (item2.IsDir())
-        continue;
-      const int newFolderIndex = m_Database.GetFolderIndex(&mvItem2);
+      const int newFolderIndex = m_Database.GetGlobalFolderIndex(mvItem2);
 
       if (newFolderIndex != folderIndex)
         break;
@@ -1023,13 +969,13 @@ Z7_COM7F_IMF(CHandler::Extract(const UInt32 *indices, UInt32 numItems,
       curUnpack = item2.GetEndOffset();
     }
 
-    CMyComPtr2_Create<ISequentialOutStream, CFolderOutStream> cabFolderOutStream;
-
-    const int folderIndex2 = item.GetFolderIndex(db.Folders.Size());
-    if (folderIndex2 < 0)
+    const unsigned folderIndex2 = item.GetFolderIndex(db.Folders.Size());
+    // if (folderIndex2 < 0)
+    if (folderIndex2 >= db.Folders.Size())
       return E_FAIL;
     const CFolder &folder = db.Folders[(unsigned)folderIndex2];
 
+    CMyComPtr2_Create<ISequentialOutStream, CFolderOutStream> cabFolderOutStream;
     cabFolderOutStream->Init(&m_Database, &extractStatuses, startIndex2,
         curUnpack, extractCallback, testMode != 0);
 
@@ -1051,7 +997,7 @@ Z7_COM7F_IMF(CHandler::Extract(const UInt32 *indices, UInt32 numItems,
 
       case NHeader::NMethod::kQuantum:
         quantumDecoder.Create_if_Empty();
-        res = quantumDecoder->SetParams(folder.MethodMinor);
+        res = quantumDecoder->SetParams_and_Init(folder.MethodMinor);
         break;
       
       default:
@@ -1062,37 +1008,37 @@ Z7_COM7F_IMF(CHandler::Extract(const UInt32 *indices, UInt32 numItems,
     if (res == E_INVALIDARG)
     {
       RINOK(cabFolderOutStream->Unsupported())
-      totalUnPacked += curUnpack;
-      continue;
     }
-    RINOK(res)
-
+    else
     {
+      RINOK(res)
       unsigned volIndex = mvItem.VolumeIndex;
-      int locFolderIndex = item.GetFolderIndex(db.Folders.Size());
+      unsigned locFolderIndex = folderIndex2;
       bool keepHistory = false;
       bool keepInputBuffer = false;
       bool thereWasNotAlignedChunk = false;
+      // printf(" -locFolderIndex=%5i\n", locFolderIndex);
       
-      for (UInt32 bl = 0; cabFolderOutStream->NeedMoreWrite();)
+      for (unsigned bl = 0; cabFolderOutStream->NeedMoreWrite();)
       {
         if (volIndex >= m_Database.Volumes.Size())
         {
           res = S_FALSE;
           break;
         }
-
         const CDatabaseEx &db2 = m_Database.Volumes[volIndex];
-        if (locFolderIndex < 0)
-          return E_FAIL;
+        // if (locFolderIndex < 0) return E_FAIL;
+        if ((unsigned)locFolderIndex >= db2.Folders.Size())
+        {
+          res = S_FALSE;
+          break;
+        }
         const CFolder &folder2 = db2.Folders[(unsigned)locFolderIndex];
         
         if (bl == 0)
-        {
           RINOK(InStream_SeekSet(db2.Stream, db2.StartPosition + folder2.DataStart))
-        }
         
-        if (bl == folder2.NumDataBlocks)
+        if (bl >= folder2.NumDataBlocks)
         {
           /*
             CFolder::NumDataBlocks (CFFOLDER::cCFData in CAB specification) is 16-bit.
@@ -1102,16 +1048,19 @@ Z7_COM7F_IMF(CHandler::Extract(const UInt32 *indices, UInt32 numItems,
             but cab extracting library in new Windows ignores this error.
             15.00 : We also try to ignore such error, if archive is not multi-volume.
           */
+          bl = 0u - 1; // max unsigned value for which both important conditions are met:
+          // (bl != 0 && bl >= folder2.NumDataBlocks)
           if (m_Database.Volumes.Size() > 1)
           {
             volIndex++;
+            // printf(" -volIndex=%5u\n", volIndex);
             locFolderIndex = 0;
             bl = 0;
             continue;
           }
         }
-        
-        bl++;
+        else
+          bl++;
 
         if (!keepInputBuffer)
           blockPackData.InitForNewBlock();
@@ -1120,6 +1069,8 @@ Z7_COM7F_IMF(CHandler::Extract(const UInt32 *indices, UInt32 numItems,
         res = blockPackData.Read(db2.Stream, db2.ArcInfo.GetDataBlockReserveSize(), packSize, unpackSize);
         if (res == S_FALSE)
           break;
+        // if folder is Continued_To_Next volume, then (unpackSize == 0) in last chunk of volume, but (packSize != 0)
+        // printf("   -block=%5u unpackSize=%5u packSize=%5u\n", bl - 1, unpackSize, packSize);
         RINOK(res)
         keepInputBuffer = (unpackSize == 0);
         if (keepInputBuffer)
@@ -1131,9 +1082,10 @@ Z7_COM7F_IMF(CHandler::Extract(const UInt32 *indices, UInt32 numItems,
         if (totalUnPacked2 - lps->OutSize >= (1 << 26)
             || totalPacked - lps->InSize >= (1 << 24))
         {
-          lps->OutSize = totalUnPacked2;
-          lps->InSize = totalPacked;
-          RINOK(lps->SetCur())
+          CLocalProgress *lps2 = lps.ClsPtr();
+          lps2->OutSize = totalUnPacked2;
+          lps2->InSize = totalPacked;
+          RINOK(lps2->SetCur())
         }
 
         const unsigned kBlockSizeMax = 1u << 15;
@@ -1157,7 +1109,10 @@ Z7_COM7F_IMF(CHandler::Extract(const UInt32 *indices, UInt32 numItems,
         const UInt64 unpackSize64 = unpackSize;
         const UInt32 packSizeChunk = blockPackData.GetPackSize();
 
-        switch (folder2.GetMethod())
+        if (!folder2.Is_Method_EqualTo(folder))
+          res = S_FALSE;
+        else
+        switch (folder.GetMethod())
         {
           case NHeader::NMethod::kNone:
             if (unpackSize != packSizeChunk)
@@ -1217,8 +1172,8 @@ Z7_COM7F_IMF(CHandler::Extract(const UInt32 *indices, UInt32 numItems,
           
           case NHeader::NMethod::kQuantum:
           {
-            res = quantumDecoder->Code(blockPackData.GetData(),
-                packSizeChunk, unpackSize, keepHistory);
+            res = quantumDecoder->CodeChunk_32KB_ExceedRead_Solid(
+                blockPackData.GetData(), packSizeChunk, unpackSize);
             if (res == S_OK)
             {
               const UInt32 num = unpackSize;
@@ -1228,8 +1183,8 @@ Z7_COM7F_IMF(CHandler::Extract(const UInt32 *indices, UInt32 numItems,
             break;
           }
           default:
-            // it's unexpected case, because we checked method before
-            // res = E_NOTIMPL;
+            // unexpected case, because it was checked before
+            res = S_FALSE;
             break;
         }
       
@@ -1241,24 +1196,18 @@ Z7_COM7F_IMF(CHandler::Extract(const UInt32 *indices, UInt32 numItems,
         }
         
         keepHistory = true;
-      }
+      } // for (cabFolderOutStream->NeedMoreWrite())
       
       if (res == S_OK)
-      {
         RINOK(cabFolderOutStream->WriteEmptyFiles())
-      }
-    }
-
-    if (res != S_OK || cabFolderOutStream->NeedMoreWrite())
-    {
-      RINOK(cabFolderOutStream->FlushCorrupted((unsigned)folderIndex2))
+      if (res != S_OK || cabFolderOutStream->NeedMoreWrite())
+        RINOK(cabFolderOutStream->FlushCorrupted((unsigned)folderIndex2))
     }
 
     totalUnPacked += curUnpack;
   }
 
   return S_OK;
-
   COM_TRY_END
 }
 

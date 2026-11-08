@@ -534,11 +534,9 @@ static int main2(int numArgs, const char *args[])
     dict = (UInt32)1 << kDictSizeLog;
     if (fileSizeDefined)
     {
-      unsigned i;
-      for (i = 16; i < kDictSizeLog; i++)
-        if ((UInt32)((UInt32)1 << i) >= fileSize)
+      for (dict = 1 << 16; dict < ((UInt32)1 << kDictSizeLog); dict <<= 1)
+        if (dict >= fileSize)
           break;
-      dict = (UInt32)1 << i;
     }
   }
 

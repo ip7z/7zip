@@ -32,6 +32,8 @@ static void DeepCopyFormatEtc(FORMATETC *dest, const FORMATETC *src)
   if (src->ptd)
   {
     dest->ptd = (DVTARGETDEVICE*)CoTaskMemAlloc(sizeof(DVTARGETDEVICE));
+    if (!dest->ptd)
+      throw 2026; // CNewException()
     *(dest->ptd) = *(src->ptd);
   }
 }

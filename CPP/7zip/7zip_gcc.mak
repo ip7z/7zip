@@ -147,7 +147,6 @@ LIB2 = -loleaut32 -luuid -ladvapi32 -luser32 $(LIB2_GUI)
 # CXXFLAGS_EXTRA = -DUNICODE -D_UNICODE
 # -Wno-delete-non-virtual-dtor
 
- 
 else
 
 RM = rm -f
@@ -255,7 +254,15 @@ endif
 endif
 endif
 
-LFLAGS_ALL = $(LFLAGS_STRIP) $(MY_ARCH_2) $(LDFLAGS) $(FLAGS_FLTO) $(LD_arch) $(LFLAGS_NOEXECSTACK) $(LFLAGS_NOPIE) $(OBJS) $(MY_LIBS) $(LIB2)
+ifdef MACOS_MODE
+VERSION_HDR = ../../../../C/7zVersion.h
+SRC_VER_MAJOR := $(shell awk '/\#define MY_VER_MAJOR/ {print $$3}' $(VERSION_HDR))
+SRC_VER_MINOR := $(shell awk '/\#define MY_VER_MINOR/ {print $$3}' $(VERSION_HDR))
+SRC_VER := $(SRC_VER_MAJOR).$(SRC_VER_MINOR)
+LFLAGS_SRC_VER := -Wl,-source_version,$(SRC_VER)
+endif
+
+LFLAGS_ALL = $(LFLAGS_STRIP) $(MY_ARCH_2) $(LDFLAGS) $(FLAGS_FLTO) $(LD_arch) $(LFLAGS_NOEXECSTACK) $(LFLAGS_NOPIE) $(LFLAGS_SRC_VER) $(OBJS) $(MY_LIBS) $(LIB2)
 
 # -s : GCC : Remove all symbol table and relocation information from the executable.
 # -s : CLANG : unsupported

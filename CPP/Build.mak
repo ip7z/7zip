@@ -66,23 +66,24 @@ COMPL_ASM = $(MY_ML) $** $O/$(*B).obj
 COMPL_ASM = $(MY_ML) -I$(*D) -o $O/$(*B).obj $**
 !ENDIF
 
+CFLAGS_c_switch = -c -Fo$O/
+
 !IFDEF OLD_COMPILER
 CFLAGS_WARN_LEVEL = -W4
 !ELSE
+!IF "$(CC)" != "clang-cl"
+CFLAGS_WARN_LEVEL = -Wall -analyze
+!ELSE
+CFLAGS_WARN_LEVEL = -Wall --analyze -Xclang -analyzer-output=text
+# CFLAGS_c_switch =
+!ENDIF
 CFLAGS_WARN_LEVEL = -Wall
 !ENDIF
 
-CFLAGS = $(CFLAGS) -nologo -c -Fo$O/ $(CFLAGS_WARN_LEVEL) -WX -EHsc -Gy -GR- -GF
+CFLAGS = $(CFLAGS) -nologo $(CFLAGS_c_switch) $(CFLAGS_WARN_LEVEL) -WX -EHsc -Gy -GR- -GF
 
 !IF "$(CC)" == "clang-cl"
-
-CFLAGS = $(CFLAGS) \
-  -Werror \
-  -Wall \
-  -Wextra \
-  -Weverything \
-  -Wfatal-errors \
-
+CFLAGS = $(CFLAGS) -Werror -Wall -Wextra -Weverything -Wfatal-errors
 !ENDIF
 
 # !IFDEF MY_DYNAMIC_LINK

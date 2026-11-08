@@ -493,9 +493,11 @@ HRESULT ShellFolder_ParseDisplayName(IShellFolder *shellFolder,
 HRESULT ShellFolder_ParseDisplayName(IShellFolder *shellFolder,
     HWND hwnd, const UString &path, LPITEMIDLIST *ppidl)
 {
-  ULONG eaten = 0;
+  // ULONG eaten = 0;
   return shellFolder->ParseDisplayName(hwnd, NULL,
-      path.Ptr_non_const(), &eaten, ppidl, NULL);
+      path.Ptr_non_const(),
+      NULL, // &eaten
+      ppidl, NULL);
 }
 
 

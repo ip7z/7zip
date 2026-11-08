@@ -41,7 +41,7 @@ class CCoder
   {
     CCoder *_coder;
   public:
-    CCoderReleaser(CCoder *coder): _coder(coder) {}
+    CCoderReleaser(CCoder *coder Z7_lifetimebound): _coder(coder) {}
     void Disable() { _coder = NULL; }
     ~CCoderReleaser() { if (_coder) _coder->_outWindow.Flush(); }
   };
@@ -352,7 +352,7 @@ HRESULT CArcHeader::Parse(const Byte *p, unsigned size)
   pos += size1;
   size1 = size - pos;
   RINOK(ReadString(p + pos, size1, Comment))
-  pos += size1;
+  // pos += size1;
   return S_OK;
 }
 
@@ -462,8 +462,7 @@ HRESULT CItem::Parse(const Byte *p, unsigned size)
   pos += size1;
   size1 = size - pos;
   RINOK(ReadString(p + pos, size1, Comment))
-  pos += size1;
-
+  // pos += size1;
   return S_OK;
 }
 
@@ -843,24 +842,25 @@ Z7_COM7F_IMF(CHandler::Extract(const UInt32 *indices, UInt32 numItems,
   }
   RINOK(extractCallback->SetTotal(totalUnpacked))
 
-  totalUnpacked = totalPacked = 0;
-  UInt32 curUnpacked, curPacked;
-  
+  NCompress::CCopyCoderBase copyCoder;
   CMyComPtr2_Create<ICompressProgressInfo, CLocalProgress> lps;
   lps->Init(extractCallback, false);
   CMyUniquePtr<NCompress::NLzh::NDecoder::CCoder> lzhDecoder;
   CMyUniquePtr<NCompress::NArj::NDecoder::CCoder> arjDecoder;
-  CMyComPtr2_Create<ICompressCoder, NCompress::CCopyCoder> copyCoder;
   CMyComPtr2_Create<ISequentialInStream, CLimitedSequentialInStream> inStream;
   inStream->SetStream(_stream);
 
+  totalUnpacked = totalPacked = 0;
+  UInt32 curUnpacked, curPacked;
+  
   for (i = 0;; i++,
       totalUnpacked += curUnpacked,
       totalPacked += curPacked)
   {
-    lps->InSize = totalPacked;
-    lps->OutSize = totalUnpacked;
-    RINOK(lps->SetCur())
+    CLocalProgress *lps2 = lps.ClsPtr();
+    lps2->InSize = totalPacked;
+    lps2->OutSize = totalUnpacked;
+    RINOK(lps2->SetCur())
     if (i >= numItems)
       break;
 
@@ -914,8 +914,8 @@ Z7_COM7F_IMF(CHandler::Extract(const UInt32 *indices, UInt32 numItems,
         {
           case NCompressionMethod::kStored:
           {
-            result = copyCoder.Interface()->Code(inStream, outStream, NULL, NULL, lps);
-            if (result == S_OK && copyCoder->TotalSize != item.PackSize)
+            result = copyCoder.Code(inStream, outStream, NULL, lps);
+            if (result == S_OK && copyCoder.TotalSize != item.PackSize)
               result = S_FALSE;
             break;
           }

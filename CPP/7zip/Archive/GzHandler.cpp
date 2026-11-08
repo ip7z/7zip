@@ -733,10 +733,10 @@ Z7_COM7F_IMF(CHandler::Extract(const UInt32 *indices, UInt32 numItems,
   
   for (;;)
   {
-    lps->InSize = packSize;
-    lps->OutSize = unpackedSize;
-
-    RINOK(lps->SetCur())
+    CLocalProgress *lps2 = lps.ClsPtr();
+    lps2->InSize = packSize;
+    lps2->OutSize = unpackedSize;
+    RINOK(lps2->SetCur())
 
     CItem item;
     
@@ -837,8 +837,6 @@ Z7_COM7F_IMF(CHandler::Extract(const UInt32 *indices, UInt32 numItems,
   }
 
   // outStream.Release();
-
-  retResult = NExtract::NOperationResult::kDataError;
 
   if (!_isArc)
     retResult = NExtract::NOperationResult::kIsNotArc;

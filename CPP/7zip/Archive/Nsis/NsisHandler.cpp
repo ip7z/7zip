@@ -148,7 +148,17 @@ Z7_COM7F_IMF(CHandler::GetArchiveProperty(PROPID propID, PROPVARIANT *value))
       prop = v;
       break;
     }
-    
+    case kpidWarningFlags:
+    {
+      UInt32 flags = 0;
+      if (_archive.CREATEDIR_processing_WasStopped
+          || _archive.FILENAME_processing_WasStopped)
+        flags |= kpv_ErrorFlags_HeadersError;
+      if (flags != 0)
+        prop = flags;
+      break;
+    }
+
     case kpidName:
     {
       AString s;
@@ -425,7 +435,7 @@ Z7_COM7F_IMF(CHandler::Extract(const UInt32 *indices, UInt32 numItems,
     }
   }
 
-  extractCallback->SetTotal(totalSize + solidPosMax);
+  RINOK(extractCallback->SetTotal(totalSize + solidPosMax))
 
   CMyComPtr2_Create<ICompressProgressInfo, CLocalProgress> lps;
   lps->Init(extractCallback, !_archive.IsSolid);
@@ -465,14 +475,15 @@ Z7_COM7F_IMF(CHandler::Extract(const UInt32 *indices, UInt32 numItems,
       curTotalPacked += curPacked,
       curTotalUnpacked += curUnpacked)
   {
-    lps->InSize = curTotalPacked;
-    lps->OutSize = curTotalUnpacked;
+    CLocalProgress *lps2 = lps.ClsPtr();
+    lps2->InSize = curTotalPacked;
+    lps2->OutSize = curTotalUnpacked;
     if (_archive.IsSolid)
-      lps->OutSize += _archive.Decoder.StreamPos;
+      lps2->OutSize += _archive.Decoder.StreamPos;
 
     curPacked = 0;
     curUnpacked = 0;
-    RINOK(lps->SetCur())
+    RINOK(lps2->SetCur())
 
     // RINOK(extractCallback->SetCompleted(&currentTotalSize))
     CMyComPtr<ISequentialOutStream> realOutStream;

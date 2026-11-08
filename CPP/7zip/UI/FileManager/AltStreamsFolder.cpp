@@ -2,27 +2,6 @@
 
 #include "StdAfx.h"
 
-#ifdef __MINGW32_VERSION
-// #if !defined(_MSC_VER) && (__GNUC__) && (__GNUC__ < 10)
-// for old mingw
-#include <ddk/ntddk.h>
-#else
-#ifndef Z7_OLD_WIN_SDK
-  #if !defined(_M_IA64)
-    #include <winternl.h>
-  #endif
-#else
-typedef LONG NTSTATUS;
-typedef struct _IO_STATUS_BLOCK {
-    union {
-        NTSTATUS Status;
-        PVOID Pointer;
-    };
-    ULONG_PTR Information;
-} IO_STATUS_BLOCK, *PIO_STATUS_BLOCK;
-#endif
-#endif
-
 #include "../../../Common/ComTry.h"
 #include "../../../Common/StringConvert.h"
 #include "../../../Common/Wildcard.h"
@@ -511,13 +490,6 @@ static HRESULT UpdateFile(NFsFolder::CCopyStateIO &state, CFSTR inPath, CFSTR ou
 
 EXTERN_C_BEGIN
 
-typedef enum
-{
-  Z7_WIN_FileRenameInformation = 10
-}
-Z7_WIN_FILE_INFORMATION_CLASS;
-
-
 typedef struct
 {
   // #if (_WIN32_WINNT >= _WIN32_WINNT_WIN10_RS1)
@@ -534,34 +506,6 @@ typedef struct
   WCHAR FileName[1];
 } Z7_WIN_FILE_RENAME_INFORMATION;
 
-#if (_WIN32_WINNT >= 0x0500) && !defined(_M_IA64)
-#define Z7_WIN_NTSTATUS  NTSTATUS
-#define Z7_WIN_IO_STATUS_BLOCK  IO_STATUS_BLOCK
-#else
-typedef LONG Z7_WIN_NTSTATUS;
-typedef struct
-{
-  union
-  {
-    Z7_WIN_NTSTATUS Status;
-    PVOID Pointer;
-  } DUMMYUNIONNAME;
-  ULONG_PTR Information;
-} Z7_WIN_IO_STATUS_BLOCK;
-#endif
-
-typedef Z7_WIN_NTSTATUS (WINAPI *Func_NtSetInformationFile)(
-    HANDLE FileHandle,
-    Z7_WIN_IO_STATUS_BLOCK *IoStatusBlock,
-    PVOID FileInformation,
-    ULONG Length,
-    Z7_WIN_FILE_INFORMATION_CLASS FileInformationClass);
-
-// NTAPI
-typedef ULONG (WINAPI *Func_RtlNtStatusToDosError)(Z7_WIN_NTSTATUS Status);
-
-#define MY_STATUS_SUCCESS 0
-
 EXTERN_C_END
 
 // static Func_NtSetInformationFile f_NtSetInformationFile;
@@ -572,16 +516,6 @@ Z7_COM7F_IMF(CAltStreamsFolder::Rename(UInt32 index, const wchar_t *newName, IPr
 {
   const CAltStream &ss = Streams[index];
   const FString srcPath = _pathPrefix + us2fs(ss.Name);
-
-  const HMODULE ntdll = ::GetModuleHandleW(L"ntdll.dll");
-  // if (!g_NtSetInformationFile_WasRequested) {
-  // g_NtSetInformationFile_WasRequested = true;
-  const
-   Func_NtSetInformationFile
-      f_NtSetInformationFile = Z7_GET_PROC_ADDRESS(
-   Func_NtSetInformationFile, ntdll,
-       "NtSetInformationFile");
-  if (f_NtSetInformationFile)
   {
     NIO::CInFile inFile;
     if (inFile.Open_for_FileRenameInformation(srcPath))
@@ -599,24 +533,9 @@ Z7_COM7F_IMF(CAltStreamsFolder::Rename(UInt32 index, const wchar_t *newName, IPr
       fri->RootDirectory = NULL;
       fri->FileNameLength = len;
       memcpy(fri->FileName, destPath.Ptr(), len);
-      Z7_WIN_IO_STATUS_BLOCK iosb;
-      const Z7_WIN_NTSTATUS status = f_NtSetInformationFile (inFile.GetHandle(),
-          &iosb, fri, (ULONG)buffer.Size(), Z7_WIN_FileRenameInformation);
-      if (status != MY_STATUS_SUCCESS)
-      {
-        const
-         Func_RtlNtStatusToDosError
-            f_RtlNtStatusToDosError = Z7_GET_PROC_ADDRESS(
-         Func_RtlNtStatusToDosError, ntdll,
-             "RtlNtStatusToDosError");
-        if (f_RtlNtStatusToDosError)
-        {
-          const ULONG res = f_RtlNtStatusToDosError(status);
-          if (res != ERROR_MR_MID_NOT_FOUND)
-            return HRESULT_FROM_WIN32(res);
-        }
-      }
-      return status;
+      const DWORD res = inFile.Call_NtSetInformationFile_return_WinError(
+          fri, (ULONG)buffer.Size(), Z7_WIN_FileRenameInformation);
+      return HRESULT_FROM_WIN32(res);
     }
   }
 

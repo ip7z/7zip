@@ -648,9 +648,28 @@ HRESULT CPanel::RefreshListCtrl(const CSelectedState &state)
   
   // OutputDebugStringA("S1\n");
 
-  UString correctedName;
-  UString itemName;
-  UString relPath;
+  UString correctedName, itemName, relPath, focusedNamePure, selectedName;
+  bool needCheckSlash = false;
+  if (state.FocusedName_Defined)
+  {
+    focusedNamePure = state.FocusedName;
+    const int pos = focusedNamePure.ReverseFind_PathSepar();
+    if (pos >= 0)
+    {
+      focusedNamePure.DeleteFrontal((unsigned)pos + 1);
+      needCheckSlash = true;
+    }
+  }
+  if (state.SelectedNames.Size() == 1)
+  {
+    selectedName = state.SelectedNames[0];
+    const int pos = selectedName.ReverseFind_PathSepar();
+    if (pos >= 0)
+    {
+      selectedName.DeleteFrontal((unsigned)pos + 1);
+      needCheckSlash = true;
+    }
+  }
   
   for (UInt32 i = 0; i < numItems; i++)
   {
@@ -667,8 +686,11 @@ HRESULT CPanel::RefreshListCtrl(const CSelectedState &state)
     }
   
     bool selected = false;
-    
-    if (state.FocusedName_Defined || !state.SelectedNames.IsEmpty())
+
+    if (state.SelectedNames.Size() > 1
+        || (state.SelectedNames.Size() == 1 && selectedName == name)
+        || (state.FocusedName_Defined && focusedNamePure == name)
+        || (needCheckSlash && NWindows::NFile::NName::FindSepar(name) >= 0))
     {
       relPath.Empty();
       // relPath += GetItemPrefix(i);
@@ -875,10 +897,10 @@ HRESULT CPanel::RefreshListCtrl(const CSelectedState &state)
     SetFocusedSelectedItem(cursorIndex, state.SelectFocused);
 
   Print_OnNotify("after SetFocusedSelectedItem");
-  
+  // OutputDebugStringA("Sort before");
   SetSortRawStatus();
   _listView.SortItems(CompareItems, (LPARAM)this);
-  
+  // OutputDebugStringA("=== Sort after");
   Print_OnNotify("after  Sort");
 
   if (cursorIndex < 0 && _listView.GetItemCount() > 0)
@@ -1089,19 +1111,19 @@ void CPanel::OpenSelectedItems(bool tryInternal)
       indices.Insert(0, realIndex);
   }
 
-  bool dirIsStarted = false;
+  // bool dirIsStarted = false;
   FOR_VECTOR (i, indices)
   {
     UInt32 index = indices[i];
     // CFileInfo &aFile = m_Files[index];
     if (IsItem_Folder(index))
     {
-      if (!dirIsStarted)
+      // if (!dirIsStarted)
       {
         if (tryInternal)
         {
           OpenFolder(index);
-          dirIsStarted = true;
+          // dirIsStarted = true;
           break;
         }
         else
@@ -1162,14 +1184,15 @@ void CPanel::GetItemName(unsigned itemIndex, UString &s) const
 
 UString CPanel::GetItemPrefix(unsigned itemIndex) const
 {
-  if (itemIndex == kParentIndex)
-    return UString();
-  NCOM::CPropVariant prop;
-  if (_folder->GetProperty(itemIndex, kpidPrefix, &prop) != S_OK)
-    throw 2723400;
   UString prefix;
-  if (prop.vt == VT_BSTR)
-    prefix.SetFromBstr(prop.bstrVal);
+  if (itemIndex != kParentIndex)
+  {
+    NCOM::CPropVariant prop;
+    if (_folder->GetProperty(itemIndex, kpidPrefix, &prop) != S_OK)
+      throw 2723400;
+    if (prop.vt == VT_BSTR)
+      prefix.SetFromBstr(prop.bstrVal);
+  }
   return prefix;
 }
 
