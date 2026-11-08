@@ -311,7 +311,7 @@ int APIENTRY WinMain(HINSTANCE hInstance, HINSTANCE /* hPrevInstance */,
       appLaunched.Replace(L"%%T" WSTRING_PATH_SEPARATOR, fs2us(s2));
     }
     
-    const UString appNameForError = appLaunched; // actually we need to rtemove parameters also
+    const UString appNameForError = appLaunched; // actually we need to remove parameters also
 
     appLaunched.Replace(L"%%T", fs2us(tempDirPath));
 

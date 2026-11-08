@@ -489,7 +489,7 @@ typedef struct
   SRes ReadRes;           // error code from ISeqInStream:Read()
   SRes ProgressRes;       // error code from ICompressProgress:Progress()
 
-  SRes CombinedRes;       // Combined result error code that shows main rusult
+  SRes CombinedRes;       // Combined result error code that shows main result
                           // = S_OK, if there is no error.
                           // but check also (DataAfterEnd) that can show additional minor errors.
  

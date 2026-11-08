@@ -337,7 +337,7 @@ public:
   unsigned _bitPos;             // = [0 ... 7]
   bool _wasFinished;
   bool _minorError;
-  unsigned _blockEndBits7;      // = [0 ... 7] : the number of additional bits in (_blockEnd) poisition.
+  unsigned _blockEndBits7;      // = [0 ... 7] : the number of additional bits in (_blockEnd) position.
   HRESULT _hres;
   const Byte *_bufCheck;        // relaxed limit (16 bytes before real end of input data in buffer)
   Byte *_bufLim;                // end if input data

@@ -126,7 +126,7 @@ static const char * const k_Flags[] =
   , "Comment"
   , "Lock"
   , "Solid"
-  , "NewVolName" // pack_comment in old versuons
+  , "NewVolName" // pack_comment in old versions
   , "Authenticity"
   , "Recovery"
   , "BlockEncryption"

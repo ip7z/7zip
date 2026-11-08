@@ -18,7 +18,7 @@ typedef enum
   ZSTD_STATUS_FINISHED_FRAME,   /* data frame or skip frame was finished */
   ZSTD_STATUS_NOT_FINISHED,     /* just finished non-empty block or unfinished RAW/RLE block */
   ZSTD_STATUS_NEEDS_MORE_INPUT, /* the callee needs more input bytes. It has more priority over ZSTD_STATUS_NOT_FINISHED */
-  ZSTD_STATUS_OUT_REACHED       /* is not finihed frame and ((outProcessed > outSize) || (outProcessed == outSize && unfinished RAW/RLE block) */
+  ZSTD_STATUS_OUT_REACHED       /* is not finished frame and ((outProcessed > outSize) || (outProcessed == outSize && unfinished RAW/RLE block) */
 } enum_ZstdStatus_Dummy;
 
 #define ZstdDecState_DOES_NEED_MORE_INPUT_OR_FINISHED_FRAME(p) \

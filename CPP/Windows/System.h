@@ -60,7 +60,7 @@ struct CProcessAffinity
   bool IsGroupMode;
     /*
       IsGroupMode == true, if
-          Groups.GroupSizes.Size() > 1) && { dafalt affinity was not changed }
+          Groups.GroupSizes.Size() > 1) && { default affinity was not changed }
       IsGroupMode == false, if single group or affinity was changed
     */
   
@@ -105,7 +105,7 @@ struct CProcessAffinity
     return CountAffinity(systemAffinityMask);
   }
 
-  // it returns normilized number of threads
+  // it returns normalized number of threads
   void Get_and_return_NumProcessThreads_and_SysThreads(UInt32 &numProcessThreads, UInt32 &numSysThreads)
   {
     UInt32 num1 = 0, num2 = 0;

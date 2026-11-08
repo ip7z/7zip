@@ -600,7 +600,7 @@ static void SWAP_STATES(CPpmd_State *t1, CPpmd_State *t2)
 
 /*
 CutOff() reduces contexts:
-  It conversts Successors at MaxOrder to another Contexts to NULL-Successors
+  It converts Successors at MaxOrder to another Contexts to NULL-Successors
   It removes RAW-Successors and NULL-Successors that are not Order-0
       and it removes contexts when it has no Successors.
   if the (Union4.Stats) is close to (UnitsStart), it moves it up.
@@ -715,7 +715,7 @@ static CPpmd_Void_Ref CutOff(CPpmd8 *p, PPMD8_CTX_PTR ctx, unsigned order)
 
 /*
 RemoveBinContexts()
-  It conversts Successors at MaxOrder to another Contexts to NULL-Successors
+  It converts Successors at MaxOrder to another Contexts to NULL-Successors
   It changes RAW-Successors to NULL-Successors
   removes Bin Context without Successor, if suffix of that context is also binary.
 */

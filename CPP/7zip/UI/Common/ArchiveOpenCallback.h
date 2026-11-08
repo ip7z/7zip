@@ -68,7 +68,7 @@ public:
 
   CObjectVector<CSubStream> Streams;
 private:
-  // we must use critical section here, if we want to access from different volumnes simultaneously
+  // we must use critical section here, if we want to access from different volumes simultaneously
   int Head; // newest
   int Tail; // oldest
   unsigned NumListItems;

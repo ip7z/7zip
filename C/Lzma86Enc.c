@@ -58,7 +58,7 @@ int Lzma86_Encode(Byte *dest, size_t *destLen, const Byte *src, size_t srcLen,
     /* passes for SZ_FILTER_AUTO:
         0 - BCJ + LZMA
         1 - LZMA
-        2 - BCJ + LZMA agaian, if pass 0 (BCJ + LZMA) is better.
+        2 - BCJ + LZMA again, if pass 0 (BCJ + LZMA) is better.
     */
     int numPasses = (filterMode == SZ_FILTER_AUTO) ? 3 : 1;
 

@@ -131,7 +131,7 @@ Z7_UTF_FLAG_FROM_UTF8_BMP_ESCAPE_CONVERT
    if (flag is NOT set)
    {
      it process ESCAPE-8 points as another Unicode points.
-     In Linux: ESCAPE-16 will mean two different ESCAPE-8 seqences,
+     In Linux: ESCAPE-16 will mean two different ESCAPE-8 sequences,
        so we need HIGH-ESCAPE-PLANE-21 to restore UTF-8-RAW -> UTF-16 -> UTF-8-RAW
    }
 
@@ -233,10 +233,10 @@ WIN32 : UTF-16-RAW -> UTF-8 (archive) -> UTF-16-RAW
      So we restore original UTF-16-RAW.
    }
 
-Linix : UTF-8 with Escapes -> UTF-16 (7z archive) -> UTF-8 with Escapes
+Linux : UTF-8 with Escapes -> UTF-16 (7z archive) -> UTF-8 with Escapes
      set Z7_UTF_FLAG_TO_UTF8_EXTRACT_BMP_ESCAPE to extract non-UTF from 7z archive
      set Z7_UTF_FLAG_TO_UTF8_PARSE_HIGH_ESCAPE for intermediate UTF-16.
-     Note: high esacape mode can be ignored now in UTFConvert.cpp
+     Note: high escape mode can be ignored now in UTFConvert.cpp
 
 macOS:
      the system doesn't support incorrect UTF-8 in file names.

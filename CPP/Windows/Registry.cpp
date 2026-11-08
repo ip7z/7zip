@@ -276,7 +276,7 @@ LONG CKey::QueryValue(LPCTSTR name, CSysString &value)
     // 3 is default available length in new string.
     DWORD size_prev = 3 * sizeof(TCHAR);
     // at least 2 attempts are required. But we use more attempts for cases,
-    // where string can be changed by anothner process
+    // where string can be changed by another process
     for (unsigned i = 0; i < 2 + 2; i++)
     {
       DWORD type = 0;

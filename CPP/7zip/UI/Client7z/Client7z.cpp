@@ -335,7 +335,7 @@ class CArchiveExtractCallback Z7_final:
 
   CMyComPtr<IInArchive> _archiveHandler;
   FString _directoryPath;  // Output directory
-  UString _filePath;       // name inside arcvhive
+  UString _filePath;       // name inside archive
   FString _diskFilePath;   // full path to file on disk
   bool _extractMode;
   struct CProcessedFileInfo

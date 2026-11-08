@@ -49,8 +49,8 @@ typedef HANDLE CThread;
 // #define Thread_Wait(p) Handle_WaitObject(*(p))
 
 #ifdef UNDER_CE
-  // if (USE_THREADS_CreateThread is      defined), we use _beginthreadex()
-  // if (USE_THREADS_CreateThread is not definned), we use CreateThread()
+  // if (USE_THREADS_CreateThread is     defined), we use _beginthreadex()
+  // if (USE_THREADS_CreateThread is not defined), we use CreateThread()
   #define USE_THREADS_CreateThread
 #endif
 

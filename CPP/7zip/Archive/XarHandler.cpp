@@ -502,7 +502,7 @@ static bool AddItem(const CXmlItem &item, CObjectVector<CFile> &files, int paren
     file.UserId_Defined = ParseUInt64(item, "uid", file.UserId);
     file.GroupId_Defined = ParseUInt64(item, "gid", file.GroupId);
     // file.Device_Defined = ParseUInt64(item, "deviceno", file.Device);
-    file.MTime = ParseTime(item, "mtime"); // z_IsRequied = true
+    file.MTime = ParseTime(item, "mtime"); // z_IsRequired = true
     file.CTime = ParseTime(item, "ctime");
     file.ATime = ParseTime(item, "atime");
     {
@@ -648,7 +648,7 @@ HRESULT CHandler::Open2(IInStream *stream)
   if (!toc.IsTagged("toc"))
     return S_FALSE;
 
-  // CreationTime = ParseTime(toc, "creation-time", false); // z_IsRequied
+  // CreationTime = ParseTime(toc, "creation-time", false); // z_IsRequired
   CreationTime_String = toc.GetSubStringForTag("creation-time");
   {
     // we suppose that offset of checksum is always 0;

@@ -315,7 +315,7 @@ public:
   bool ExcludeFileItems;
   bool ShareForWrite;
 
-  /* it must be called after anotrher checks */
+  /* it must be called after another checks */
   bool CanIncludeItem(bool isDir) const
   {
     return isDir ? !ExcludeDirItems : !ExcludeFileItems;

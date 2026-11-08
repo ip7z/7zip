@@ -12,7 +12,7 @@
 
 #define kBlockMoveAlign       (1 << 7)    // alignment for memmove()
 #define kBlockSizeAlign       (1 << 16)   // alignment for block allocation
-#define kBlockSizeReserveMin  (1 << 24)   // it's 1/256 from 4 GB dictinary
+#define kBlockSizeReserveMin  (1 << 24)   // it's 1/256 from 4 GB dictionary
 
 #define kEmptyHashValue 0
 
@@ -147,7 +147,7 @@ static void MatchFinder_ReadBlock(CMatchFinder *p)
     if (size == 0)
     {
       /* we call ReadBlock() after NeedMove() and MoveBlock().
-         NeedMove() and MoveBlock() povide more than (keepSizeAfter)
+         NeedMove() and MoveBlock() provide more than (keepSizeAfter)
          to the end of (blockSize).
          So we don't execute this branch in normal code flow.
          We can go here, if we will call ReadBlock() before NeedMove(), MoveBlock().
