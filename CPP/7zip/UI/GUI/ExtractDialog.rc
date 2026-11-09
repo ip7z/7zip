@@ -54,6 +54,9 @@ BEGIN
   CONTROL   "Restore file security", IDX_EXTRACT_NT_SECUR, MY_CHECKBOX,
             g2x, m + 104, g2xs, 10
   
+  CONTROL   "Use current timestamps for directories", IDX_EXTRACT_CURRENT_DIR_TIMES, MY_CHECKBOX,
+            m, m + 136, xc, 10
+
   DEFPUSHBUTTON  "OK",     IDOK,     bx3, by, bxs, bys, WS_GROUP
   PUSHBUTTON     "Cancel", IDCANCEL, bx2, by, bxs, bys
   PUSHBUTTON     "Help",   IDHELP,   bx1, by, bxs, bys
@@ -69,7 +72,7 @@ END
 #undef yc
 
 #define xc 152
-#define yc 128
+#define yc 140
 
 #undef g1xs
 
@@ -92,6 +95,9 @@ BEGIN
   EDITTEXT  IDE_EXTRACT_PASSWORD, m + g1xs, m + 76, xc - g1xs, 14, ES_PASSWORD | ES_AUTOHSCROLL
   CONTROL   "Show Password", IDX_PASSWORD_SHOW, MY_CHECKBOX, m, m + 92, xc, 10
   
+  CONTROL   "Use current timestamps for directories", IDX_EXTRACT_CURRENT_DIR_TIMES, MY_CHECKBOX,
+            m, m + 108, xc, 10
+
   OK_CANCEL
 END
 

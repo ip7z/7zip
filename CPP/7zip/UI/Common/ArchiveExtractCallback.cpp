@@ -536,6 +536,9 @@ void CArchiveExtractCallback::CreateComplexDirectory(
         hres = GetLastError_noZero_HRESULT();
 #endif
 
+      if (_ntOptions.UseCurrentDirTimes.Val && hres == S_OK)
+        AddCreatedDirectory(fullPath);
+
       if (isFinalDir && !NFile::NFind::DoesDirExist(fullPath))
       {
         _itemFailure = true;
@@ -3216,6 +3219,32 @@ HRESULT CArchiveExtractCallback::SetDirsTimes()
   }
   #endif // _WIN32
   */
+
+  if (_ntOptions.UseCurrentDirTimes.Val)
+  {
+    // Do this after archive times and post links, including implicit parents.
+    // Filesystem timestamps use UTC; the UI displays them in local time.
+    CFiTimesCAM times;
+    times.CTime_Defined = false;
+    times.ATime_Defined = false;
+    times.MTime_Defined = true;
+    NTime::GetCurUtc_FiTime(times.MTime);
+    for (i = _createdFolders.Size(); i != 0;)
+    {
+      const FString &path = _createdFolders[--i];
+      NFind::CFileInfo fi;
+      // A later archive item may have replaced the directory with a file/link.
+      if (!fi.Find(path) || !fi.IsDir() || fi.IsOsSymLink())
+        continue;
+      if (!times.SetDirTime_to_FS(path))
+      {
+        const HRESULT error = GetLastError_noZero_HRESULT();
+        if (res == S_OK)
+          res = error;
+        SendMessageError_with_Error(error, "Cannot set directory time", path);
+      }
+    }
+  }
 
   ClearExtractedDirsInfo();
   return res;

@@ -44,6 +44,10 @@ namespace NExtract
   void Save_ShowPassword(bool showPassword);
   bool Read_ShowPassword();
 
+  void Save_UseCurrentDirTimes(bool enable);
+  bool Read_UseCurrentDirTimes();
+  void Load_UseCurrentDirTimes(CBoolPair &value);
+
   void Save_LimitGB(UInt32 limit_GB);
   UInt32 Read_LimitGB();
 }
