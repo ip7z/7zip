@@ -60,21 +60,24 @@ NUserAnswerMode::EEnum ScanUserYesNoAllQuit(CStdOutStream *outStream)
 #endif
 #endif
 
-static bool GetPassword(CStdOutStream *outStream, UString &psw)
+static void OutputPassInputMessage(CStdOutStream *outStream, const UString &msg)
 {
   if (outStream)
   {
-    *outStream << "\nEnter password"
+    *outStream << '\n' << msg
       #ifdef MY_DISABLE_ECHO
-      " (will not be echoed)"
+      << " (will not be echoed)"
       #endif
-      ":";
+      << ":";
     outStream->Flush();
   }
+}
+
+static bool PassInput(UString &psw)
+{
+  bool res = false;
 
   #ifdef MY_DISABLE_ECHO
-  
-  const HANDLE console = GetStdHandle(STD_INPUT_HANDLE);
 
   /*
   GetStdHandle() returns
@@ -82,37 +85,95 @@ static bool GetPassword(CStdOutStream *outStream, UString &psw)
     NULL : If an application does not have associated standard handles,
            such as a service running on an interactive desktop,
            and has not redirected them. */
-  bool wasChanged = false;
+  const HANDLE console = GetStdHandle(STD_INPUT_HANDLE);
   DWORD mode = 0;
+  bool wasChanged = false;
+
   if (console != INVALID_HANDLE_VALUE && console != NULL)
     if (GetConsoleMode(console, &mode))
       wasChanged = (SetConsoleMode(console, mode & ~(DWORD)ENABLE_ECHO_INPUT) != 0);
-  const bool res = g_StdIn.ScanUStringUntilNewLine(psw);
+  res = g_StdIn.ScanUStringUntilNewLine(psw);
   if (wasChanged)
     SetConsoleMode(console, mode);
-  
-  #else
-  
-  const bool res = g_StdIn.ScanUStringUntilNewLine(psw);
-  
+
+  # else
+
+  res = g_StdIn.ScanUStringUntilNewLine(psw);
+
   #endif
 
+  return res;
+}
+
+static void EndOutStream(CStdOutStream *outStream)
+{
   if (outStream)
   {
     *outStream << endl;
     outStream->Flush();
   }
+}
 
+static bool GetPassword(CStdOutStream *outStream, UString &psw, const bool confirm)
+{
+  UString confirmPsw;
+  UString passInMsg;
+  bool res = false;
+
+  passInMsg = "Enter password";
+  OutputPassInputMessage(outStream, passInMsg);
+  res = PassInput(psw);
+  if (!res)
+  {
+    EndOutStream(outStream);
+    return res;
+  }
+
+  if (confirm)
+  {
+    passInMsg = "Confirm password";
+    OutputPassInputMessage(outStream, passInMsg);
+    res = PassInput(confirmPsw);
+    if (!res)
+    {
+      EndOutStream(outStream);
+      return res;
+    }
+
+    if (psw != confirmPsw)
+    {
+      if (outStream)
+      {
+        *outStream << '\n'
+	           << "Confirm password is different from "
+                   << "the initially entered password, stopping. "
+                   << "Try again!";
+      }
+      res = false;
+    }
+  }
+
+  EndOutStream(outStream);
   return res;
 }
 
-HRESULT GetPassword_HRESULT(CStdOutStream *outStream, UString &psw)
+static HRESULT HandleHRESULT(bool res, UString &psw)
 {
-  if (!GetPassword(outStream, psw))
+  if (!res)
     return E_INVALIDARG;
   if (g_StdIn.Error())
     return E_FAIL;
   if (g_StdIn.Eof() && psw.IsEmpty())
     return E_ABORT;
   return S_OK;
+}
+
+HRESULT GetPasswordConfirm_HRESULT(CStdOutStream *outStream, UString &psw)
+{
+  return HandleHRESULT(GetPassword(outStream, psw, true), psw);
+}
+
+HRESULT GetPassword_HRESULT(CStdOutStream *outStream, UString &psw)
+{
+  return HandleHRESULT(GetPassword(outStream, psw, false), psw);
 }
