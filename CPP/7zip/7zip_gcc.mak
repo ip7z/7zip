@@ -556,6 +556,8 @@ $O/MachoHandler.o: ../../Archive/MachoHandler.cpp
 	$(CXX) $(CXXFLAGS) $<
 $O/MbrHandler.o: ../../Archive/MbrHandler.cpp
 	$(CXX) $(CXXFLAGS) $<
+$O/MirayHandler.o: ../../Archive/MirayHandler.cpp
+	$(CXX) $(CXXFLAGS) $<
 $O/MslzHandler.o: ../../Archive/MslzHandler.cpp
 	$(CXX) $(CXXFLAGS) $<
 $O/MubHandler.o: ../../Archive/MubHandler.cpp
