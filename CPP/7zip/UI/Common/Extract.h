@@ -26,6 +26,7 @@ enum EEnum
 struct CExtractOptionsBase
 {
   CBoolPair ElimDup;
+  bool EnableChainedExtract;
 
   bool ExcludeDirItems;
   bool ExcludeFileItems;
@@ -43,6 +44,7 @@ struct CExtractOptionsBase
   UString HashDir;
 
   CExtractOptionsBase():
+      EnableChainedExtract(false),
       ExcludeDirItems(false),
       ExcludeFileItems(false),
       PathMode_Force(false),
@@ -97,6 +99,20 @@ struct CDecompressStat
     NumArchives = UnpackSize = AltStreams_UnpackSize = PackSize = NumFolders = NumFiles = NumAltStreams = 0;
   }
 };
+
+HRESULT DecompressArchive(
+    CCodecs *codecs,
+    const CArchiveLink &arcLink,
+    UInt64 packSize,
+    const NWildcard::CCensorNode &wildcardCensor,
+    const CExtractOptions &options,
+    bool calcCrc,
+    IExtractCallbackUI *callback,
+    IFolderArchiveExtractCallback *callbackFAE,
+    CArchiveExtractCallback *ecs,
+    UString &errorMessage,
+    UInt64 &stdInProcessed,
+    bool chainedMode);
 
 HRESULT Extract(
     // DECL_EXTERNAL_CODECS_LOC_VARS

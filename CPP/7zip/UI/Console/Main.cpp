@@ -165,6 +165,7 @@ static const char * const kHelpString =
     "  -p{Password} : set Password\n"
     #endif
     "  -r[-|0] : Recurse subdirectories for name search\n"
+    "  -sce : chained extract archives with tar wrapper in a single operation\n"
     "  -sa{a|e|s} : set Archive name mode\n"
     "  -scc{UTF-8|WIN|DOS} : set charset for console input/output\n"
     "  -scs{UTF-8|UTF-16LE|UTF-16BE|WIN|DOS|{id}} : set charset for list files\n"

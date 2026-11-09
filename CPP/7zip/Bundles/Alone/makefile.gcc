@@ -98,6 +98,7 @@ UI_COMMON_OBJS = \
   $O/Bench.o \
   $O/DefaultName.o \
   $O/EnumDirItems.o \
+  $O/ChainedExtract.o \
   $O/Extract.o \
   $O/ExtractingFilePath.o \
   $O/HashCalc.o \
