@@ -53,6 +53,8 @@ BEGIN
 //            g2x, m + 104, g2xs, 10
   CONTROL   "Restore file security", IDX_EXTRACT_NT_SECUR, MY_CHECKBOX,
             g2x, m + 104, g2xs, 10
+  CONTROL   "Open destination folder after extraction", IDX_EXTRACT_OPEN_DEST_FOLDER, MY_CHECKBOX,
+            m, m + 140, xc, 10
   
   DEFPUSHBUTTON  "OK",     IDOK,     bx3, by, bxs, bys, WS_GROUP
   PUSHBUTTON     "Cancel", IDCANCEL, bx2, by, bxs, bys

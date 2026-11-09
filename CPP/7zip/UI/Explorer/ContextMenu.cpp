@@ -1282,10 +1282,12 @@ HRESULT CZipContextMenu::InvokeCommandCommon(const CCommandMapItem &cmi)
           ShowErrorMessageRes(IDS_SELECT_FILES);
           break;
         }
+        const bool openDestFolder = (cmdID == kExtractTo) && NExtract::Read_OpenDestFolder();
         ExtractArchives(_fileNames, cmi.Folder,
             (cmdID == kExtract), // showDialog
             (cmdID == kExtractTo) && _elimDup.Val, // elimDup
-            _writeZone
+            _writeZone,
+            openDestFolder
             );
         break;
       }

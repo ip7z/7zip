@@ -80,6 +80,7 @@ static const UInt32 kLangIDs[] =
   // IDX_EXTRACT_ALT_STREAMS,
   IDX_EXTRACT_NT_SECUR,
   IDX_EXTRACT_ELIM_DUP,
+  IDX_EXTRACT_OPEN_DEST_FOLDER,
   IDG_PASSWORD,
   IDX_PASSWORD_SHOW
 };
@@ -180,11 +181,14 @@ bool CExtractDialog::OnInit()
   // CheckButton_TwoBools(IDX_EXTRACT_ALT_STREAMS, AltStreams, _info.AltStreams);
   CheckButton_TwoBools(IDX_EXTRACT_NT_SECUR,    NtSecurity, _info.NtSecurity);
   CheckButton_TwoBools(IDX_EXTRACT_ELIM_DUP,    ElimDup,    _info.ElimDup);
+  OpenDestFolder = _info.OpenDestFolder.Val;
   
   CheckButton(IDX_PASSWORD_SHOW, _info.ShowPassword.Val);
   UpdatePasswordControl();
 
   #endif
+
+  CheckButton(IDX_EXTRACT_OPEN_DEST_FOLDER, OpenDestFolder);
 
   _path.Attach(GetItem(IDC_EXTRACT_PATH));
 
@@ -318,6 +322,13 @@ void CExtractDialog::OnOK()
   GetButton_Bools(IDX_EXTRACT_NT_SECUR,    NtSecurity, _info.NtSecurity);
   GetButton_Bools(IDX_EXTRACT_ELIM_DUP,    ElimDup,    _info.ElimDup);
 
+  OpenDestFolder = IsButtonCheckedBool(IDX_EXTRACT_OPEN_DEST_FOLDER);
+  if (OpenDestFolder != _info.OpenDestFolder.Val)
+  {
+    _info.OpenDestFolder.Def = true;
+    _info.OpenDestFolder.Val = OpenDestFolder;
+  }
+
   bool showPassword = IsShowPasswordChecked();
   if (showPassword != _info.ShowPassword.Val)
   {
@@ -344,6 +355,7 @@ void CExtractDialog::OnOK()
   #else
   
   ElimDup.Val = IsButtonCheckedBool(IDX_EXTRACT_ELIM_DUP);
+  OpenDestFolder = IsButtonCheckedBool(IDX_EXTRACT_OPEN_DEST_FOLDER);
 
   #endif
   
