@@ -94,6 +94,7 @@ struct CUpdateOptions
 
   bool DeleteAfterCompressing;
   bool SetArcMTime;
+  bool StoreOldestCTime;
   bool RenameMode;
 
   CBoolPair NtSecurity;
@@ -140,6 +141,7 @@ struct CUpdateOptions
     
     DeleteAfterCompressing(false),
     SetArcMTime(false),
+    StoreOldestCTime(false),
     RenameMode(false),
 
     ArcNameMode(k_ArcNameMode_Smart),

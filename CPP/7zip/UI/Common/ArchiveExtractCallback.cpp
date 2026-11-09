@@ -1123,7 +1123,7 @@ void CArchiveExtractCallback::CorrectPathParts()
 }
 
 
-static void GetFiTimesCAM(const CProcessedFileInfo &fi, CFiTimesCAM &pt, const CArc &arc)
+static void GetFiTimesCAM(const CProcessedFileInfo &fi, CFiTimesCAM &pt, const CArc &arc, bool oldestCTime)
 {
   pt.CTime_Defined = false;
   pt.ATime_Defined = false;
@@ -1153,6 +1153,23 @@ static void GetFiTimesCAM(const CProcessedFileInfo &fi, CFiTimesCAM &pt, const C
   {
     fi.ATime.Write_To_FiTime(pt.ATime);
     pt.ATime_Defined = true;
+  }
+
+  if (oldestCTime)
+  {
+    // the oldest of the defined times becomes the creation time
+    const CFiTime *oldest = NULL;
+    if (pt.CTime_Defined)
+      oldest = &pt.CTime;
+    if (pt.ATime_Defined && (!oldest || Compare_FiTime(&pt.ATime, oldest) < 0))
+      oldest = &pt.ATime;
+    if (pt.MTime_Defined && (!oldest || Compare_FiTime(&pt.MTime, oldest) < 0))
+      oldest = &pt.MTime;
+    if (oldest)
+    {
+      pt.CTime = *oldest;
+      pt.CTime_Defined = true;
+    }
   }
 }
 
@@ -1225,7 +1242,7 @@ void CArchiveExtractCallback::CreateFolders()
     return;
 
   CDirPathTime pt;
-  GetFiTimesCAM(_fi, pt, *_arc);
+  GetFiTimesCAM(_fi, pt, *_arc, _ntOptions.OldestCTime);
  
   if (pt.IsSomeTimeDefined())
   {
@@ -2093,7 +2110,7 @@ HRESULT CArchiveExtractCallback::CloseFile()
  #endif
 
   CFiTimesCAM t;
-  GetFiTimesCAM(_fi, t, *_arc);
+  GetFiTimesCAM(_fi, t, *_arc, _ntOptions.OldestCTime);
 
   const bool needSetAttrib = (_needSetAttrib && _fi.Attrib_Defined);
   if (t.IsSomeTimeDefined() || needSetAttrib)
@@ -3135,7 +3152,7 @@ HRESULT CArchiveExtractCallback::SetPostLinks() const
       // we set timestamps before SetAttrib(),
       // because windows doesn't set timestamps, if file has read-only attribute
       CFiTimesCAM pt;
-      GetFiTimesCAM(link.item_FileInfo, pt, *_arc);
+      GetFiTimesCAM(link.item_FileInfo, pt, *_arc, _ntOptions.OldestCTime);
       if (pt.IsSomeTimeDefined())
         if (!pt.SetLinkFileTime_to_FS(link.fullProcessedPath_from))
         {
