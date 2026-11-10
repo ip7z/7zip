@@ -32,12 +32,19 @@ class CZipContextMenu Z7_final:
   public IEnumExplorerCommand,
   public CMyUnknownImp
 {
-  Z7_COM_UNKNOWN_IMP_4_MT(
-      IContextMenu,
-      IShellExtInit,
-      IExplorerCommand,
-      IEnumExplorerCommand
-      )
+  /* The object for new context menu of Windows 11 (_explorerCommandOnly == true)
+     doesn't return IContextMenu and IShellExtInit interfaces.
+     So Explorer uses that object only as IExplorerCommand. */
+  Z7_COM_QI_BEGIN
+  Z7_COM_QI_ENTRY_UNKNOWN(IContextMenu)
+  else if (_explorerCommandOnly && (iid == IID_IContextMenu || iid == IID_IShellExtInit))
+    return E_NOINTERFACE;
+  Z7_COM_QI_ENTRY(IContextMenu)
+  Z7_COM_QI_ENTRY(IShellExtInit)
+  Z7_COM_QI_ENTRY(IExplorerCommand)
+  Z7_COM_QI_ENTRY(IEnumExplorerCommand)
+  Z7_COM_QI_END_MT
+  Z7_COM_ADDREF_RELEASE_MT
 
   // IShellExtInit
   STDMETHOD(Initialize)(LPCITEMIDLIST pidlFolder, LPDATAOBJECT dataObject, HKEY hkeyProgID) Z7_override;
@@ -107,6 +114,12 @@ public:
     // _fileNames_WereReduced = false;
   }
 
+  // for CLSID that is registered in package manifest for new context menu of Windows 11
+  void Init_For_ExplorerCommandOnly()
+  {
+    _explorerCommandOnly = true;
+  }
+
   void LoadItems(IShellItemArray *psiItemArray);
 
   CZipContextMenu();
@@ -151,9 +164,12 @@ private:
   HBITMAP _bitmap;
   UInt32 _writeZone;
   CBoolPair _elimDup;
+  bool _menuIcons;
+  bool _explorerCommandOnly;
 
   bool IsSeparator;
   bool IsRoot;
+  bool ItemsLoaded;
   CObjectVector< CMyComPtr<IExplorerCommand> > SubCommands;
   unsigned CurrentSubCommand;
 

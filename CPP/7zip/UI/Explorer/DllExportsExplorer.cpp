@@ -52,6 +52,17 @@ Z7_DEFINE_GUID(CLSID_CZipContextMenu,
     k_7zip_GUID_Data3_Common,
     0x10, 0x00, 0x00, 0x01, 0x00, 0x02, 0x00, 0x00);
 
+/* {23170F69-40C1-278A-1000-000100030000}
+   IExplorerCommand handler for new context menu of Windows 11.
+   That CLSID is not registered in registry.
+   It's registered in package manifest (Win11/AppxManifest.xml) as COM server
+   and as windows.fileExplorerContextMenus extension. */
+Z7_DEFINE_GUID(CLSID_CZipExplorerCommand_Win11,
+    k_7zip_GUID_Data1,
+    k_7zip_GUID_Data2,
+    k_7zip_GUID_Data3_Common,
+    0x10, 0x00, 0x00, 0x01, 0x00, 0x03, 0x00, 0x00);
+
 using namespace NWindows;
 
 extern
@@ -83,7 +94,9 @@ class CShellExtClassFactory Z7_final:
   STDMETHOD(CreateInstance)(LPUNKNOWN, REFIID, void**) Z7_override Z7_final;
   STDMETHOD(LockServer)(BOOL) Z7_override Z7_final;
 public:
-   CShellExtClassFactory() { InterlockedIncrement(&g_DllRefCount); }
+  int ExplorerCommandOnly;
+
+   CShellExtClassFactory(): ExplorerCommandOnly(false) { InterlockedIncrement(&g_DllRefCount); }
   ~CShellExtClassFactory() { InterlockedDecrement(&g_DllRefCount); }
 };
 
@@ -108,6 +121,8 @@ Z7_COMWF_B CShellExtClassFactory::CreateInstance(LPUNKNOWN pUnkOuter,
   catch(...) { return E_OUTOFMEMORY; }
   if (!shellExt)
     return E_OUTOFMEMORY;
+  if (ExplorerCommandOnly)
+    shellExt->Init_For_ExplorerCommandOnly();
   
   IContextMenu *ctxm = shellExt;
   const HRESULT res = ctxm->QueryInterface(riid, ppvObj);
@@ -177,7 +192,8 @@ STDAPI DllGetClassObject(REFCLSID rclsid, REFIID riid, LPVOID* ppv)
 {
   ODS("In DllGetClassObject\r\n");
   *ppv = NULL;
-  if (IsEqualIID(rclsid, CLSID_CZipContextMenu))
+  const int isWin11 = IsEqualIID(rclsid, CLSID_CZipExplorerCommand_Win11);
+  if (isWin11 || IsEqualIID(rclsid, CLSID_CZipContextMenu))
   {
     CShellExtClassFactory *cf;
     try
@@ -187,6 +203,7 @@ STDAPI DllGetClassObject(REFCLSID rclsid, REFIID riid, LPVOID* ppv)
     catch(...) { return E_OUTOFMEMORY; }
     if (!cf)
       return E_OUTOFMEMORY;
+    cf->ExplorerCommandOnly = isWin11;
     IClassFactory *cf2 = cf;
     const HRESULT res = cf2->QueryInterface(riid, ppv);
     if (res != S_OK)
