@@ -168,8 +168,11 @@ CZipContextMenu::CZipContextMenu():
    _dropMode(false),
    _bitmap(NULL),
    _writeZone((UInt32)(Int32)-1),
+   _menuIcons(false),
+   _explorerCommandOnly(false),
    IsSeparator(false),
    IsRoot(true),
+   ItemsLoaded(false),
    CurrentSubCommand(0)
 {
   ODS("== CZipContextMenu()");
@@ -571,6 +574,8 @@ static HRESULT RETURN_WIN32_LastError_AS_HRESULT()
 }
 
 
+static const unsigned k_Explorer_NumReducedItems = 16;
+
 /*
   we add CCommandMapItem to _commandMap for each new Menu ID.
   so then we use _commandMap[offset].
@@ -635,9 +640,10 @@ Z7_COMWF_B CZipContextMenu::QueryContextMenu(HMENU hMenu, UINT indexMenu,
 
   _elimDup = ci.ElimDup;
   _writeZone = ci.WriteZone;
+  _menuIcons = ci.MenuIcons.Val;
 
   HBITMAP bitmap = NULL;
-  if (ci.MenuIcons.Val)
+  if (ci.MenuIcons.Val && hMenu)
   {
     ODS("### 45")
     if (!_bitmap)
@@ -713,7 +719,6 @@ Z7_COMWF_B CZipContextMenu::QueryContextMenu(HMENU hMenu, UINT indexMenu,
   UString mainString;
   CStringFinder finder;
   UStringVector fileNames_Reduced;
-  const unsigned k_Explorer_NumReducedItems = 16;
   const bool needReduce = !_isMenuForFM && (_fileNames.Size() >= k_Explorer_NumReducedItems);
   _fileNames_WereReduced = needReduce;
   // _fileNames_WereReduced = true; // for debug;
@@ -1532,12 +1537,21 @@ private:
   */
 };
 
-static HRESULT LoadPaths(IShellItemArray *psiItemArray, UStringVector &paths)
+/* LoadPaths() returns S_FALSE and empty (paths), if some item is not
+   file system item. Classic handler also gets only file system items (HDROP).
+   (attribs.FirstDirIndex) is the index of first folder (or drive) item.
+   (maxItems != 0) : it reads only first (maxItems) items. */
+
+static HRESULT LoadPaths(IShellItemArray *psiItemArray, UStringVector &paths,
+    NShell::CFileAttribs &attribs, unsigned maxItems)
 {
+  attribs.Clear();
   if (psiItemArray)
   {
     DWORD numItems = 0;
     RINOK(psiItemArray->GetCount(&numItems))
+    if (maxItems != 0 && numItems > maxItems)
+      numItems = maxItems;
     {
       ODS_(Print_Number(numItems, " ==== LoadPaths START === "))
       for (DWORD i = 0; i < numItems; i++)
@@ -1551,9 +1565,23 @@ static HRESULT LoadPaths(IShellItemArray *psiItemArray, UStringVector &paths)
               && (bool)displayName)
           {
             ODS_U(displayName)
+            if (attribs.FirstDirIndex == -1)
+            {
+              /* compressed folders (zip, cab) have SFGAO_FOLDER and SFGAO_STREAM.
+                 Folders and drives have no SFGAO_STREAM. */
+              SFGAOF sfgao = 0;
+              if (SUCCEEDED(item->GetAttributes(SFGAO_FOLDER | SFGAO_STREAM, &sfgao))
+                  && (sfgao & (SFGAO_FOLDER | SFGAO_STREAM)) == SFGAO_FOLDER)
+                attribs.FirstDirIndex = (int)paths.Size();
+            }
             paths.Add((LPCWSTR)displayName);
+            continue;
           }
         }
+        ODS_(OutputDebugStringA("LoadPaths: non-file-system item"))
+        paths.Clear();
+        attribs.Clear();
+        return S_FALSE;
       }
       ODS_(Print_Number(numItems, " ==== LoadPaths END === "))
     }
@@ -1564,14 +1592,25 @@ static HRESULT LoadPaths(IShellItemArray *psiItemArray, UStringVector &paths)
 
 void CZipExplorerCommand::LoadItems(IShellItemArray *psiItemArray)
 {
+  ItemsLoaded = true;
   SubCommands.Clear();
+  CurrentSubCommand = 0;
+  _commandMap.Clear();
   _fileNames.Clear();
   {
     UStringVector paths;
-    if (LoadPaths(psiItemArray, paths) != S_OK)
+    /* we use only first items to create the menu, as Explorer does for
+       classic IContextMenu handler. The selection can contain many items,
+       and each call to (psiItemArray) can be call to another process.
+       Invoke() loads full list of items. */
+    if (LoadPaths(psiItemArray, paths, _attribs, k_Explorer_NumReducedItems) != S_OK)
       return;
     _fileNames = paths;
   }
+  /* (_isMenuForFM = false) : QueryContextMenu() uses names with "_" postfix,
+     if the list was reduced. And sub-commands (_fileNames_WereReduced = true)
+     create real archive names in Invoke() for full list of items. */
+  _isMenuForFM = false;
   const HRESULT res = QueryContextMenu(
       NULL, // hMenu,
       0, // indexMenu,
@@ -1600,6 +1639,11 @@ void CZipExplorerCommand::LoadItems(IShellItemArray *psiItemArray)
       
     CZipContextMenu *shellExt = new CZipContextMenu();
     shellExt->IsRoot = false;
+    // sub-command object doesn't call QueryContextMenu(). So we copy options here:
+    shellExt->_explorerCommandOnly = _explorerCommandOnly;
+    shellExt->_menuIcons = _menuIcons;
+    shellExt->_elimDup = _elimDup;
+    shellExt->_writeZone = _writeZone;
 
     if (cmi.CtxCommandType == CtxCommandType_CrcRoot && !useCascadedCrc)
       shellExt->IsSeparator = true;
@@ -1641,7 +1685,9 @@ Z7_COMWF_B CZipExplorerCommand::GetTitle(IShellItemArray *psiItemArray, LPWSTR *
   UString name;
   if (IsRoot)
   {
-    LoadItems(psiItemArray);
+    // Explorer calls GetState() that calls LoadItems() before GetTitle() usually.
+    if (!ItemsLoaded)
+      LoadItems(psiItemArray);
     name = "7-Zip"; //  "New"
   }
   else
@@ -1666,10 +1712,14 @@ Z7_COMWF_B CZipExplorerCommand::GetIcon(IShellItemArray * /* psiItemArray */, LP
   ODS("- GetIcon()")
   // COM_TRY_BEGIN
   *ppszIcon = NULL;
-  // return E_NOTIMPL;
-  UString imageName = fs2us(NWindows::NDLL::GetModuleDirPrefix());
-  // imageName += "7zG.exe";
-  imageName += "7-zip.dll";
+  // the root item ("7-Zip") always has icon.
+  // sub-items have icons, if "Icons in context menu" option is enabled.
+  if (!IsRoot && !_menuIcons)
+    return E_NOTIMPL;
+  FString modulePath;
+  if (!NWindows::NDLL::MyGetModuleFileName(modulePath))
+    return E_FAIL;
+  UString imageName = fs2us(modulePath);
   // imageName += ",190";
   return My_SHStrDupW(imageName, ppszIcon);
   // COM_TRY_END
@@ -1696,13 +1746,24 @@ Z7_COMWF_B CZipExplorerCommand::GetCanonicalName(GUID *pguidCommandName)
 }
 
 
-Z7_COMWF_B CZipExplorerCommand::GetState(IShellItemArray * /* psiItemArray */, BOOL /* fOkToBeSlow */, EXPCMDSTATE *pCmdState)
+Z7_COMWF_B CZipExplorerCommand::GetState(IShellItemArray *psiItemArray, BOOL /* fOkToBeSlow */, EXPCMDSTATE *pCmdState)
 {
-  // COM_TRY_BEGIN
+  COM_TRY_BEGIN
   ODS("- GetState()")
-  *pCmdState = ECS_ENABLED;
+  EXPCMDSTATE state = ECS_ENABLED;
+  if (IsRoot)
+  {
+    /* Explorer calls GetState() for root command before EnumSubCommands().
+       We reload the items here, because Explorer can reuse root object for another selection.
+       We hide 7-Zip menu, if there are no commands for selected items
+       (for example, for non-file-system items). */
+    LoadItems(psiItemArray);
+    if (SubCommands.IsEmpty())
+      state = ECS_HIDDEN;
+  }
+  *pCmdState = state;
   return S_OK;
-  // COM_TRY_END
+  COM_TRY_END
 }
 
 
@@ -1718,8 +1779,10 @@ Z7_COMWF_B CZipExplorerCommand::Invoke(IShellItemArray *psiItemArray, IBindCtx *
   ODS("- Invoke()")
   _fileNames.Clear();
   UStringVector paths;
-  RINOK(LoadPaths(psiItemArray, paths))
+  RINOK(LoadPaths(psiItemArray, paths, _attribs, 0))
   _fileNames = paths;
+  if (_fileNames.IsEmpty())
+    return E_INVALIDARG;
   return InvokeCommandCommon(_commandMap_Cur[0]);
 
   COM_TRY_END
@@ -1773,6 +1836,8 @@ Z7_COMWF_B CZipExplorerCommand::EnumSubCommands(IEnumExplorerCommand **ppEnum)
   }
  
   // shellExt->
+  // the object is enumerator of own sub-commands. So we start new enumeration here.
+  CurrentSubCommand = 0;
   return QueryInterface(IID_IEnumExplorerCommand, (void **)ppEnum);
 
   // return S_OK;
@@ -1814,10 +1879,17 @@ Z7_COMWF_B CZipContextMenu::Next(ULONG celt, IExplorerCommand **pUICommand, ULON
 }
 
 
-Z7_COMWF_B CZipContextMenu::Skip(ULONG /* celt */)
+Z7_COMWF_B CZipContextMenu::Skip(ULONG celt)
 {
   ODS("CZipContextMenu::Skip()")
-  return E_NOTIMPL;
+  const unsigned rem = SubCommands.Size() - CurrentSubCommand;
+  if (celt > rem)
+  {
+    CurrentSubCommand = SubCommands.Size();
+    return S_FALSE;
+  }
+  CurrentSubCommand += (unsigned)celt;
+  return S_OK;
 }
 
 

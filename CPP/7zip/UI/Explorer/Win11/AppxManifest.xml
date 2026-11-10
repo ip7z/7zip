@@ -1,0 +1,98 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  AppxManifest.xml for 7-Zip package with external location (sparse package).
+
+  The new context menu of Windows 11 shows only IExplorerCommand handlers
+  that are registered in the manifest of some package.
+  This package contains only this manifest and logo images.
+  7-zip.dll and 7zFM.exe are used from 7-Zip folder that is specified
+  as external location in registration (Add-AppxPackage -ExternalLocation).
+
+  Create a sparse MSIX with MakeAppx and register it with Add-AppxPackage.
+  See README-minimal.md.
+-->
+<Package
+  xmlns="http://schemas.microsoft.com/appx/manifest/foundation/windows10"
+  xmlns:uap="http://schemas.microsoft.com/appx/manifest/uap/windows10"
+  xmlns:uap10="http://schemas.microsoft.com/appx/manifest/uap/windows10/10"
+  xmlns:rescap="http://schemas.microsoft.com/appx/manifest/foundation/windows10/restrictedcapabilities"
+  xmlns:desktop4="http://schemas.microsoft.com/appx/manifest/desktop/windows10/4"
+  xmlns:desktop5="http://schemas.microsoft.com/appx/manifest/desktop/windows10/5"
+  xmlns:desktop10="http://schemas.microsoft.com/appx/manifest/desktop/windows10/10"
+  xmlns:com="http://schemas.microsoft.com/appx/manifest/com/windows10"
+  IgnorableNamespaces="uap uap10 rescap desktop4 desktop5 desktop10 com">
+
+  <!--
+    Publisher:
+      The "OID.2.25.311729368913984317654407730594956997722=1" part is required
+      for unsigned package (Windows 11: Add-AppxPackage -AllowUnsigned).
+      For signed package, Publisher must be equal to the Subject of the certificate.
+      For a signed package, set Publisher to the certificate Subject.
+    Version:
+      Bump the package version whenever its contents change.
+  -->
+  <Identity
+    Name="7zip.ContextMenu"
+    Publisher="CN=7-Zip, OID.2.25.311729368913984317654407730594956997722=1"
+    Version="26.6.0.0"
+    ProcessorArchitecture="neutral" />
+
+  <Properties>
+    <DisplayName>7-Zip Shell Extension</DisplayName>
+    <PublisherDisplayName>7-Zip</PublisherDisplayName>
+    <Logo>Assets\StoreLogo.png</Logo>
+    <uap10:AllowExternalContent>true</uap10:AllowExternalContent>
+  </Properties>
+
+  <Resources>
+    <Resource Language="en-us" />
+  </Resources>
+
+  <Dependencies>
+    <TargetDeviceFamily Name="Windows.Desktop" MinVersion="10.0.19041.0" MaxVersionTested="10.0.26100.0" />
+  </Dependencies>
+
+  <Capabilities>
+    <rescap:Capability Name="runFullTrust" />
+    <rescap:Capability Name="unvirtualizedResources" />
+  </Capabilities>
+
+  <Applications>
+    <Application Id="SevenZip" Executable="7zFM.exe"
+        uap10:TrustLevel="mediumIL" uap10:RuntimeBehavior="win32App">
+      <uap:VisualElements
+          AppListEntry="none"
+          DisplayName="7-Zip"
+          Description="7-Zip Shell Extension"
+          BackgroundColor="transparent"
+          Square150x150Logo="Assets\Square150x150Logo.png"
+          Square44x44Logo="Assets\Square44x44Logo.png" />
+      <Extensions>
+        <!--
+          Clsid must be same as CLSID_CZipExplorerCommand_Win11 in DllExportsExplorer.cpp
+          Path is relative to external location (7-Zip folder).
+        -->
+        <desktop4:Extension Category="windows.fileExplorerContextMenus">
+          <desktop4:FileExplorerContextMenus>
+            <desktop5:ItemType Type="*">
+              <desktop5:Verb Id="SevenZip" Clsid="23170F69-40C1-278A-1000-000100030000" />
+            </desktop5:ItemType>
+            <desktop5:ItemType Type="Directory">
+              <desktop5:Verb Id="SevenZip" Clsid="23170F69-40C1-278A-1000-000100030000" />
+            </desktop5:ItemType>
+            <desktop10:ItemType Type="Drive">
+              <desktop10:Verb Id="SevenZip" Clsid="23170F69-40C1-278A-1000-000100030000" />
+            </desktop10:ItemType>
+          </desktop4:FileExplorerContextMenus>
+        </desktop4:Extension>
+        <com:Extension Category="windows.comServer">
+          <com:ComServer>
+            <com:SurrogateServer DisplayName="7-Zip Shell Extension">
+              <com:Class Id="23170F69-40C1-278A-1000-000100030000" Path="7-zip.dll" ThreadingModel="STA" />
+            </com:SurrogateServer>
+          </com:ComServer>
+        </com:Extension>
+      </Extensions>
+    </Application>
+  </Applications>
+</Package>
