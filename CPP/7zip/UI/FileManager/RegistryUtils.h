@@ -1,9 +1,11 @@
+// Modified 2026-11-15: optional appearance and archive drop settings.
 // RegistryUtils.h
 
 #ifndef ZIP7_INC_REGISTRY_UTILS_H
 #define ZIP7_INC_REGISTRY_UTILS_H
 
 #include "../../../Common/MyTypes.h"
+#include "../../../Common/MyWindows.h"
 #include "../../../Common/MyString.h"
 
 void SaveRegLang(const UString &path);
@@ -28,6 +30,7 @@ struct CFmSettings
   // bool Underline;
 
   bool ShowSystemMenu;
+  bool Open7zOnDrop;
 
   void Save() const;
   void Load();
@@ -46,5 +49,10 @@ bool ReadFlatView(UInt32 panelIndex);
 void Save_ShowDeleted(bool enable);
 bool Read_ShowDeleted();
 */
+
+void Save_ClrMode(UInt32 clrMode);
+UInt32 Read_ClrMode();
+void Apply_ClrMode(bool resetColors);
+void Set_ClrModeWindow(HWND window);
 
 #endif

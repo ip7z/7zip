@@ -1,3 +1,4 @@
+// Modified 2026-11-15: optional appearance and archive drop settings.
 // Windows/Shell.cpp
 
 #include "StdAfx.h"
@@ -9,6 +10,8 @@
 #include "FileName.h"
 #include "MemoryGlobal.h"
 #include "Shell.h"
+
+#include "../../DarkMode/lib/include/Darkmodelib.h"
 
 #ifndef _UNICODE
 extern bool g_IsNT;
@@ -683,6 +686,7 @@ static int CALLBACK BrowseCallbackProc(HWND hwnd, UINT uMsg, LPARAM /* lp */, LP
   {
     case BFFM_INITIALIZED:
     {
+      dmlib::setDarkWndSafeEx(hwnd, false);
       SendMessage(hwnd, BFFM_SETSELECTION, TRUE, data);
       break;
     }

@@ -1,3 +1,4 @@
+// Modified 2026-11-15: optional appearance and archive drop settings.
 // App.cpp
 
 #include "StdAfx.h"
@@ -28,6 +29,8 @@
 #include "ViewSettings.h"
 
 #include "PropertyNameRes.h"
+
+#include "../../../../DarkMode/lib/include/Darkmodelib.h"
 
 using namespace NWindows;
 using namespace NFile;
@@ -108,6 +111,31 @@ void CApp::SetListSettings()
     panel._listView.SetStyle(style);
     panel.SetExtendedStyle();
   }
+
+  {
+    switch (Read_ClrMode())
+    {
+      case 0:
+      {
+        dmlib::setDarkModeConfigEx(static_cast<UINT>(dmlib::DarkModeType::classic));
+        break;
+      }
+
+      case 2:
+      {
+        dmlib::setDarkModeConfig();
+        break;
+      }
+
+      //case 1:
+      default:
+      {
+        dmlib::setDarkModeConfigEx(static_cast<UINT>(dmlib::DarkModeType::dark));
+        break;
+      }
+    }
+		dmlib::setDefaultColors(false);
+  }
 }
 
 #ifndef ILC_COLOR32
@@ -134,10 +162,26 @@ HRESULT CApp::CreateOnePanel(unsigned panelIndex, const UString &mainPath, const
   
   const unsigned id = 1000 + 100 * panelIndex; // check it
 
-  return Panels[panelIndex].Create(_window, _window,
+  const auto resVal = Panels[panelIndex].Create(_window, _window,
       id, path, arcFormat, &m_PanelCallbackImp[panelIndex], &AppState,
       needOpenArc,
       openRes);
+
+  if (Panels[panelIndex].PanelCreated)
+  {
+    dmlib::setChildCtrlsSubclassAndTheme(Panels[panelIndex]);
+    dmlib::setWindowEraseBgSubclass(Panels[panelIndex]);
+    dmlib::setWindowCtlColorSubclass(Panels[panelIndex]);
+    dmlib::setWindowNotifyCustomDrawSubclass(Panels[panelIndex]);
+    dmlib::setWindowEraseBgSubclass(Panels[panelIndex]._headerReBar);
+    dmlib::setWindowCtlColorSubclass(Panels[panelIndex]._headerReBar);
+
+    Panels[panelIndex].setSubclassListNotify();
+
+    dmlib::redrawWindowFrame(Panels[panelIndex]._headerComboBox);
+  }
+
+  return resVal;
 }
 
 
@@ -269,6 +313,9 @@ void CApp::ReloadToolbars()
       for (i = 0; i < Z7_ARRAY_SIZE(g_StandardButtons); i++)
         AddButton(_buttonsImageList, _toolBar, g_StandardButtons[i], ShowButtonsLables, LargeButtons);
 
+    dmlib::setDarkLineAbovePanelToolbar(_toolBar);
+    dmlib::setDarkTooltips(_toolBar, static_cast<int>(dmlib::ToolTipsType::toolbar));
+
     _toolBar.AutoSize();
   }
 }
@@ -284,6 +331,9 @@ void CApp::SaveToolbarChanges()
 HRESULT CApp::Create(HWND hwnd, const UString &mainPath, const UString &arcFormat, int xSizes[2], bool needOpenArc, COpenResult &openRes)
 {
   _window.Attach(hwnd);
+
+  dmlib::initDarkModeEx(L"7zDark");
+  Apply_ClrMode(false);
 
   #ifdef UNDER_CE
   _commandBar.Create(g_hInstance, hwnd, 1);
@@ -350,7 +400,12 @@ HRESULT CApp::Create(HWND hwnd, const UString &mainPath, const UString &arcForma
       }
     }
   }
-  
+
+  dmlib::setWindowEraseBgSubclass(hwnd);
+  dmlib::setDarkWndNotifySafeEx(hwnd, true, true);
+  dmlib::setWindowMenuBarSubclass(hwnd);
+  Set_ClrModeWindow(hwnd);
+
   SetFocusedPanel(LastFocusedPanel);
   Panels[LastFocusedPanel].SetFocusToList();
   return S_OK;

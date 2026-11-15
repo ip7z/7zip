@@ -1,3 +1,4 @@
+// Modified 2026-11-15: optional appearance and archive drop settings.
 // Panel.h
 
 #ifndef ZIP7_INC_PANEL_H
@@ -355,7 +356,10 @@ public:
   CMyListView _listView;
   CPanelCallback *_panelCallback;
 
+  void setSubclassListNotify();
+
 private:
+  static LRESULT CALLBACK ListNotifySubclass(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam, UINT_PTR uIdSubclass, DWORD_PTR dwRefData);
 
   // CExtToIconMap _extToIconMap;
   UINT _baseID;

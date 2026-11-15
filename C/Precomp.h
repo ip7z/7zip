@@ -1,3 +1,4 @@
+// Modified 2026-11-15: optional appearance and archive drop settings.
 /* Precomp.h -- precompilation file
 : Igor Pavlov : Public domain */
 
@@ -20,6 +21,8 @@
     UNICODE 1
     _UNICODE 1
 */
+
+#define Z7_WIN32_WINNT_MIN  0x0600
 
 #include "Compiler.h"
 

@@ -1,3 +1,4 @@
+// Modified 2026-11-15: optional appearance and archive drop settings.
 #define IDD_SETTINGS     2500
 #define IDD_SETTINGS_2  12500
 
@@ -9,6 +10,11 @@
 #define IDX_SETTINGS_SINGLE_CLICK           2506
 #define IDX_SETTINGS_ALTERNATIVE_SELECTION  2507
 #define IDX_SETTINGS_LARGE_PAGES            2508
+#define IDX_SETTINGS_OPEN_7Z_ON_DROP         2509
+#define IDT_SETTINGS_COLOR_MODE             2510
+#define IDS_SETTINGS_COLOR_CLASSIC          2511
+#define IDS_SETTINGS_COLOR_DARK             2512
+#define IDS_SETTINGS_COLOR_SYSTEM           2513
 
 #define IDT_MEM_USAGE_EXTRACT               7816
 
@@ -16,6 +22,9 @@
 #define IDE_SETTINGS_MEM_SPIN_EDIT 101
 #define IDC_SETTINGS_MEM_SPIN      102
 #define IDT_SETTINGS_MEM_GB        103
+
+#define IDT_COLOR_MODE             IDT_SETTINGS_COLOR_MODE
+#define IDC_COLOR_MODE             3105
 
 // #define IDT_SETTINGS_MEM     100
 // #define IDC_SETTINGS_MEM     101
