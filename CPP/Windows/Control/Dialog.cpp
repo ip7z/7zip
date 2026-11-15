@@ -1,3 +1,4 @@
+// Modified 2026-11-15: optional appearance and archive drop settings.
 // Windows/Control/Dialog.cpp
 
 #include "StdAfx.h"
@@ -9,6 +10,11 @@
 #endif
 
 #include "Dialog.h"
+
+#if !defined(Z7_SFX)
+#include "../../7zip/UI/FileManager/RegistryUtils.h"
+#endif
+#include "../../../DarkMode/lib/include/Darkmodelib.h"
 
 extern HINSTANCE g_hInstance;
 #ifndef _UNICODE
@@ -34,7 +40,39 @@ DialogProcedure(HWND dialogHWND, UINT message, WPARAM wParam, LPARAM lParam)
   if (dialog == NULL)
     return FALSE;
   if (message == WM_INITDIALOG)
-    dialog->Attach(dialogHWND);
+    {
+      dialog->Attach(dialogHWND);
+#if defined(Z7_LANG)
+      dmlib::initDarkModeEx(L"7zDark");
+#endif
+#if !defined(Z7_SFX)
+      {
+        switch (Read_ClrMode())
+        {
+          case 0:
+          {
+            dmlib::setDarkModeConfigEx(static_cast<UINT>(dmlib::DarkModeType::classic));
+            break;
+          }
+
+          case 2:
+          {
+            dmlib::setDarkModeConfig();
+            break;
+          }
+
+          //case 1:
+          default:
+          {
+            dmlib::setDarkModeConfigEx(static_cast<UINT>(dmlib::DarkModeType::dark));
+            break;
+          }
+        }
+        dmlib::setDefaultColors(false);
+      }
+#endif
+      dmlib::setDarkWndNotifySafeEx(*dialog, true, true);
+    }
 
   /* MSDN: The dialog box procedure should return
        TRUE  - if it processed the message

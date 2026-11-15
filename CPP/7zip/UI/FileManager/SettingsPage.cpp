@@ -1,3 +1,4 @@
+// Modified 2026-11-15: optional appearance and archive drop settings.
 // SettingsPage.cpp
 
 #include "StdAfx.h"
@@ -24,6 +25,8 @@
 #include "SettingsPage.h"
 #include "SettingsPageRes.h"
 
+#include "../../../../DarkMode/lib/include/Darkmodelib.h"
+
 using namespace NWindows;
 
 #ifdef Z7_LANG
@@ -37,6 +40,8 @@ static const UInt32 kLangIDs[] =
   IDX_SETTINGS_SINGLE_CLICK,
   IDX_SETTINGS_ALTERNATIVE_SELECTION,
   IDX_SETTINGS_LARGE_PAGES,
+  IDX_SETTINGS_OPEN_7Z_ON_DROP,
+  IDT_COLOR_MODE,
   IDT_MEM_USAGE_EXTRACT
   // , IDT_COMPRESS_MEMORY
 };
@@ -117,6 +122,9 @@ bool CSettingsPage::OnInit()
   _wasChanged = false;
   _largePages_wasChanged = false;
   _memx_wasChanged = false;
+
+  _clrMode_wasChanged = false;
+
   /*
   _wasChanged_MemLimit = false;
   _memLimitStrings.Clear();
@@ -139,6 +147,7 @@ bool CSettingsPage::OnInit()
   // CheckButton(IDX_SETTINGS_UNDERLINE, st.Underline);
 
   CheckButton(IDX_SETTINGS_SHOW_SYSTEM_MENU, st.ShowSystemMenu);
+  CheckButton(IDX_SETTINGS_OPEN_7Z_ON_DROP, st.Open7zOnDrop);
   
   if (IsLargePageSupported())
     CheckButton(IDX_SETTINGS_LARGE_PAGES, ReadLockMemoryEnable());
@@ -242,6 +251,30 @@ bool CSettingsPage::OnInit()
     SetItemText(IDE_SETTINGS_MEM_SPIN_EDIT, s);
   }
 
+  {
+    const bool supported = dmlib::isAtLeastWindows10();
+    EnableItem(IDC_COLOR_MODE, supported);
+
+    _clrModeCombo.Attach(GetItem(IDC_COLOR_MODE));
+
+    if (supported)
+    {
+      _curClrMode = Read_ClrMode();
+      const UInt32 modes[] = { IDS_SETTINGS_COLOR_CLASSIC, IDS_SETTINGS_COLOR_DARK, IDS_SETTINGS_COLOR_SYSTEM };
+      for (const auto mode : modes)
+      {
+        _clrModeCombo.AddString(LangString(mode));
+      }
+      _clrModeCombo.SetCurSel(_curClrMode);
+    }
+    else
+    {
+      const wchar_t* mode = L"Old OS";
+      _clrModeCombo.AddString(mode);
+      _clrModeCombo.SetCurSel(0);
+    }
+  }
+
   _initMode = false;
   return CPropertyPage::OnInit();
 }
@@ -283,6 +316,7 @@ LONG CSettingsPage::OnApply()
     // st.Underline = IsButtonCheckedBool(IDX_SETTINGS_UNDERLINE);
     
     st.ShowSystemMenu = IsButtonCheckedBool(IDX_SETTINGS_SHOW_SYSTEM_MENU);
+    st.Open7zOnDrop = IsButtonCheckedBool(IDX_SETTINGS_OPEN_7Z_ON_DROP);
 
     st.Save();
     _wasChanged = false;
@@ -319,6 +353,47 @@ LONG CSettingsPage::OnApply()
     }
     NExtract::Save_LimitGB(val);
     _memx_wasChanged = false;
+  }
+
+  if (_clrMode_wasChanged)
+  {
+    _curClrMode = _clrModeCombo.GetCurSel();
+    Save_ClrMode(_curClrMode);
+    switch (_curClrMode)
+    {
+      case 0:
+      {
+        dmlib::setDarkModeConfigEx(static_cast<UINT>(dmlib::DarkModeType::classic));
+        break;
+      }
+
+      case 2:
+      {
+        dmlib::setDarkModeConfig();
+        break;
+      }
+
+      //case 1:
+      default:
+      {
+        dmlib::setDarkModeConfigEx(static_cast<UINT>(dmlib::DarkModeType::dark));
+        break;
+      }
+    }
+
+    dmlib::setDefaultColors(true);
+
+    HWND hOption = GetParent();
+    dmlib::setChildCtrlsTheme(hOption);
+    dmlib::setDarkTitleBarEx(hOption, true);
+    RedrawWindow(hOption, nullptr, nullptr, RDW_INVALIDATE | RDW_ERASE | RDW_ALLCHILDREN | RDW_UPDATENOW | RDW_FRAME);
+
+    HWND hMain = ::GetParent(GetParent());
+    dmlib::setChildCtrlsTheme(hMain);
+    dmlib::setDarkTitleBarEx(hMain, true);
+    RedrawWindow(hMain, nullptr, nullptr, RDW_INVALIDATE | RDW_ERASE | RDW_ALLCHILDREN | RDW_UPDATENOW | RDW_FRAME);
+
+    _clrMode_wasChanged = false;
   }
 
   /*
@@ -397,6 +472,13 @@ bool CSettingsPage::OnCommand(unsigned code, unsigned itemID, LPARAM param)
       _memx_wasChanged = true;
       Changed();
     }
+
+    if (code == CBN_SELCHANGE && itemID == IDC_COLOR_MODE)
+    {
+      _clrMode_wasChanged = true;
+      Changed();
+    }
+
     /*
     if (code == CBN_SELCHANGE)
     {
@@ -430,6 +512,7 @@ bool CSettingsPage::OnButtonClicked(unsigned buttonID, HWND buttonHWND)
     case IDX_SETTINGS_FULL_ROW:
     case IDX_SETTINGS_SHOW_GRID:
     case IDX_SETTINGS_ALTERNATIVE_SELECTION:
+    case IDX_SETTINGS_OPEN_7Z_ON_DROP:
       _wasChanged = true;
       break;
 

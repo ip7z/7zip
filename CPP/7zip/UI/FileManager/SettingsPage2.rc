@@ -1,3 +1,4 @@
+// Modified 2026-11-15: optional appearance and archive drop settings.
 // #define g1xs 60
 // #include "MemDialogRes.h"
 
@@ -30,6 +31,10 @@ BEGIN
   // LTEXT     "Memory usage for Compressing:", IDT_COMPRESS_MEMORY, m, 140, xc, 8
   // COMBOBOX  IDC_SETTINGS_MEM, m , 152, g1xs, yc - 152, MY_COMBO
   // LTEXT     "/ RAM", IDT_SETTINGS_MEM_RAM, m + g1xs + m, 154, xc - g1xs - m, MY_TEXT_NOPREFIX
+
+  LTEXT "&Color mode:", IDT_COLOR_MODE, m, save_y + 34, xc, 8
+  COMBOBOX IDC_COLOR_MODE, m, spin_y + 34, 170, 60, MY_COMBO
+  MY_CONTROL_CHECKBOX ( "Open dropped .7z archives for &editing", IDX_SETTINGS_OPEN_7Z_ON_DROP, m, save_y + 66, xc)
 END
 
 #undef save_y

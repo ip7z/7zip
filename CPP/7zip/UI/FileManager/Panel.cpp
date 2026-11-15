@@ -1,3 +1,4 @@
+// Modified 2026-11-15: optional appearance and archive drop settings.
 // Panel.cpp
 
 #include "StdAfx.h"
@@ -32,6 +33,8 @@
 #include "RootFolder.h"
 
 #include "PropertyNameRes.h"
+
+#include "../../../../DarkMode/lib/include/Darkmodelib.h"
 
 using namespace NWindows;
 using namespace NControl;
@@ -444,7 +447,11 @@ bool CPanel::OnCreate(CREATESTRUCT * /* createStruct */)
   const TBBUTTON tbb[] =
   {
     // {0, 0, TBSTATE_ENABLED, BTNS_SEP, 0L, 0},
+#ifdef IDB_VIEW_PARENTFOLDER
+    {0, kParentFolderID, TBSTATE_ENABLED, BTNS_BUTTON, { 0, 0 }, 0, 0 },
+#else
     {VIEW_PARENTFOLDER, kParentFolderID, TBSTATE_ENABLED, BTNS_BUTTON, { 0, 0 }, 0, 0 },
+#endif
     // {0, 0, TBSTATE_ENABLED, BTNS_SEP, 0L, 0},
     // {VIEW_NEWFOLDER, kCreateFolderID, TBSTATE_ENABLED, BTNS_BUTTON, 0L, 0},
   };
@@ -486,11 +493,22 @@ bool CPanel::OnCreate(CREATESTRUCT * /* createStruct */)
   }
 
   _headerToolBar.Attach(::CreateToolbarEx ((*this), toolbarStyle,
+#ifdef IDB_VIEW_PARENTFOLDER
+      _baseID + 2, 1,
+      g_hInstance,
+      IDB_VIEW_PARENTFOLDER,
+#else
       _baseID + 2, 11,
       (HINSTANCE)HINST_COMMCTRL,
       IDB_VIEW_SMALL_COLOR,
+#endif
       (LPCTBBUTTON)&tbb, Z7_ARRAY_SIZE(tbb),
       0, 0, 0, 0, sizeof (TBBUTTON)));
+
+#ifdef IDB_VIEW_PARENTFOLDER
+ // default button is 23x22, this will make icon off center, increase size to 24x22 to fix it
+  SendMessage(_headerToolBar, TB_SETBUTTONSIZE, 0, MAKELPARAM(24, 22));
+#endif
 
   #ifndef UNDER_CE
   // Load ComboBoxEx class
@@ -758,7 +776,7 @@ void CPanel::MessageBox_Warning(LPCWSTR message) const
 */
 
 void CPanel::MessageBox_Error_Caption(LPCWSTR message, LPCWSTR caption) const
-  { ::MessageBoxW((HWND)*this, message, caption, MB_OK | MB_ICONSTOP); }
+  { dmlib::darkMessageBoxW((HWND)*this, message, caption, MB_OK | MB_ICONSTOP); }
 
 void CPanel::MessageBox_Error(LPCWSTR message) const
   { MessageBox_Error_Caption(message, L"7-Zip"); }
@@ -1174,4 +1192,93 @@ void CPanel::TestArchives()
     return;
   }
   ::TestArchives(paths);
+}
+
+LRESULT CALLBACK CPanel::ListNotifySubclass(
+  HWND hWnd,
+  UINT uMsg,
+  WPARAM wParam,
+  LPARAM lParam,
+  UINT_PTR uIdSubclass,
+  DWORD_PTR dwRefData
+)
+{
+  auto* pPanelData = reinterpret_cast<CPanel*>(dwRefData);
+
+  switch (uMsg)
+  {
+    case WM_NCDESTROY:
+    {
+      ::RemoveWindowSubclass(hWnd, CPanel::ListNotifySubclass, uIdSubclass);
+      break;
+    }
+
+    case WM_NOTIFY:
+    {
+      if (!dmlib::isEnabled()
+        || (!pPanelData->_mySelectMode
+          && (!pPanelData->_markDeletedItems
+            || !pPanelData->_thereAreDeletedItems)))
+      {
+        break;
+      }
+
+      auto* lplvcd = reinterpret_cast<LPNMLVCUSTOMDRAW>(lParam);
+      if (lplvcd->nmcd.hdr.hwndFrom != static_cast<HWND>(pPanelData->_listView)
+        || lplvcd->nmcd.hdr.code != NM_CUSTOMDRAW)
+      {
+        break;
+      }
+
+      switch (lplvcd->nmcd.dwDrawStage)
+      {
+        case CDDS_PREPAINT:
+        {
+          return CDRF_NOTIFYITEMDRAW | ::DefSubclassProc(hWnd, uMsg, wParam, lParam);
+        }
+
+        case CDDS_ITEMPREPAINT:
+        {
+          const auto resVal = ::DefSubclassProc(hWnd, uMsg, wParam, lParam);
+          const auto realIndex = static_cast<unsigned>(lplvcd->nmcd.lItemlParam);
+          lplvcd->clrTextBk = pPanelData->_listView.GetBkColor();
+          if (pPanelData->_mySelectMode
+              && realIndex != kParentIndex
+              && pPanelData->_selectedStatusVector[realIndex])
+          {
+            lplvcd->clrTextBk = dmlib::getHeaderHotBackgroundColor();
+          }
+
+          if (pPanelData->_markDeletedItems
+            && pPanelData->_thereAreDeletedItems
+            && pPanelData->IsItem_Deleted(realIndex))
+          {
+            lplvcd->clrText = dmlib::getLinkTextColor();
+          }
+          return resVal;
+        }
+
+        default:
+        {
+          break;
+        }
+      }
+      break;
+    }
+
+    default:
+    {
+      break;
+    }
+  }
+  return ::DefSubclassProc(hWnd, uMsg, wParam, lParam);
+}
+
+void CPanel::setSubclassListNotify()
+{
+  static constexpr UINT_PTR uIdSubclass = 42;
+  if (::GetWindowSubclass(_window, ListNotifySubclass, uIdSubclass, nullptr) == FALSE)
+  {
+    ::SetWindowSubclass(_window, ListNotifySubclass, uIdSubclass, reinterpret_cast<DWORD_PTR>(this));
+  }
 }

@@ -1,3 +1,4 @@
+// Modified 2026-11-15: optional appearance and archive drop settings.
 // MenuPage.cpp
 
 #include "StdAfx.h"
@@ -21,6 +22,8 @@
 #include "LangUtils.h"
 #include "MenuPage.h"
 #include "MenuPageRes.h"
+
+#include "../../../../DarkMode/lib/include/Darkmodelib.h"
 
 
 using namespace NWindows;
@@ -282,6 +285,8 @@ bool CMenuPage::OnInit()
   _listView.SetColumnWidthAuto(0);
   _initMode = false;
 
+  dmlib::setDarkListViewCheckboxes(_listView);
+
   return CPropertyPage::OnInit();
 }
 
@@ -290,7 +295,7 @@ bool CMenuPage::OnInit()
 
 static void ShowMenuErrorMessage(const wchar_t *m, HWND hwnd)
 {
-  MessageBoxW(hwnd, m, L"7-Zip", MB_ICONERROR);
+  dmlib::darkMessageBoxW(hwnd, m, L"7-Zip", MB_ICONERROR);
 }
 
 #endif

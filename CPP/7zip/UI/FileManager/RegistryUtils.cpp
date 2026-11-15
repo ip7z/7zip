@@ -1,3 +1,4 @@
+// Modified 2026-11-15: optional appearance and archive drop settings.
 // RegistryUtils.cpp
 
 #include "StdAfx.h"
@@ -7,6 +8,7 @@
 #include "../../../Windows/Registry.h"
 
 #include "RegistryUtils.h"
+#include "../../../../DarkMode/lib/include/Darkmodelib.h"
 
 using namespace NWindows;
 using namespace NRegistry;
@@ -33,12 +35,15 @@ static LPCTSTR const kAlternativeSelection = TEXT("AlternativeSelection");
 // static LPCTSTR const kUnderline = TEXT("Underline");
 
 static LPCTSTR const kShowSystemMenu = TEXT("ShowSystemMenu");
+static LPCTSTR const kOpen7zOnDrop = TEXT("Open7zOnDrop");
 
 // static LPCTSTR const kLockMemoryAdd = TEXT("LockMemoryAdd");
 static LPCTSTR const kLargePages = TEXT("LargePages");
 
 static LPCTSTR const kFlatViewName = TEXT("FlatViewArc");
 // static LPCTSTR const kShowDeletedFiles = TEXT("ShowDeleted");
+
+static LPCTSTR const kClrMode = TEXT("ColorMode");
 
 static void SaveCuString(LPCTSTR keyPath, LPCWSTR valuePath, LPCWSTR value)
 {
@@ -129,6 +134,7 @@ void CFmSettings::Save() const
   // SaveOption(kUnderline, Underline);
 
   SaveOption(kShowSystemMenu, ShowSystemMenu);
+  SaveOption(kOpen7zOnDrop, Open7zOnDrop);
 }
 
 void CFmSettings::Load()
@@ -147,6 +153,7 @@ void CFmSettings::Load()
   // Underline = false;
 
   ShowSystemMenu = false;
+  Open7zOnDrop = false;
 
   CKey key;
   if (key.Open(HKEY_CURRENT_USER, kCU_FMPath, KEY_READ) == ERROR_SUCCESS)
@@ -160,6 +167,7 @@ void CFmSettings::Load()
     // ReadOption(key, kUnderline, Underline);
 
     ReadOption(key, kShowSystemMenu, ShowSystemMenu );
+    ReadOption(key, kOpen7zOnDrop, Open7zOnDrop);
   }
 }
 
@@ -192,3 +200,39 @@ bool ReadFlatView(UInt32 panelIndex)
 void Save_ShowDeleted(bool enable) { SaveOption(kShowDeletedFiles, enable); }
 bool Read_ShowDeleted() { return ReadOption(kShowDeletedFiles, false); }
 */
+
+void Save_ClrMode(UInt32 clrMode)
+{
+  CKey key;
+  key.Create(HKEY_CURRENT_USER, kCUBasePath);
+  if (clrMode > 2)
+    key.DeleteValue(kClrMode);
+  else
+    key.SetValue(kClrMode, clrMode);
+}
+
+UInt32 Read_ClrMode()
+{
+  CKey key;
+  UInt32 v = 0;
+  if (key.Open(HKEY_CURRENT_USER, kCUBasePath, KEY_READ) == ERROR_SUCCESS)
+    key.GetValue_UInt32_IfOk(kClrMode, v);
+  return v <= 2 ? v : 0;
+}
+
+void Apply_ClrMode(bool resetColors)
+{
+  switch (Read_ClrMode())
+  {
+    case 1:
+      dmlib::setDarkModeConfigEx(static_cast<UINT>(dmlib::DarkModeType::dark));
+      break;
+    case 2:
+      dmlib::setDarkModeConfig();
+      break;
+    default:
+      dmlib::setDarkModeConfigEx(static_cast<UINT>(dmlib::DarkModeType::classic));
+      break;
+  }
+  dmlib::setDefaultColors(resetColors);
+}

@@ -1,3 +1,4 @@
+// Modified 2026-11-15: optional appearance and archive drop settings.
 // Windows/Control/PropertyPage.cpp
 
 #include "StdAfx.h"
@@ -7,6 +8,8 @@
 #endif
 
 #include "PropertyPage.h"
+
+#include "../../../DarkMode/lib/include/Darkmodelib.h"
 
 extern HINSTANCE g_hInstance;
 #ifndef _UNICODE
@@ -31,7 +34,13 @@ APIENTRY MyProperyPageProcedure(HWND dialogHWND, UINT message, WPARAM wParam, LP
   if (dialog == NULL)
     return FALSE;
   if (message == WM_INITDIALOG)
-    dialog->Attach(dialogHWND);
+    {
+      dialog->Attach(dialogHWND);
+      dmlib::setDarkWndNotifySafeEx(::GetParent(*dialog), true, true);
+      dmlib::setWindowCtlColorSubclass(*dialog);
+      dmlib::setWindowNotifyCustomDrawSubclass(*dialog);
+      dmlib::setChildCtrlsSubclassAndTheme(*dialog);
+    }
   try { return BoolToBOOL(dialog->OnMessage(message, wParam, lParam)); }
   catch(...) { return TRUE; }
 }

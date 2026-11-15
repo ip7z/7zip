@@ -1,3 +1,4 @@
+// Modified 2026-11-15: optional appearance and archive drop settings.
 #include "SettingsPageRes.h"
 #include "../../GuiCommon.rc"
 
@@ -6,6 +7,13 @@
 
 IDD_SETTINGS  MY_PAGE
 #include "SettingsPage2.rc"
+
+STRINGTABLE
+BEGIN
+  IDS_SETTINGS_COLOR_CLASSIC "Standard (7-Zip default)"
+  IDS_SETTINGS_COLOR_DARK "Dark"
+  IDS_SETTINGS_COLOR_SYSTEM "Follow Windows"
+END
 
 
 #ifdef UNDER_CE
