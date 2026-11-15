@@ -24,6 +24,8 @@ static bool editableArchive;
 static DWORD returnedEffect;
 static DWORD dragKeys;
 static HRESULT dropResult;
+static unsigned reviewTarget = 0;
+static unsigned focusedAfterDrop;
 static int failures;
 static unsigned checks;
 
@@ -94,14 +96,16 @@ static LRESULT CALLBACK Controller(HWND window, UINT message, WPARAM wParam, LPA
 {
   if (message == WM_APP + 1)
   {
-    dropResult = g_App.GetFocusedPanel().BindToPathAndRefresh(fixtureDir.c_str());
+    if (reviewTarget == 1 && g_App.NumPanels == 1) g_App.SwitchOnOffOnePanel();
+    g_App.Panels[0].SetFocusToList();
+    dropResult = g_App.Panels[reviewTarget].BindToPathAndRefresh(fixtureDir.c_str());
     actionDone = true;
     return 0;
   }
   if (message == WM_APP + 2)
   {
     RECT rect;
-    GetWindowRect(g_App.GetFocusedPanel()._listView, &rect);
+    GetWindowRect(g_App.Panels[reviewTarget]._listView, &rect);
     POINTL point{rect.right - 20, rect.bottom - 30};
     auto *data = new FilesData;
     DWORD effect = DROPEFFECT_COPY | DROPEFFECT_MOVE;
@@ -110,8 +114,9 @@ static LRESULT CALLBACK Controller(HWND window, UINT message, WPARAM wParam, LPA
       dropResult = g_App._dropTarget->Drop(data, dragKeys & ~MK_LBUTTON, point, &effect);
     data->Release();
     returnedEffect = effect;
-    openedArchive = g_App.GetFocusedPanel().IsArcFolder();
-    editableArchive = g_App.GetFocusedPanel().DoesItSupportOperations();
+    openedArchive = g_App.Panels[reviewTarget].IsArcFolder();
+    focusedAfterDrop = g_App.LastFocusedPanel;
+    editableArchive = g_App.Panels[reviewTarget].DoesItSupportOperations();
     actionDone = true;
     return 0;
   }
@@ -253,6 +258,9 @@ int main(int argc, char **)
         Drop({fixtureDir + L"\\plain.txt"}, MK_LBUTTON, false, true);
         Drop({fixtureDir + L"\\folder.7z"}, MK_LBUTTON, false, true);
         Drop({fixtureDir + L"\\sample.7z"}, MK_RBUTTON, false, false);
+        reviewTarget = 1;
+        Drop({fixtureDir + L"\\sample.7z"}, MK_LBUTTON, true, false);
+        Require(focusedAfterDrop == 1, "dropping into the other pane focuses that editing pane");
       }
       else if (stage == 2)
       {

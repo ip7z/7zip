@@ -2558,6 +2558,8 @@ Z7_COMWF_B CDropTarget::Drop(IDataObject *dataObject, DWORD keyState,
   {
     RemoveSelection();
     hres = m_Panel->BindToPathAndRefresh(m_SourcePaths[0]);
+    if (hres == S_OK)
+      m_Panel->SetFocusToList();
     // Never report MOVE: Explorer can delete the original archive after Drop().
     *effect = hres == S_OK ? DROPEFFECT_COPY : DROPEFFECT_NONE;
     ClearState();
