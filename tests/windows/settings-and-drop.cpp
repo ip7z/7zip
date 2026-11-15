@@ -26,6 +26,8 @@ static DWORD dragKeys;
 static HRESULT dropResult;
 static unsigned reviewTarget = 0;
 static unsigned focusedAfterDrop;
+static bool requestedLight;
+static bool registryWriteSucceeded;
 static int failures;
 static unsigned checks;
 
@@ -120,6 +122,23 @@ static LRESULT CALLBACK Controller(HWND window, UINT message, WPARAM wParam, LPA
     actionDone = true;
     return 0;
   }
+  if (message == WM_APP + 3)
+  {
+    HKEY key = nullptr;
+    const DWORD light = requestedLight ? 1 : 0;
+    registryWriteSucceeded = RegCreateKeyExW(HKEY_CURRENT_USER,
+        L"Software\\Microsoft\\Windows\\CurrentVersion\\Themes\\Personalize",
+        0, nullptr, 0, KEY_SET_VALUE, nullptr, &key, nullptr) == ERROR_SUCCESS;
+    if (registryWriteSucceeded)
+    {
+      registryWriteSucceeded = RegSetValueExW(key, L"AppsUseLightTheme", 0, REG_DWORD,
+          reinterpret_cast<const BYTE *>(&light), sizeof(light)) == ERROR_SUCCESS;
+      RegCloseKey(key);
+    }
+    SendMessageW(g_App._window, WM_SETTINGCHANGE, 0, reinterpret_cast<LPARAM>(L"ImmersiveColorSet"));
+    actionDone = true;
+    return 0;
+  }
   return DefWindowProcW(window, message, wParam, lParam);
 }
 
@@ -177,9 +196,21 @@ static void Settings(bool expectedDrop, int expectedColor, bool newDrop, int new
   Require(SendMessageW(dialog, PSM_APPLY, 0, 0) != FALSE, "Apply accepts both settings");
   CFmSettings settings; settings.Load();
   Require(settings.Open7zOnDrop == newDrop && Read_ClrMode() == static_cast<UInt32>(newColor), "Apply persists both settings");
-  Require(dmlib::isEnabled() == (newColor == 1), "chosen standard or dark theme is active");
+  const bool expectedDark = newColor == 1 || (newColor == 2 && dmlib::isDarkModeReg());
+  Require(dmlib::isEnabled() == expectedDark, "chosen appearance is active");
   SendMessageW(dialog, WM_COMMAND, IDCANCEL, 0);
   Require(Wait([] { return FindOptions() == nullptr; }), "options dialog closes");
+}
+
+static void SystemColor(bool light, bool expectedDark)
+{
+  requestedLight = light;
+  actionDone = false;
+  PostMessageW(testController, WM_APP + 3, 0, 0);
+  Require(Wait([] { return actionDone.load(); }) && registryWriteSucceeded, "isolated Windows theme preference changes");
+  Require(dmlib::isEnabled() == expectedDark, "selected mode responds correctly to a Windows theme change without restart");
+  const COLORREF expectedBackground = expectedDark ? dmlib::getViewBackgroundColor() : GetSysColor(COLOR_WINDOW);
+  Require(g_App.GetFocusedPanel()._listView.GetBkColor() == expectedBackground, "file panel colors match the selected appearance");
 }
 
 static void Drop(const std::vector<std::wstring> &paths, DWORD keys, bool expectedOpen, bool expectedDialog)
@@ -267,7 +298,25 @@ int main(int argc, char **)
         Settings(true, 1, false, 0);
         Drop({fixtureDir + L"\\sample.7z"}, MK_LBUTTON, false, true);
       }
-      else Settings(false, 0, false, 0);
+      else if (stage == 3)
+      {
+        Settings(false, 0, false, 0);
+        Settings(false, 0, false, 2);
+        SystemColor(false, true);
+        Drop({fixtureDir + L"\\sample.7z"}, MK_LBUTTON, false, true);
+        SystemColor(true, false);
+      }
+      else
+      {
+        Require(Read_ClrMode() == 2, "Follow Windows is preserved after restart");
+        SystemColor(false, true);
+        SystemColor(true, false);
+        Settings(false, 2, false, 1);
+        SystemColor(true, true);
+        Settings(false, 1, false, 0);
+        SystemColor(false, false);
+        SystemColor(true, false);
+      }
     }
     catch (const std::exception &error)
     { std::fprintf(stderr, "FAIL %s\n", error.what()); failures = 1; }

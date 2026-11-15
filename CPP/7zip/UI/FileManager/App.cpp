@@ -404,6 +404,7 @@ HRESULT CApp::Create(HWND hwnd, const UString &mainPath, const UString &arcForma
   dmlib::setWindowEraseBgSubclass(hwnd);
   dmlib::setDarkWndNotifySafeEx(hwnd, true, true);
   dmlib::setWindowMenuBarSubclass(hwnd);
+  Set_ClrModeWindow(hwnd);
 
   SetFocusedPanel(LastFocusedPanel);
   Panels[LastFocusedPanel].SetFocusToList();

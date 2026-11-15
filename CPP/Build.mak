@@ -1,4 +1,3 @@
-# Modified 2026-11-15: optional appearance and archive drop settings.
 LIBS = $(LIBS) oleaut32.lib ole32.lib
 
 # CFLAGS = $(CFLAGS) -DZ7_NO_UNICODE
@@ -78,7 +77,7 @@ CFLAGS_WARN_LEVEL = -Wall --analyze -Xclang -analyzer-output=text
 CFLAGS_WARN_LEVEL = -Wall
 !ENDIF
 
-CFLAGS = $(CFLAGS) -nologo $(CFLAGS_c_switch) $(CFLAGS_WARN_LEVEL) -WX -EHsc -Gy -GR- -GF -GL -Gw -std:c++20 -Zc:enumTypes
+CFLAGS = $(CFLAGS) -nologo $(CFLAGS_c_switch) $(CFLAGS_WARN_LEVEL) -WX -EHsc -Gy -GR- -GF
 
 !IF "$(CC)" == "clang-cl"
 CFLAGS = $(CFLAGS) -Werror -Wall -Wextra -Weverything -Wfatal-errors
@@ -149,7 +148,7 @@ CFLAGS_O2 = $(CFLAGS) -O2
 LFLAGS = $(LFLAGS) -nologo -OPT:REF -OPT:ICF -INCREMENTAL:NO
 
 !IFNDEF UNDER_CE
-LFLAGS = $(LFLAGS) /LTCG /LARGEADDRESSAWARE /DEPENDENTLOADFLAG:0x800 /BREPRO
+LFLAGS = $(LFLAGS) /LARGEADDRESSAWARE
 !ENDIF
 
 !IFDEF DEF_FILE
@@ -180,7 +179,7 @@ LFLAGS = $(LFLAGS) /STACK:8388608
 
 !IFDEF SUB_SYS_VER
 
-MY_SUB_SYS_VER=6.00
+MY_SUB_SYS_VER=5.02
 
 !IFDEF MY_CONSOLE
 LFLAGS = $(LFLAGS) /SUBSYSTEM:console,$(MY_SUB_SYS_VER)

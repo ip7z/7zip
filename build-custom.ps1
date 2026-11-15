@@ -16,11 +16,9 @@ $logs = Join-Path $source 'tests/windows/out'
 New-Item -ItemType Directory -Path $logs -Force | Out-Null
 $libraryHeader = Join-Path $source 'DarkMode/lib/src/StdAfx.h'
 if (!(Test-Path -LiteralPath $libraryHeader)) { throw 'Initialize the DarkMode/lib submodule first' }
-$savedHeader = [IO.File]::ReadAllBytes($libraryHeader)
 $savedPlatform = $env:PLATFORM
 try {
   $env:PLATFORM = 'x64'
-  Copy-Item -LiteralPath (Join-Path $source 'DarkMode/7zRes/StdAfx.h') -Destination $libraryHeader -Force
   foreach ($module in 'FileManager','GUI') {
     Push-Location (Join-Path $source "CPP/7zip/UI/$module")
     try {
@@ -30,7 +28,6 @@ try {
     } finally { Pop-Location }
   }
 } finally {
-  [IO.File]::WriteAllBytes($libraryHeader, $savedHeader)
   $env:PLATFORM = $savedPlatform
 }
 New-Item -ItemType Directory -Path $output | Out-Null
@@ -51,10 +48,19 @@ foreach ($translation in Get-ChildItem -LiteralPath (Join-Path $source 'DarkMode
 }
 Copy-Item -LiteralPath (Join-Path $source 'DarkMode/lib/LICENSE.md') -Destination (Join-Path $output 'Darkmodelib-LICENSE.md')
 Copy-Item -LiteralPath (Join-Path $source 'DarkMode/lib/LICENSE-MIT.md') -Destination (Join-Path $output 'Darkmodelib-LICENSE-MIT.md')
-Write-Output "Built 7-Zip $version x64: $output"
 
-Copy-Item -LiteralPath (Join-Path $source 'LICENSING.md') -Destination $output
-Copy-Item -LiteralPath (Join-Path $source 'Licenses') -Destination $output -Recurse
+foreach ($document in 'LICENSE.md','LICENSING.md') {
+  $documentPath = Join-Path $source $document
+  if (Test-Path -LiteralPath $documentPath) {
+    Copy-Item -LiteralPath $documentPath -Destination $output
+  }
+}
+$noticesOutput = Join-Path $output 'Licenses'
+New-Item -ItemType Directory -Path $noticesOutput -Force | Out-Null
+$noticesSource = Join-Path $source 'Licenses'
+if (Test-Path -LiteralPath $noticesSource) {
+  Get-ChildItem -LiteralPath $noticesSource | Copy-Item -Destination $noticesOutput -Recurse -Force
+}
 foreach ($name in 'LICENSE-PolyHook_2_0.md','LICENSE-UAHMenuBar.md','LICENSE-win32-darkmode.md') {
   Copy-Item -LiteralPath (Join-Path $source ('DarkMode/lib/docs/' + $name)) -Destination (Join-Path $output 'Licenses')
 }
@@ -71,3 +77,5 @@ try {
     [IO.Compression.ZipFileExtensions]::CreateEntryFromFile($archive, $file, ('7zip-26.06-settings/' + $relative), [IO.Compression.CompressionLevel]::Optimal) | Out-Null
   }
 } finally { $archive.Dispose() }
+
+Write-Output "Built and packaged 7-Zip $version x64: $output"

@@ -32,7 +32,9 @@ int WINAPI WinMain(HINSTANCE instance, HINSTANCE, LPSTR, int)
         if (GetDlgItem(window, IDC_COMPRESS_ARCHIVE) && GetDlgItem(window, IDC_COMPRESS_FORMAT)
             && GetDlgItem(window, IDC_COMPRESS_LEVEL))
         {
-          if (dmlib::isEnabled() == (Read_ClrMode() == 1))
+          const UInt32 mode = Read_ClrMode();
+          const bool expectedDark = mode == 1 || (mode == 2 && dmlib::isDarkModeReg());
+          if (dmlib::isEnabled() == expectedDark)
             SetEvent(reinterpret_cast<HANDLE>(data));
           PostMessageW(window, WM_COMMAND, IDCANCEL, 0);
         }

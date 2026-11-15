@@ -2,6 +2,9 @@
 
 
 !IFDEF WIN_CTRL_OBJS
+CFLAGS = $(CFLAGS) -GL -Gw -std:c++20 -Zc:enumTypes
+LFLAGS = $(LFLAGS) /LTCG /DEPENDENTLOADFLAG:0x800 /BREPRO
+
 DARK_MODE_OBJS = \
   $O\Darkmodelib.obj \
   $O\DmlibColor.obj \

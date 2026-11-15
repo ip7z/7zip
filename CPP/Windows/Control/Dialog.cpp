@@ -72,6 +72,9 @@ DialogProcedure(HWND dialogHWND, UINT message, WPARAM wParam, LPARAM lParam)
       }
 #endif
       dmlib::setDarkWndNotifySafeEx(*dialog, true, true);
+#if !defined(Z7_SFX)
+      Set_ClrModeWindow(dialogHWND);
+#endif
     }
 
   /* MSDN: The dialog box procedure should return

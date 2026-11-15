@@ -3,6 +3,8 @@
 
 #include "StdAfx.h"
 
+#include <CommCtrl.h>
+
 #include "../../../Common/IntToString.h"
 
 #include "../../../Windows/Registry.h"
@@ -235,4 +237,27 @@ void Apply_ClrMode(bool resetColors)
       break;
   }
   dmlib::setDefaultColors(resetColors);
+}
+
+static LRESULT CALLBACK ClrModeSubclass(HWND window, UINT message,
+    WPARAM wParam, LPARAM lParam, UINT_PTR id, DWORD_PTR)
+{
+  if (message == WM_NCDESTROY)
+    ::RemoveWindowSubclass(window, ClrModeSubclass, id);
+  else if (message == WM_SETTINGCHANGE && Read_ClrMode() == 2 && lParam
+      && ::lstrcmpW(reinterpret_cast<LPCWSTR>(lParam), L"ImmersiveColorSet") == 0)
+  {
+    Apply_ClrMode(false);
+    dmlib::setDarkTitleBarEx(window, true);
+    dmlib::setChildCtrlsTheme(window);
+    ::RedrawWindow(window, NULL, NULL,
+        RDW_INVALIDATE | RDW_ERASE | RDW_ALLCHILDREN | RDW_UPDATENOW | RDW_FRAME);
+  }
+  return ::DefSubclassProc(window, message, wParam, lParam);
+}
+
+void Set_ClrModeWindow(HWND window)
+{
+  if (window)
+    ::SetWindowSubclass(window, ClrModeSubclass, 1, 0);
 }

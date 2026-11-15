@@ -44,7 +44,7 @@ $archiveHash = (Get-FileHash -LiteralPath (Join-Path $fixtures 'sample.7z') -Alg
 $env:SEVENZIP_TEST_REGROOT = 'Software\7zipSettingsTests\' + [Guid]::NewGuid().ToString('N')
 $env:SEVENZIP_TEST_FIXTURES = $fixtures
 try {
-  foreach ($stage in 1..3) {
+  foreach ($stage in 1..4) {
     $env:SEVENZIP_TEST_STAGE = [string]$stage
     & (Join-Path $out 'settings-test.exe') $fixtures
     if ($LASTEXITCODE) { throw "Integration test stage $stage failed ($LASTEXITCODE)" }
