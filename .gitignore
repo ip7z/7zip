@@ -1,0 +1,47 @@
+# Dot Files/Folder
+.*
+
+# Prerequisites
+*.d
+
+# Compiled Object files
+*.slo
+*.lo
+*.o
+*.obj
+
+# Precompiled Headers
+*.gch
+*.pch
+
+# Compiled Dynamic libraries
+*.so
+*.dylib
+*.dll
+
+# Fortran module files
+*.mod
+*.smod
+
+# Compiled Static libraries
+*.lai
+*.la
+*.a
+*.lib
+
+# Executables
+*.exe
+*.out
+*.app
+
+# Folders
+*.vscode
+**/x86
+**/x64
+**/arm64
+**/x86*-bin
+**/x64*-bin
+**/x64*-installer
+**/arm64*-bin
+**/arm64*-installer
+**/tmp
