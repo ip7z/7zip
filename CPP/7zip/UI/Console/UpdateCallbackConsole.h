@@ -122,6 +122,7 @@ public:
   bool PasswordIsDefined;
   bool AskPassword;
   UString Password;
+  int PasswordFd;
   #endif
 
   CUpdateCallbackConsole():

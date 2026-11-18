@@ -842,6 +842,16 @@ HRESULT CUpdateCallbackConsole::CryptoGetTextPassword2(Int32 *passwordIsDefined,
   
   if (!PasswordIsDefined)
   {
+    if (PasswordFd) {
+      FILE *_file = fdopen(PasswordFd, "r");
+
+      if (!_file)
+        return S_FALSE;
+
+      g_StdIn = CStdInStream(_file);
+    }
+
+
     if (AskPassword)
     {
       RINOK(GetPassword_HRESULT(_so, Password))
@@ -871,6 +881,15 @@ HRESULT CUpdateCallbackConsole::CryptoGetTextPassword(BSTR *password)
   if (!PasswordIsDefined)
   {
     {
+      if (PasswordFd) {
+        FILE *_file = fdopen(PasswordFd, "r");
+
+        if (!_file)
+          return S_FALSE;
+
+        g_StdIn = CStdInStream(_file);
+      }
+
       RINOK(GetPassword_HRESULT(_so, Password))
       PasswordIsDefined = true;
     }
