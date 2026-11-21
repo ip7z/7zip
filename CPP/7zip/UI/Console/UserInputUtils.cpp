@@ -69,15 +69,15 @@ NUserAnswerMode::EEnum ScanUserYesNoAllQuit(CStdOutStream *outStream)
 #define MY_DISABLE_ECHO_UNIX
 #endif
 
-static bool GetPassword(CStdOutStream *outStream, UString &psw)
+static bool ScanPasswordLine(CStdOutStream *outStream, const char *prompt, UString &psw)
 {
   if (outStream)
   {
-    *outStream << "\nEnter password"
-      #ifdef MY_DISABLE_ECHO
-      " (will not be echoed)"
-      #endif
-      ":";
+    *outStream << prompt;
+    #ifdef MY_DISABLE_ECHO
+    *outStream << " (will not be echoed)";
+    #endif
+    *outStream << ":";
     outStream->Flush();
   }
 
@@ -137,9 +137,39 @@ static bool GetPassword(CStdOutStream *outStream, UString &psw)
   return res;
 }
 
-HRESULT GetPassword_HRESULT(CStdOutStream *outStream, UString &psw)
+static bool GetPassword(CStdOutStream *outStream, UString &psw, bool verify)
 {
-  if (!GetPassword(outStream, psw))
+  if (!ScanPasswordLine(outStream, "\nEnter password", psw))
+    return false;
+
+  #ifdef Z7_CONSOLE_PASSWORD_VERIFY
+  if (verify)
+  {
+    if (g_StdIn.Error() || g_StdIn.Eof())
+      return true;
+    UString psw2;
+    if (!ScanPasswordLine(outStream, "Verify password", psw2))
+      return false;
+    if (psw != psw2)
+    {
+      if (outStream)
+      {
+        *outStream << "password verification failed" << endl;
+        outStream->Flush();
+      }
+      return false;
+    }
+  }
+  #else
+  UNUSED_VAR(verify)
+  #endif
+
+  return true;
+}
+
+HRESULT GetPassword_HRESULT(CStdOutStream *outStream, UString &psw, bool verify)
+{
+  if (!GetPassword(outStream, psw, verify))
     return E_INVALIDARG;
   if (g_StdIn.Error())
     return E_FAIL;
