@@ -57,22 +57,31 @@ NUserAnswerMode::EEnum ScanUserYesNoAllQuit(CStdOutStream *outStream)
 #ifdef _WIN32
 #ifndef UNDER_CE
 #define MY_DISABLE_ECHO
+#define MY_DISABLE_ECHO_WIN32
 #endif
 #endif
 
-static bool GetPassword(CStdOutStream *outStream, UString &psw)
+#ifdef unix
+#include <stdio.h>
+#include <termios.h>
+#include <unistd.h>
+#define MY_DISABLE_ECHO
+#define MY_DISABLE_ECHO_UNIX
+#endif
+
+static bool ScanPasswordLine(CStdOutStream *outStream, const char *prompt, UString &psw)
 {
   if (outStream)
   {
-    *outStream << "\nEnter password"
-      #ifdef MY_DISABLE_ECHO
-      " (will not be echoed)"
-      #endif
-      ":";
+    *outStream << prompt;
+    #ifdef MY_DISABLE_ECHO
+    *outStream << " (will not be echoed)";
+    #endif
+    *outStream << ":";
     outStream->Flush();
   }
 
-  #ifdef MY_DISABLE_ECHO
+  #ifdef MY_DISABLE_ECHO_WIN32
   
   const HANDLE console = GetStdHandle(STD_INPUT_HANDLE);
 
@@ -90,7 +99,29 @@ static bool GetPassword(CStdOutStream *outStream, UString &psw)
   const bool res = g_StdIn.ScanUStringUntilNewLine(psw);
   if (wasChanged)
     SetConsoleMode(console, mode);
-  
+
+  #elif defined(MY_DISABLE_ECHO_UNIX)
+
+  int ifd = fileno(stdin);
+  bool wasChanged = false;
+  struct termios old_mode = {};
+  struct termios new_mode = {};
+
+  if (tcgetattr(ifd, &old_mode) == 0) {
+    new_mode = old_mode;
+    new_mode.c_lflag &= ~ECHO;
+
+    wasChanged = true;
+
+    tcsetattr(ifd, TCSAFLUSH, &new_mode);
+  }
+
+  const bool res = g_StdIn.ScanUStringUntilNewLine(psw);
+
+  if (wasChanged) {
+    tcsetattr(ifd, TCSAFLUSH, &old_mode);
+  }
+
   #else
   
   const bool res = g_StdIn.ScanUStringUntilNewLine(psw);
@@ -106,9 +137,39 @@ static bool GetPassword(CStdOutStream *outStream, UString &psw)
   return res;
 }
 
-HRESULT GetPassword_HRESULT(CStdOutStream *outStream, UString &psw)
+static bool GetPassword(CStdOutStream *outStream, UString &psw, bool verify)
 {
-  if (!GetPassword(outStream, psw))
+  if (!ScanPasswordLine(outStream, "\nEnter password", psw))
+    return false;
+
+  #ifdef Z7_CONSOLE_PASSWORD_VERIFY
+  if (verify)
+  {
+    if (g_StdIn.Error() || g_StdIn.Eof())
+      return true;
+    UString psw2;
+    if (!ScanPasswordLine(outStream, "Verify password", psw2))
+      return false;
+    if (psw != psw2)
+    {
+      if (outStream)
+      {
+        *outStream << "password verification failed" << endl;
+        outStream->Flush();
+      }
+      return false;
+    }
+  }
+  #else
+  UNUSED_VAR(verify)
+  #endif
+
+  return true;
+}
+
+HRESULT GetPassword_HRESULT(CStdOutStream *outStream, UString &psw, bool verify)
+{
+  if (!GetPassword(outStream, psw, verify))
     return E_INVALIDARG;
   if (g_StdIn.Error())
     return E_FAIL;
