@@ -164,6 +164,7 @@ static LONG TIME_GetBias()
 }
 
 #define TICKS_PER_SEC 10000000
+#define SECS_1601_TO_1970 ((Int64)11644473600)
 /*
 #define SECS_PER_DAY (24 * 60 * 60)
 #define SECS_1601_TO_1970  ((369 * 365 + 89) * (UInt64)SECS_PER_DAY)
@@ -177,8 +178,56 @@ static LONG TIME_GetBias()
    (ft)->dwHighDateTime = (DWORD)(v64 >> 32);
 
 
+/*
+  The bias must be resolved for the timestamp itself: the DST state of the
+  current day is not the DST state of, for example, a date in the other half
+  of the year. mktime()/localtime() use the historical rules of the local
+  timezone, so we convert via time_t instead of applying one fixed bias.
+*/
+
+bool FILETIME_To_UnixTime(const FILETIME *ft, time_t &t, UInt64 &frac)
+{
+  const UInt64 v = GET_TIME_64(ft);
+  const Int64 secs1601 = (Int64)(v / TICKS_PER_SEC);
+  frac = v % TICKS_PER_SEC;
+  const Int64 secs = secs1601 - SECS_1601_TO_1970;
+  /* the conversion is defined for time_t range only */
+  if (sizeof(time_t) < 8)
+  {
+    if (secs < (Int64)(Int32)0x80000000)
+      return false;
+    if (secs > (Int64)(Int32)0x7FFFFFFF)
+      return false;
+  }
+  t = (time_t)secs;
+  return true;
+}
+
+bool UnixTime_To_FILETIME(time_t t, UInt64 frac, FILETIME *ft)
+{
+  const Int64 secs = (Int64)t + SECS_1601_TO_1970;
+  if (secs < 0)
+    return false;
+  const UInt64 v = (UInt64)secs * TICKS_PER_SEC + frac;
+  SET_FILETIME(ft, v)
+  return true;
+}
+
 BOOL WINAPI FileTimeToLocalFileTime(const FILETIME *fileTime, FILETIME *localFileTime)
 {
+  time_t utc;
+  UInt64 frac;
+  if (FILETIME_To_UnixTime(fileTime, utc, frac))
+  {
+    struct tm tm_loc;
+    if (localtime_r(&utc, &tm_loc))
+    {
+      const time_t asUtc = timegm(&tm_loc);
+      if (asUtc != (time_t)-1 && UnixTime_To_FILETIME(asUtc, frac, localFileTime))
+        return TRUE;
+    }
+  }
+  /* out of range for time_t: fall back to the current bias */
   UInt64 v = GET_TIME_64(fileTime);
   v = (UInt64)((Int64)v - (Int64)TIME_GetBias() * TICKS_PER_SEC);
   SET_FILETIME(localFileTime, v)
@@ -187,6 +236,20 @@ BOOL WINAPI FileTimeToLocalFileTime(const FILETIME *fileTime, FILETIME *localFil
 
 BOOL WINAPI LocalFileTimeToFileTime(const FILETIME *localFileTime, FILETIME *fileTime)
 {
+  time_t asUtc;
+  UInt64 frac;
+  if (FILETIME_To_UnixTime(localFileTime, asUtc, frac))
+  {
+    struct tm tm_utc;
+    if (gmtime_r(&asUtc, &tm_utc))
+    {
+      tm_utc.tm_isdst = -1; /* let mktime() select the historical DST state */
+      const time_t utc = mktime(&tm_utc);
+      if (utc != (time_t)-1 && UnixTime_To_FILETIME(utc, frac, fileTime))
+        return TRUE;
+    }
+  }
+  /* out of range for time_t: fall back to the current bias */
   UInt64 v = GET_TIME_64(localFileTime);
   v = (UInt64)((Int64)v + (Int64)TIME_GetBias() * TICKS_PER_SEC);
   SET_FILETIME(fileTime, v)
