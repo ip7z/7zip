@@ -334,6 +334,31 @@ UInt32 CItem::GetWinAttrib() const
   switch (GetHostOS())
   {
     case NHostOS::kFAT:
+      if (FromCentral)
+      {
+        winAttrib = ExternalAttrib;
+        /*
+          Some old DOS archivers wrote random data to the bits of
+          ExternalAttrib that are not FAT attributes (low 8 bits).
+          That data can look like posix attributes (0x8000 marker),
+          including S_IFLNK type, or like FILE_ATTRIBUTE_REPARSE_POINT.
+          We keep only the FAT attributes if other bits are inconsistent:
+            - posix marker (0x8000) is set, but bits 8..14 are also set.
+              Posix attributes written by p7zip contain only
+              (0x8000 | fat_attributes) in low 16 bits.
+            - no posix marker, but high 16 bits contain bits
+              that are not defined Windows file attributes.
+        */
+        const UInt32 kWinAttrib_High_Defined = 0x005F0000;
+        bool isGarbage;
+        if (winAttrib & FILE_ATTRIBUTE_UNIX_EXTENSION)
+          isGarbage = ((winAttrib & 0x7F00) != 0);
+        else
+          isGarbage = ((winAttrib & 0xFFFF0000 & ~kWinAttrib_High_Defined) != 0);
+        if (isGarbage)
+          winAttrib &= 0xFF;
+      }
+      break;
     case NHostOS::kNTFS:
       if (FromCentral)
         winAttrib = ExternalAttrib;
